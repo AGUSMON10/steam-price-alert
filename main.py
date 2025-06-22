@@ -37,7 +37,7 @@ skins_a_vigilar = {
     "https://steamcommunity.com/market/listings/730/%E2%98%85%20StatTrak%E2%84%A2%20Kukri%20Knife%20%7C%20Scorched%20%28Well-Worn%29":
     149.00,
     "https://steamcommunity.com/market/listings/730/P250%20%7C%20Modern%20Hunter%20%28Well-Worn%29":
-    8.00,
+    80.00,
     "https://steamcommunity.com/market/listings/730/StatTrak%E2%84%A2%20AWP%20%7C%20Corticera%20%28Factory%20New%29": 121.00
 }
 
