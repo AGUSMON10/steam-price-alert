@@ -93,23 +93,23 @@ def obtener_item_nameid(url_item):
     try:
         url_item = limpiar_url(url_item)
         r = requests.get(url_item, headers=HEADERS)
+        if r.status_code == 429:
+            print(f"[WARN] Steam devolvió HTTP 429 para {url_item}. Esperando 5 minutos...")
+            time.sleep(300)
+            return None
         if r.status_code == 200:
             match = re.search(r"Market_LoadOrderSpread\(\s*(\d+)\s*\)", r.text)
             if match:
                 return match.group(1)
             else:
-                print(
-                    f"[WARN] No se encontró item_nameid con patrón normal. Probando fallback..."
-                )
+                print(f"[WARN] No se encontró item_nameid con patrón normal. Probando fallback...")
                 fallback = re.search(
                     r'ItemActivityTicker.Start\( \{"sessionid":.+?"item_nameid":"(\d+)"',
                     r.text)
                 if fallback:
                     return fallback.group(1)
         else:
-            print(
-                f"[ERROR] HTTP {r.status_code} al obtener página de {url_item}"
-            )
+            print(f"[ERROR] HTTP {r.status_code} al obtener página de {url_item}")
     except Exception as e:
         print(f"[ERROR] Excepción al obtener item_nameid de {url_item}: {e}")
         estado_app["errores"] += 1
@@ -120,6 +120,10 @@ def obtener_lowest_sell_price(item_nameid):
     try:
         url = f"https://steamcommunity.com/market/itemordershistogram?language=english&currency=1&item_nameid={item_nameid}"
         r = requests.get(url, headers=HEADERS)
+        if r.status_code == 429:
+            print(f"[WARN] Steam devolvió HTTP 429 al pedir el histograma. Esperando 5 minutos...")
+            time.sleep(300)
+            return None
         if r.status_code == 200:
             data = r.json()
             if "lowest_sell_order" in data:
@@ -173,7 +177,7 @@ def escanear():
                     f"🕒 {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
                 enviar_telegram(mensaje)
                 notificados[url] = precio_actual
-        time.sleep(2)
+        time.sleep(3)
 
 
 def monitor_loop():
@@ -184,7 +188,7 @@ def monitor_loop():
             print("\n🔄 Escaneando precios de venta en Steam...\n")
             escanear()
             print(f"[INFO] Esperando 90 segundos antes del próximo escaneo...")
-            time.sleep(90)
+            time.sleep(100)
         except KeyboardInterrupt:
             print("[INFO] Deteniendo monitoreo...")
             estado_app["activo"] = False
