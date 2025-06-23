@@ -26,18 +26,18 @@ skins_a_vigilar = {
     163.00,
     "https://steamcommunity.com/market/listings/730/%E2%98%85%20Paracord%20Knife%20%7C%20Scorched%20%28Well-Worn%29":
     143.00,
-    "https://steamcommunity.com/market/listings/730/%E2%98%85%20Falchion%20Knife%20%7C%20Damascus%20Steel%20%28Battle-Scarred%29":
-    176.00,
+    "https://steamcommunity.com/market/listings/730/%E2%98%85%20StatTrak%E2%84%A2%20Bowie%20Knife%20%7C%20Boreal%20Forest%20%28Well-Worn%29":
+    150.00,
     "https://steamcommunity.com/market/listings/730/%E2%98%85%20StatTrak%E2%84%A2%20Falchion%20Knife%20%7C%20Bright%20Water%20%28Minimal%20Wear%29":
     155.00,
     "https://steamcommunity.com/market/listings/730/%E2%98%85%20StatTrak%E2%84%A2%20Paracord%20Knife%20%7C%20Forest%20DDPAT%20%28Minimal%20Wear%29":
     152.00,
     "https://steamcommunity.com/market/listings/730/%E2%98%85%20StatTrak%E2%84%A2%20Navaja%20Knife%20%7C%20Blue%20Steel%20%28Minimal%20Wear%29":
     146.00,
-    "https://steamcommunity.com/market/listings/730/%E2%98%85%20StatTrak%E2%84%A2%20Kukri%20Knife%20%7C%20Scorched%20%28Well-Worn%29":
+    "https://steamcommunity.com/market/listings/730/%E2%98%85%20StatTrak%E2%84%A2%20Paracord%20Knife%20%7C%20Ultraviolet%20%28Well-Worn%29":
     149.00,
     "https://steamcommunity.com/market/listings/730/P250%20%7C%20Modern%20Hunter%20%28Well-Worn%29":
-    80.00,
+    8.00,
     "https://steamcommunity.com/market/listings/730/StatTrak%E2%84%A2%20AWP%20%7C%20Corticera%20%28Factory%20New%29": 121.00
 }
 
