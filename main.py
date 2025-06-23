@@ -6,6 +6,16 @@ import threading
 from flask import Flask, jsonify
 from datetime import datetime
 
+import builtins
+
+# Redefinir print global con flush automático
+original_print = print
+def flush_print(*args, **kwargs):
+    kwargs['flush'] = True
+    return original_print(*args, **kwargs)
+
+builtins.print = flush_print
+
 # Configuración desde variables de entorno
 TELEGRAM_BOT_TOKEN = os.environ.get("TELEGRAM_BOT_TOKEN")
 TELEGRAM_CHAT_ID = os.environ.get("TELEGRAM_CHAT_ID")
