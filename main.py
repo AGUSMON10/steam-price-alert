@@ -66,6 +66,14 @@ skins_a_vigilar = {
     196.00,
     "https://steamcommunity.com/market/listings/730/%E2%98%85%20StatTrak%E2%84%A2%20Bayonet%20%7C%20Boreal%20Forest%20%28Battle-Scarred%29":
     220.00,
+    "https://steamcommunity.com/market/listings/730/%E2%98%85%20Specialist%20Gloves%20%7C%20Fade%20%28Battle-Scarred%29":
+    230.00,
+    "https://steamcommunity.com/market/listings/730/%E2%98%85%20Hand%20Wraps%20%7C%20CAUTION%21%20%28Battle-Scarred%29":
+    230.00,
+    "https://steamcommunity.com/market/listings/730/%E2%98%85%20Specialist%20Gloves%20%7C%20Crimson%20Web%20%28Battle-Scarred%29":
+    210.00,
+    "https://steamcommunity.com/market/listings/730/%E2%98%85%20Driver%20Gloves%20%7C%20Black%20Tie%20%28Battle-Scarred%29":
+    205.00,
     "https://steamcommunity.com/market/listings/730/%E2%98%85%20StatTrak%E2%84%A2%20Falchion%20Knife%20%7C%20Urban%20Masked%20%28Minimal%20Wear%29": 193.00
 }
 
@@ -199,7 +207,7 @@ def escanear():
                     f"🕒 {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
                 enviar_telegram(mensaje)
                 notificados[url] = precio_actual
-        time.sleep(4)
+        time.sleep(5)
 
 
 def monitor_loop():
