@@ -32,40 +32,24 @@ if not TELEGRAM_BOT_TOKEN or not TELEGRAM_CHAT_ID:
 skins_a_vigilar = {
     "https://steamcommunity.com/market/listings/730/StatTrak%E2%84%A2%20Glock-18%20%7C%20Wasteland%20Rebel%20%28Minimal%20Wear%29":
     25.00,
-    "https://steamcommunity.com/market/listings/730/%E2%98%85%20StatTrak%E2%84%A2%20Falchion%20Knife%20%7C%20Ultraviolet%20%28Well-Worn%29":
-    161.00,
     "https://steamcommunity.com/market/listings/730/%E2%98%85%20StatTrak%E2%84%A2%20Falchion%20Knife%20%7C%20Case%20Hardened%20%28Battle-Scarred%29":
     248.00,
-    "https://steamcommunity.com/market/listings/730/%E2%98%85%20StatTrak%E2%84%A2%20Paracord%20Knife%20%7C%20Tiger%20Tooth%20%28Minimal%20Wear%29":
-    179.00,
-    "https://steamcommunity.com/market/listings/730/%E2%98%85%20Huntsman%20Knife%20%7C%20Ultraviolet%20%28Minimal%20Wear%29":
-    226.00,
-    "https://steamcommunity.com/market/listings/730/%E2%98%85%20Falchion%20Knife%20%7C%20Blue%20Steel%20%28Factory%20New%29":
-    315.00,
     "https://steamcommunity.com/market/listings/730/%E2%98%85%20StatTrak%E2%84%A2%20Survival%20Knife%20%7C%20Case%20Hardened%20%28Minimal%20Wear%29":
     255.00,
     "https://steamcommunity.com/market/listings/730/%E2%98%85%20StatTrak%E2%84%A2%20Paracord%20Knife%20%7C%20Damascus%20Steel%20%28Factory%20New%29":
     216.00,
-    "https://steamcommunity.com/market/listings/730/%E2%98%85%20StatTrak%E2%84%A2%20Huntsman%20Knife%20%7C%20Boreal%20Forest%20%28Minimal%20Wear%29":
-    160.00,
     "https://steamcommunity.com/market/listings/730/%E2%98%85%20StatTrak%E2%84%A2%20Falchion%20Knife%20%7C%20Bright%20Water%20%28Factory%20New%29":
     220.00,
     "https://steamcommunity.com/market/listings/730/%E2%98%85%20StatTrak%E2%84%A2%20Paracord%20Knife%20%7C%20Ultraviolet%20%28Well-Worn%29":
     151.00,
-    "https://steamcommunity.com/market/listings/730/%E2%98%85%20StatTrak%E2%84%A2%20Huntsman%20Knife%20%7C%20Blue%20Steel%20%28Minimal%20Wear%29":
-    280.00,
     "https://steamcommunity.com/market/listings/730/%E2%98%85%20Gut%20Knife%20%7C%20Blue%20Steel%20%28Factory%20New%29":
     188.00,
-    "https://steamcommunity.com/market/listings/730/%E2%98%85%20StatTrak%E2%84%A2%20Falchion%20Knife%20%7C%20Urban%20Masked%20%28Field-Tested%29":
-    177.00,
     "https://steamcommunity.com/market/listings/730/%E2%98%85%20Paracord%20Knife%20%7C%20Urban%20Masked%20%28Factory%20New%29":
     235.00,
     "https://steamcommunity.com/market/listings/730/%E2%98%85%20Falchion%20Knife%20%7C%20Damascus%20Steel%20%28Battle-Scarred%29":
     181.00,
     "https://steamcommunity.com/market/listings/730/%E2%98%85%20Classic%20Knife%20%7C%20Scorched%20%28Minimal%20Wear%29":
     196.00,
-    "https://steamcommunity.com/market/listings/730/%E2%98%85%20StatTrak%E2%84%A2%20Bayonet%20%7C%20Boreal%20Forest%20%28Battle-Scarred%29":
-    220.00,
     "https://steamcommunity.com/market/listings/730/%E2%98%85%20Specialist%20Gloves%20%7C%20Fade%20%28Battle-Scarred%29":
     230.00,
     "https://steamcommunity.com/market/listings/730/%E2%98%85%20Hand%20Wraps%20%7C%20CAUTION%21%20%28Battle-Scarred%29":
@@ -124,8 +108,8 @@ def obtener_item_nameid(url_item):
         url_item = limpiar_url(url_item)
         r = requests.get(url_item, headers=HEADERS)
         if r.status_code == 429:
-            print(f"[WARN] Steam devolvió HTTP 429 para {url_item}. Esperando 5 minutos...")
-            time.sleep(300)
+            print(f"[WARN] Steam devolvió HTTP 429 para {url_item}. Esperando 4 minutos...")
+            time.sleep(240)
             return None
         if r.status_code == 200:
             match = re.search(r"Market_LoadOrderSpread\(\s*(\d+)\s*\)", r.text)
@@ -151,8 +135,8 @@ def obtener_lowest_sell_price(item_nameid):
         url = f"https://steamcommunity.com/market/itemordershistogram?language=english&currency=1&item_nameid={item_nameid}"
         r = requests.get(url, headers=HEADERS)
         if r.status_code == 429:
-            print(f"[WARN] Steam devolvió HTTP 429 al pedir el histograma. Esperando 5 minutos...")
-            time.sleep(300)
+            print(f"[WARN] Steam devolvió HTTP 429 al pedir el histograma. Esperando 4 minutos...")
+            time.sleep(240)
             return None
         if r.status_code == 200:
             data = r.json()
