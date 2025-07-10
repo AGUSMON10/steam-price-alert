@@ -41,9 +41,7 @@ skins_a_vigilar = {
     "https://steamcommunity.com/market/listings/730/%E2%98%85%20Driver%20Gloves%20%7C%20Black%20Tie%20%28Battle-Scarred%29":
     205.00,
     "https://steamcommunity.com/market/listings/730/AK-47%20%7C%20Inheritance%20%28Field-Tested%29":
-    90.00,
-    "https://steamcommunity.com/market/listings/730/Glock-18%20%7C%20Shinobu%20%28Minimal%20Wear%29":
-    12.00,
+    86.00,
     "https://steamcommunity.com/market/listings/730/M4A1-S%20%7C%20Decimator%20%28Minimal%20Wear%29":
     25.00
 }
