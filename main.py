@@ -51,7 +51,7 @@ skins_a_vigilar = {
     "https://steamcommunity.com/market/listings/730/%E2%98%85%20StatTrak%E2%84%A2%20Paracord%20Knife%20%7C%20Stained%20%28Minimal%20Wear%29":
     164.00,
     "https://steamcommunity.com/market/listings/730/Little%20Kev%20%7C%20The%20Professionals":
-    50.00
+    39.00
 }
 
 notificados = {}
