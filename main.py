@@ -34,10 +34,12 @@ skins_a_vigilar = {
     200.00,
     "https://steamcommunity.com/market/listings/730/%E2%98%85%20Talon%20Knife%20%7C%20Ultraviolet%20%28Field-Tested%29":
     190.00,
+    "https://steamcommunity.com/market/listings/730/%E2%98%85%20Stiletto%20Knife%20%7C%20Slaughter%20%28Field-Tested%29":
+    169.00,
     "https://steamcommunity.com/market/listings/730/%E2%98%85%20Talon%20Knife%20%7C%20Damascus%20Steel%20%28Field-Tested%29":
     200.00,
     "https://steamcommunity.com/market/listings/730/%E2%98%85%20StatTrak%E2%84%A2%20Shadow%20Daggers%20%7C%20Autotronic%20%28Minimal%20Wear%29":
-    148.00
+    14.00
 }
 
 notificados = {}
