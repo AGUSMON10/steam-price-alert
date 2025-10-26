@@ -30,16 +30,26 @@ if not TELEGRAM_BOT_TOKEN or not TELEGRAM_CHAT_ID:
 
 # Lista de ítems con URL y precio máximo aceptado
 skins_a_vigilar = {
-    "https://steamcommunity.com/market/listings/730/%E2%98%85%20Talon%20Knife%20%7C%20Stained%20%28Field-Tested%29":
-    200.00,
-    "https://steamcommunity.com/market/listings/730/%E2%98%85%20Talon%20Knife%20%7C%20Ultraviolet%20%28Field-Tested%29":
-    190.00,
-    "https://steamcommunity.com/market/listings/730/%E2%98%85%20Stiletto%20Knife%20%7C%20Slaughter%20%28Field-Tested%29":
+    "https://steamcommunity.com/market/listings/730/%E2%98%85%20Skeleton%20Knife%20%7C%20Blue%20Steel%20%28Well-Worn%29":
+    155.00,
+    "https://steamcommunity.com/market/listings/730/%E2%98%85%20StatTrak%E2%84%A2%20Skeleton%20Knife%20%7C%20Ultraviolet%20%28Field-Tested%29":
+    155.00,
+    "https://steamcommunity.com/market/listings/730/%E2%98%85%20Skeleton%20Knife%20%7C%20Blue%20Steel%20%28Field-Tested%29":
     169.00,
-    "https://steamcommunity.com/market/listings/730/%E2%98%85%20Talon%20Knife%20%7C%20Damascus%20Steel%20%28Field-Tested%29":
-    200.00,
-    "https://steamcommunity.com/market/listings/730/%E2%98%85%20Driver%20Gloves%20%7C%20Black%20Tie%20%28Battle-Scarred%29":
-    84.00
+    "https://steamcommunity.com/market/listings/730/%E2%98%85%20Skeleton%20Knife%20%7C%20Damascus%20Steel%20%28Factory%20New%29":
+    170.00,
+    "https://steamcommunity.com/market/listings/730/%E2%98%85%20Skeleton%20Knife%20%7C%20Case%20Hardened%20%28Minimal%20Wear%29":
+    177.00,
+    "https://steamcommunity.com/market/listings/730/%E2%98%85%20Stiletto%20Knife%20%7C%20Slaughter%20%28Field-Tested%29":
+    160.00,
+    "https://steamcommunity.com/market/listings/730/%E2%98%85%20Flip%20Knife%20%7C%20Autotronic%20%28Field-Tested%29":
+    140.00,
+    "https://steamcommunity.com/market/listings/730/%E2%98%85%20Flip%20Knife%20%7C%20Autotronic%20%28Minimal%20Wear%29":
+    160.00,
+    "https://steamcommunity.com/market/listings/730/%E2%98%85%20Hand%20Wraps%20%7C%20Overprint%20%28Minimal%20Wear%29":
+    177.00,
+    "https://steamcommunity.com/market/listings/730/%E2%98%85%20StatTrak%E2%84%A2%20Skeleton%20Knife%20%7C%20Blue%20Steel%20%28Field-Tested%29":
+    175.00
 }
 
 notificados = {}
