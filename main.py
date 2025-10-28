@@ -40,8 +40,8 @@ skins_a_vigilar = {
     340.00,
     "https://steamcommunity.com/market/listings/730/%E2%98%85%20StatTrak%E2%84%A2%20M9%20Bayonet%20%7C%20Damascus%20Steel%20%28Field-Tested%29":
     340.00,
-    "https://steamcommunity.com/market/listings/730/%E2%98%85%20M9%20Bayonet%20%7C%20Damascus%20Steel%20%28Minimal%20Wear%29":
-    340.00,
+    "https://steamcommunity.com/market/listings/730/%E2%98%85%20StatTrak%E2%84%A2%20Skeleton%20Knife%20%7C%20Crimson%20Web%20%28Well-Worn%29#":
+    240.00,
     "https://steamcommunity.com/market/listings/730/%E2%98%85%20Flip%20Knife%20%7C%20Autotronic%20%28Factory%20New%29":
     240.00,
     "https://steamcommunity.com/market/listings/730/%E2%98%85%20Hand%20Wraps%20%7C%20Overprint%20%28Minimal%20Wear%29":
