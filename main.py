@@ -118,67 +118,76 @@ def limpiar_url(url):
 def obtener_item_nameid(url_item):
     try:
         url_item = limpiar_url(url_item)
-    try:
-    r = requests.get(
-        url_item,
-        headers=HEADERS,
-        timeout=15,
-        proxies=get_proxy()
-    )
-except:
-    print("Proxy falló, probando otro...")
-    return None
 
+        try:
+            r = requests.get(
+                url_item,
+                headers=HEADERS,
+                timeout=15,
+                proxies=get_proxy()
+            )
+        except:
+            print("Proxy falló, probando otro...")
+            return None
 
         if r.status_code == 429:
             print(f"[WARN] Steam devolvió HTTP 429 para {url_item}. Esperando 5 minutos...")
             time.sleep(300)
             return None
+
         if r.status_code == 200:
             match = re.search(r"Market_LoadOrderSpread\(\s*(\d+)\s*\)", r.text)
             if match:
                 return match.group(1)
-            else:
-                print(f"[WARN] No se encontró item_nameid con patrón normal. Probando fallback...")
-                fallback = re.search(
-                    r'ItemActivityTicker.Start\( \{"sessionid":.+?"item_nameid":"(\d+)"',
-                    r.text)
-                if fallback:
-                    return fallback.group(1)
+
+            print("[WARN] No se encontró item_nameid, intentando fallback...")
+            fallback = re.search(
+                r'ItemActivityTicker.Start\( \{"sessionid":.+?"item_nameid":"(\d+)"',
+                r.text
+            )
+            if fallback:
+                return fallback.group(1)
+
         else:
-            print(f"[ERROR] HTTP {r.status_code} al obtener página de {url_item}")
+            print(f"[ERROR] HTTP {r.status_code} al obtener página")
+
     except Exception as e:
-        print(f"[ERROR] Excepción al obtener item_nameid de {url_item}: {e}")
+        print(f"[ERROR] Excepción obteniendo item_nameid: {e}")
         estado_app["errores"] += 1
+
     return None
+
 
 
 def obtener_lowest_sell_price(item_nameid):
     try:
         url = f"https://steamcommunity.com/market/itemordershistogram?language=english&currency=1&item_nameid={item_nameid}"
-    try:
-    r = requests.get(
-        url,
-        headers=HEADERS,
-        timeout=15,
-        proxies=get_proxy()
-    )
-    except:
-    print("Proxy falló, probando otro...")
-    return None
 
+        try:
+            r = requests.get(
+                url,
+                headers=HEADERS,
+                timeout=15,
+                proxies=get_proxy()
+            )
+        except:
+            print("Proxy falló, probando otro...")
+            return None
 
         if r.status_code == 429:
-            print(f"[WARN] Steam devolvió HTTP 429 al pedir el histograma. Esperando 5 minutos...")
+            print("[WARN] Steam devolvió 429 al pedir precio. Esperando 5 min...")
             time.sleep(300)
             return None
+
         if r.status_code == 200:
             data = r.json()
             if "lowest_sell_order" in data:
                 return int(data["lowest_sell_order"]) / 100
+
     except Exception as e:
-        print(f"[ERROR] Falló la consulta del precio: {e}")
+        print(f"[ERROR] Falló consulta precio: {e}")
         estado_app["errores"] += 1
+
     return None
 
 
