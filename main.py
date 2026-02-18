@@ -1,3 +1,4 @@
+import random
 import requests
 import time
 import re
@@ -55,6 +56,7 @@ skins_a_vigilar = {
 }
 
 notificados = {}
+item_ids_cache = {}
 ultimo_escaneo = None
 estado_app = {"activo": True, "errores": 0, "ultimo_escaneo": None}
 
@@ -99,7 +101,7 @@ def limpiar_url(url):
 def obtener_item_nameid(url_item):
     try:
         url_item = limpiar_url(url_item)
-        r = requests.get(url_item, headers=HEADERS)
+        r = requests.get(url_item, headers=HEADERS, timeout=15))
         if r.status_code == 429:
             print(f"[WARN] Steam devolvió HTTP 429 para {url_item}. Esperando 5 minutos...")
             time.sleep(300)
@@ -126,7 +128,7 @@ def obtener_item_nameid(url_item):
 def obtener_lowest_sell_price(item_nameid):
     try:
         url = f"https://steamcommunity.com/market/itemordershistogram?language=english&currency=1&item_nameid={item_nameid}"
-        r = requests.get(url, headers=HEADERS)
+        r = requests.get(url, headers=HEADERS, timeout=15))
         if r.status_code == 429:
             print(f"[WARN] Steam devolvió HTTP 429 al pedir el histograma. Esperando 5 minutos...")
             time.sleep(300)
@@ -145,7 +147,7 @@ def enviar_telegram(mensaje):
     try:
         url = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendMessage"
         data = {"chat_id": TELEGRAM_CHAT_ID, "text": mensaje}
-        response = requests.post(url, data=data)
+        response = requests.post(url, data=data, timeout=15))
         if response.status_code == 200:
             print("[INFO] Mensaje enviado a Telegram exitosamente")
         else:
@@ -163,10 +165,14 @@ def escanear():
 
     for url, precio_max in skins_a_vigilar.items():
         print(f"[INFO] Revisando: {url}")
-        item_nameid = obtener_item_nameid(url)
-        if not item_nameid:
-            print(f"[ERROR] No se pudo obtener item_nameid para: {url}")
-            continue
+        if url not in item_ids_cache:
+    item_ids_cache[url] = obtener_item_nameid(url)
+
+item_nameid = item_ids_cache.get(url)
+
+if not item_nameid:
+    print(f"[ERROR] No se pudo obtener item_nameid para: {url}")
+    continue
 
         precio_actual = obtener_lowest_sell_price(item_nameid)
         if precio_actual is None:
@@ -184,7 +190,7 @@ def escanear():
                     f"🕒 {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
                 enviar_telegram(mensaje)
                 notificados[url] = precio_actual
-        time.sleep(20)
+        time.sleep(random.randint(40, 90))
 
 
 def monitor_loop():
@@ -195,7 +201,8 @@ def monitor_loop():
             print("\n🔄 Escaneando precios de venta en Steam...\n")
             escanear()
             print(f"[INFO] Esperando 300 segundos antes del próximo escaneo...")
-            time.sleep(300)
+            time.sleep(random.randint(600, 900))
+
         except KeyboardInterrupt:
             print("[INFO] Deteniendo monitoreo...")
             estado_app["activo"] = False
