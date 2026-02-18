@@ -165,32 +165,40 @@ def escanear():
 
     for url, precio_max in skins_a_vigilar.items():
         print(f"[INFO] Revisando: {url}")
+
+        # Cachear item_nameid (evita scrapear siempre)
         if url not in item_ids_cache:
             item_ids_cache[url] = obtener_item_nameid(url)
 
-    item_nameid = item_ids_cache.get(url)
+        item_nameid = item_ids_cache.get(url)
 
         if not item_nameid:
-    print(f"[ERROR] No se pudo obtener item_nameid para: {url}")
-    continue
+            print(f"[ERROR] No se pudo obtener item_nameid para: {url}")
+            continue
 
         precio_actual = obtener_lowest_sell_price(item_nameid)
-            if precio_actual is None:
+
+        if precio_actual is None:
             print(f"[INFO] No hay datos de venta para: {url}")
         else:
             print(f"[INFO] Precio de venta más bajo: {precio_actual:.2f} USD")
             ultima_alerta = notificados.get(url)
-            if precio_actual <= precio_max and (ultima_alerta is None or
-                                                precio_actual < ultima_alerta):
+
+            if precio_actual <= precio_max and (
+                ultima_alerta is None or precio_actual < ultima_alerta
+            ):
                 mensaje = (
                     f"🛒 ¡Skin en venta por debajo del precio objetivo!\n"
                     f"{url}\n"
                     f"💵 Precio actual: {precio_actual:.2f} USD\n"
                     f"📉 Tu máximo: {precio_max:.2f} USD\n"
-                    f"🕒 {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
+                    f"🕒 {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}"
+                )
                 enviar_telegram(mensaje)
                 notificados[url] = precio_actual
-        time.sleep(random.randint(40, 90)
+
+        time.sleep(random.randint(40, 90))
+
 
 
 def monitor_loop():
