@@ -60,6 +60,23 @@ item_ids_cache = {}
 ultimo_escaneo = None
 estado_app = {"activo": True, "errores": 0, "ultimo_escaneo": None}
 
+# Lista de proxies (pegá los tuyos de Webshare)
+PROXIES = [
+    "http://olrliwpe:v769pjjmxnb1@31.59.20.176:6754",
+    "http://olrliwpe:v769pjjmxnb1@23.95.150.145:6114",
+    "http://olrliwpe:v769pjjmxnb1@64.137.96.74:6641",
+    "http://olrliwpe:v769pjjmxnb1@142.111.67.146:5611",
+    "http://olrliwpe:v769pjjmxnb1@23.229.19.94:8689",
+]
+
+def get_proxy():
+    proxy = random.choice(PROXIES)
+    return {
+        "http": proxy,
+        "https": proxy
+    }
+
+
 # Headers realistas
 HEADERS = {
     "User-Agent":
@@ -101,7 +118,18 @@ def limpiar_url(url):
 def obtener_item_nameid(url_item):
     try:
         url_item = limpiar_url(url_item)
-        r = requests.get(url_item, headers=HEADERS, timeout=15)
+    try:
+    r = requests.get(
+        url_item,
+        headers=HEADERS,
+        timeout=15,
+        proxies=get_proxy()
+    )
+except:
+    print("Proxy falló, probando otro...")
+    return None
+
+
         if r.status_code == 429:
             print(f"[WARN] Steam devolvió HTTP 429 para {url_item}. Esperando 5 minutos...")
             time.sleep(300)
@@ -128,7 +156,18 @@ def obtener_item_nameid(url_item):
 def obtener_lowest_sell_price(item_nameid):
     try:
         url = f"https://steamcommunity.com/market/itemordershistogram?language=english&currency=1&item_nameid={item_nameid}"
-        r = requests.get(url, headers=HEADERS, timeout=15)
+    try:
+    r = requests.get(
+        url,
+        headers=HEADERS,
+        timeout=15,
+        proxies=get_proxy()
+    )
+    except:
+    print("Proxy falló, probando otro...")
+    return None
+
+
         if r.status_code == 429:
             print(f"[WARN] Steam devolvió HTTP 429 al pedir el histograma. Esperando 5 minutos...")
             time.sleep(300)
@@ -218,7 +257,7 @@ def monitor_loop():
         except Exception as e:
             print(f"[ERROR] Error en el bucle principal: {e}")
             estado_app["errores"] += 1
-            time.sleep(180)  # Esperar menos tiempo en caso de error
+            time.sleep(150)  # Esperar menos tiempo en caso de error
 
 
 # 🔁 Ejecutar el servidor Flask en hilo separado
