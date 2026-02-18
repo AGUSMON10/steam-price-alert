@@ -209,7 +209,7 @@ def monitor_loop():
             print("\n🔄 Escaneando precios de venta en Steam...\n")
             escanear()
             print(f"[INFO] Esperando 300 segundos antes del próximo escaneo...")
-            time.sleep(random.randint(600, 900)
+            time.sleep(random.randint(600, 900))
 
         except KeyboardInterrupt:
             print("[INFO] Deteniendo monitoreo...")
