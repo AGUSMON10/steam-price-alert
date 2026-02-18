@@ -124,28 +124,31 @@ def limpiar_url(url):
 
 def obtener_item_nameid(url_item):
     for intento in range(4):
-    proxy = get_proxy()
-    try:
-        r = requests.get(
-            url_item,
-            headers=HEADERS,
-            timeout=15,
-            proxies=proxy
-        )
+        proxy = get_proxy()
 
-        if r.status_code == 429:
-            print("429 detectado — cambiando proxy...")
-            time.sleep(10)
-            continue
+        try:
+            r = requests.get(
+                url_item,
+                headers=HEADERS,
+                timeout=15,
+                proxies=proxy
+            )
 
-        break
+            if r.status_code == 429:
+                print("429 detectado — cambiando proxy...")
+                time.sleep(10)
+                continue
 
-    except Exception:
-        print("Proxy malo:", proxy)
-        BAD_PROXIES.add(proxy["http"])
-        time.sleep(5)
-else:
-    return None
+            break
+
+        except Exception:
+            print("Proxy malo:", proxy)
+            BAD_PROXIES.add(proxy["http"])
+            time.sleep(5)
+
+    else:
+        return None
+
 
 
         if r.status_code == 429:
