@@ -9,6 +9,29 @@ from datetime import datetime
 
 import builtins
 
+# Lista de proxies (pegá los tuyos de Webshare)
+
+PROXIES = [
+    "http://olrliwpe:v769pjjmxnb1@31.59.20.176:6754",
+    "http://olrliwpe:v769pjjmxnb1@23.95.150.145:6114",
+    "http://olrliwpe:v769pjjmxnb1@64.137.96.74:6641",
+    "http://olrliwpe:v769pjjmxnb1@142.111.67.146:5611",
+    "http://olrliwpe:v769pjjmxnb1@23.229.19.94:8689",
+    "http://olrliwpe:v769pjjmxnb1@198.105.121.200:6462",
+    "http://olrliwpe:v769pjjmxnb1@216.10.27.159:6837",
+    "http://olrliwpe:v769pjjmxnb1@107.172.163.27:6543"
+]
+
+BAD_PROXIES = set()
+
+def get_proxy():
+    disponibles = [p for p in PROXIES if p not in BAD_PROXIES]
+    if not disponibles:
+        disponibles = PROXIES
+    proxy = random.choice(disponibles)
+    return {"http": proxy, "https": proxy}
+
+
 # Redefinir print global con flush automático
 original_print = print
 def flush_print(*args, **kwargs):
@@ -60,22 +83,6 @@ item_ids_cache = {}
 ultimo_escaneo = None
 estado_app = {"activo": True, "errores": 0, "ultimo_escaneo": None}
 
-# Lista de proxies (pegá los tuyos de Webshare)
-PROXIES = [
-    "http://olrliwpe:v769pjjmxnb1@31.59.20.176:6754",
-    "http://olrliwpe:v769pjjmxnb1@23.95.150.145:6114",
-    "http://olrliwpe:v769pjjmxnb1@64.137.96.74:6641",
-    "http://olrliwpe:v769pjjmxnb1@142.111.67.146:5611",
-    "http://olrliwpe:v769pjjmxnb1@23.229.19.94:8689",
-]
-
-def get_proxy():
-    proxy = random.choice(PROXIES)
-    return {
-        "http": proxy,
-        "https": proxy
-    }
-
 
 # Headers realistas
 HEADERS = {
@@ -116,19 +123,30 @@ def limpiar_url(url):
 
 
 def obtener_item_nameid(url_item):
+    for intento in range(4):
+    proxy = get_proxy()
     try:
-        url_item = limpiar_url(url_item)
+        r = requests.get(
+            url_item,
+            headers=HEADERS,
+            timeout=15,
+            proxies=proxy
+        )
 
-        try:
-            r = requests.get(
-                url_item,
-                headers=HEADERS,
-                timeout=15,
-                proxies=get_proxy()
-            )
-        except:
-            print("Proxy falló, probando otro...")
-            return None
+        if r.status_code == 429:
+            print("429 detectado — cambiando proxy...")
+            time.sleep(10)
+            continue
+
+        break
+
+    except Exception:
+        print("Proxy malo:", proxy)
+        BAD_PROXIES.add(proxy["http"])
+        time.sleep(5)
+else:
+    return None
+
 
         if r.status_code == 429:
             print(f"[WARN] Steam devolvió HTTP 429 para {url_item}. Esperando 5 minutos...")
@@ -163,16 +181,30 @@ def obtener_lowest_sell_price(item_nameid):
     try:
         url = f"https://steamcommunity.com/market/itemordershistogram?language=english&currency=1&item_nameid={item_nameid}"
 
-        try:
-            r = requests.get(
-                url,
-                headers=HEADERS,
-                timeout=15,
-                proxies=get_proxy()
-            )
-        except:
-            print("Proxy falló, probando otro...")
-            return None
+        for intento in range(4):
+    proxy = get_proxy()
+    try:
+        r = requests.get(
+            url,
+            headers=HEADERS,
+            timeout=15,
+            proxies=proxy
+        )
+
+        if r.status_code == 429:
+            print("429 Steam — cambiando proxy...")
+            time.sleep(10)
+            continue
+
+        break
+
+    except Exception:
+        print("Proxy malo:", proxy)
+        BAD_PROXIES.add(proxy["http"])
+        time.sleep(5)
+else:
+    return None
+
 
         if r.status_code == 429:
             print("[WARN] Steam devolvió 429 al pedir precio. Esperando 5 min...")
