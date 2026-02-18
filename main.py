@@ -166,7 +166,7 @@ def escanear():
     for url, precio_max in skins_a_vigilar.items():
         print(f"[INFO] Revisando: {url}")
         if url not in item_ids_cache:
-    item_ids_cache[url] = obtener_item_nameid(url)
+            item_ids_cache[url] = obtener_item_nameid(url)
 
 item_nameid = item_ids_cache.get(url)
 
