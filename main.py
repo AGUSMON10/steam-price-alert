@@ -184,7 +184,7 @@ def escanear():
                     f"🕒 {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
                 enviar_telegram(mensaje)
                 notificados[url] = precio_actual
-        time.sleep(7)
+        time.sleep(20)
 
 
 def monitor_loop():
@@ -194,8 +194,8 @@ def monitor_loop():
         try:
             print("\n🔄 Escaneando precios de venta en Steam...\n")
             escanear()
-            print(f"[INFO] Esperando 120 segundos antes del próximo escaneo...")
-            time.sleep(150)
+            print(f"[INFO] Esperando 300 segundos antes del próximo escaneo...")
+            time.sleep(300)
         except KeyboardInterrupt:
             print("[INFO] Deteniendo monitoreo...")
             estado_app["activo"] = False
@@ -203,7 +203,7 @@ def monitor_loop():
         except Exception as e:
             print(f"[ERROR] Error en el bucle principal: {e}")
             estado_app["errores"] += 1
-            time.sleep(60)  # Esperar menos tiempo en caso de error
+            time.sleep(180)  # Esperar menos tiempo en caso de error
 
 
 # 🔁 Ejecutar el servidor Flask en hilo separado
