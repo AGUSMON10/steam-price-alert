@@ -123,6 +123,8 @@ def limpiar_url(url):
 
 
 def obtener_item_nameid(url_item):
+    url_item = limpiar_url(url_item)
+
     for intento in range(4):
         proxy = get_proxy()
 
@@ -139,91 +141,66 @@ def obtener_item_nameid(url_item):
                 time.sleep(10)
                 continue
 
-            break
+            if r.status_code == 200:
+                match = re.search(r"Market_LoadOrderSpread\(\s*(\d+)\s*\)", r.text)
+                if match:
+                    return match.group(1)
+
+                print("[WARN] Probando fallback item_nameid...")
+                fallback = re.search(
+                    r'ItemActivityTicker.Start\( \{"sessionid":.+?"item_nameid":"(\d+)"',
+                    r.text
+                )
+                if fallback:
+                    return fallback.group(1)
+
+            else:
+                print(f"[ERROR] HTTP {r.status_code}")
 
         except Exception:
             print("Proxy malo:", proxy)
             BAD_PROXIES.add(proxy["http"])
             time.sleep(5)
 
-    else:
-        return None
-
-
-
-        if r.status_code == 429:
-            print(f"[WARN] Steam devolvió HTTP 429 para {url_item}. Esperando 5 minutos...")
-            time.sleep(300)
-            return None
-
-        if r.status_code == 200:
-            match = re.search(r"Market_LoadOrderSpread\(\s*(\d+)\s*\)", r.text)
-            if match:
-                return match.group(1)
-
-            print("[WARN] No se encontró item_nameid, intentando fallback...")
-            fallback = re.search(
-                r'ItemActivityTicker.Start\( \{"sessionid":.+?"item_nameid":"(\d+)"',
-                r.text
-            )
-            if fallback:
-                return fallback.group(1)
-
-        else:
-            print(f"[ERROR] HTTP {r.status_code} al obtener página")
-
-    except Exception as e:
-        print(f"[ERROR] Excepción obteniendo item_nameid: {e}")
-        estado_app["errores"] += 1
-
     return None
+
 
 
 
 def obtener_lowest_sell_price(item_nameid):
-    try:
-        url = f"https://steamcommunity.com/market/itemordershistogram?language=english&currency=1&item_nameid={item_nameid}"
+    url = f"https://steamcommunity.com/market/itemordershistogram?language=english&currency=1&item_nameid={item_nameid}"
 
-        for intento in range(4):
-    proxy = get_proxy()
-    try:
-        r = requests.get(
-            url,
-            headers=HEADERS,
-            timeout=15,
-            proxies=proxy
-        )
+    for intento in range(4):
+        proxy = get_proxy()
 
-        if r.status_code == 429:
-            print("429 Steam — cambiando proxy...")
-            time.sleep(10)
-            continue
+        try:
+            r = requests.get(
+                url,
+                headers=HEADERS,
+                timeout=15,
+                proxies=proxy
+            )
 
-        break
+            if r.status_code == 429:
+                print("429 Steam — cambiando proxy...")
+                time.sleep(10)
+                continue
 
-    except Exception:
-        print("Proxy malo:", proxy)
-        BAD_PROXIES.add(proxy["http"])
-        time.sleep(5)
-else:
-    return None
+            if r.status_code == 200:
+                data = r.json()
+                if "lowest_sell_order" in data:
+                    return int(data["lowest_sell_order"]) / 100
 
+            else:
+                print(f"[ERROR] HTTP {r.status_code}")
 
-        if r.status_code == 429:
-            print("[WARN] Steam devolvió 429 al pedir precio. Esperando 5 min...")
-            time.sleep(300)
-            return None
-
-        if r.status_code == 200:
-            data = r.json()
-            if "lowest_sell_order" in data:
-                return int(data["lowest_sell_order"]) / 100
-
-    except Exception as e:
-        print(f"[ERROR] Falló consulta precio: {e}")
-        estado_app["errores"] += 1
+        except Exception:
+            print("Proxy malo:", proxy)
+            BAD_PROXIES.add(proxy["http"])
+            time.sleep(5)
 
     return None
+
 
 
 def enviar_telegram(mensaje):
