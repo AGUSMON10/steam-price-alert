@@ -168,14 +168,14 @@ def escanear():
         if url not in item_ids_cache:
             item_ids_cache[url] = obtener_item_nameid(url)
 
-item_nameid = item_ids_cache.get(url)
+    item_nameid = item_ids_cache.get(url)
 
-if not item_nameid:
+        if not item_nameid:
     print(f"[ERROR] No se pudo obtener item_nameid para: {url}")
     continue
 
         precio_actual = obtener_lowest_sell_price(item_nameid)
-        if precio_actual is None:
+            if precio_actual is None:
             print(f"[INFO] No hay datos de venta para: {url}")
         else:
             print(f"[INFO] Precio de venta más bajo: {precio_actual:.2f} USD")
