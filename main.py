@@ -101,7 +101,7 @@ def limpiar_url(url):
 def obtener_item_nameid(url_item):
     try:
         url_item = limpiar_url(url_item)
-        r = requests.get(url_item, headers=HEADERS, timeout=15))
+        r = requests.get(url_item, headers=HEADERS, timeout=15)
         if r.status_code == 429:
             print(f"[WARN] Steam devolvió HTTP 429 para {url_item}. Esperando 5 minutos...")
             time.sleep(300)
@@ -128,7 +128,7 @@ def obtener_item_nameid(url_item):
 def obtener_lowest_sell_price(item_nameid):
     try:
         url = f"https://steamcommunity.com/market/itemordershistogram?language=english&currency=1&item_nameid={item_nameid}"
-        r = requests.get(url, headers=HEADERS, timeout=15))
+        r = requests.get(url, headers=HEADERS, timeout=15)
         if r.status_code == 429:
             print(f"[WARN] Steam devolvió HTTP 429 al pedir el histograma. Esperando 5 minutos...")
             time.sleep(300)
@@ -147,7 +147,7 @@ def enviar_telegram(mensaje):
     try:
         url = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendMessage"
         data = {"chat_id": TELEGRAM_CHAT_ID, "text": mensaje}
-        response = requests.post(url, data=data, timeout=15))
+        response = requests.post(url, data=data, timeout=15)
         if response.status_code == 200:
             print("[INFO] Mensaje enviado a Telegram exitosamente")
         else:
@@ -190,7 +190,7 @@ if not item_nameid:
                     f"🕒 {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
                 enviar_telegram(mensaje)
                 notificados[url] = precio_actual
-        time.sleep(random.randint(40, 90))
+        time.sleep(random.randint(40, 90)
 
 
 def monitor_loop():
@@ -201,7 +201,7 @@ def monitor_loop():
             print("\n🔄 Escaneando precios de venta en Steam...\n")
             escanear()
             print(f"[INFO] Esperando 300 segundos antes del próximo escaneo...")
-            time.sleep(random.randint(600, 900))
+            time.sleep(random.randint(600, 900)
 
         except KeyboardInterrupt:
             print("[INFO] Deteniendo monitoreo...")
