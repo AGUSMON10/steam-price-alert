@@ -19,6 +19,8 @@ PROXIES = [
     "http://olrliwpe:v769pjjmxnb1@23.229.19.94:8689",
     "http://olrliwpe:v769pjjmxnb1@198.105.121.200:6462",
     "http://olrliwpe:v769pjjmxnb1@216.10.27.159:6837",
+    "http://olrliwpe:v769pjjmxnb1@45.38.107.97:6014",
+    "http://olrliwpe:v769pjjmxnb1@198.23.239.134:6540",
     "http://olrliwpe:v769pjjmxnb1@107.172.163.27:6543"
 ]
 
@@ -60,18 +62,24 @@ skins_a_vigilar = {
     155.00,
     "https://steamcommunity.com/market/listings/730/%E2%98%85%20StatTrak%E2%84%A2%20Falchion%20Knife%20%7C%20Lore%20%28Well-Worn%29":
     150.00,
+    "https://steamcommunity.com/market/listings/730/%E2%98%85%20StatTrak%E2%84%A2%20Falchion%20Knife%20%7C%20Autotronic%20%28Well-Worn%29#":
+    150.00,
     "https://steamcommunity.com/market/listings/730/%E2%98%85%20StatTrak%E2%84%A2%20Huntsman%20Knife%20%7C%20Bright%20Water%20%28Factory%20New%29":
     126.00,
     "https://steamcommunity.com/market/listings/730/%E2%98%85%20Huntsman%20Knife%20%7C%20Black%20Laminate%20%28Factory%20New%29":
     160.00,
     "https://steamcommunity.com/market/listings/730/%E2%98%85%20StatTrak%E2%84%A2%20Kukri%20Knife%20%7C%20Blue%20Steel%20%28Minimal%20Wear%29":
     150.00,
+    "https://steamcommunity.com/market/listings/730/%E2%98%85%20StatTrak%E2%84%A2%20Paracord%20Knife%20%7C%20Tiger%20Tooth%20%28Minimal%20Wear%29":
+    170.00,
     "https://steamcommunity.com/market/listings/730/%E2%98%85%20StatTrak%E2%84%A2%20Bowie%20Knife%20%7C%20Blue%20Steel%20%28Field-Tested%29":
     170.00,
     "https://steamcommunity.com/market/listings/730/%E2%98%85%20StatTrak%E2%84%A2%20Bowie%20Knife%20%7C%20Freehand%20%28Factory%20New%29":
-    152.00,
+    159.00,
     "https://steamcommunity.com/market/listings/730/%E2%98%85%20Falchion%20Knife%20%7C%20Urban%20Masked%20%28Minimal%20Wear%29":
     125.00,
+    "https://steamcommunity.com/market/listings/730/%E2%98%85%20StatTrak%E2%84%A2%20Huntsman%20Knife%20%7C%20Ultraviolet%20%28Minimal%20Wear%29":
+    170.00,
     "https://steamcommunity.com/market/listings/730/%E2%98%85%20StatTrak%E2%84%A2%20Falchion%20Knife%20%7C%20Freehand%20%28Minimal%20Wear%29":
     140.00,
     "https://steamcommunity.com/market/listings/730/%E2%98%85%20Flip%20Knife%20%7C%20Urban%20Masked%20%28Minimal%20Wear%29":
