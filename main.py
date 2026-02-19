@@ -25,6 +25,7 @@ PROXIES = [
 ]
 
 BAD_PROXIES = set()
+session = requests.Session()
 
 def get_proxy():
     disponibles = [p for p in PROXIES if p not in BAD_PROXIES]
@@ -89,11 +90,19 @@ estado_app = {"activo": True, "errores": 0, "ultimo_escaneo": None}
 
 
 # Headers realistas
-HEADERS = {
-    "User-Agent":
-    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.0.0 Safari/537.36",
-    "Accept-Language": "en-US,en;q=0.9"
-}
+USER_AGENTS = [
+    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/121 Safari/537.36",
+    "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 Chrome/120 Safari/537.36",
+    "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 Chrome/119 Safari/537.36",
+    "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:122.0) Gecko/20100101 Firefox/122.0",
+    "Mozilla/5.0 (Macintosh; Intel Mac OS X 13_0) AppleWebKit/605.1.15 Version/17.0 Safari/605.1.15"
+]
+
+def get_headers():
+    return {
+        "User-Agent": random.choice(USER_AGENTS),
+        "Accept-Language": "en-US,en;q=0.9"
+    }
 
 # Crear app Flask para UptimeRobot
 app = Flask(__name__)
@@ -133,12 +142,14 @@ def obtener_item_nameid(url_item):
         proxy = get_proxy()
 
         try:
-            r = requests.get(
+            session.proxies.update(proxy)
+
+            r = session.get(
                 url_item,
-                headers=HEADERS,
-                timeout=15,
-                proxies=proxy
+                headers=get_headers(),
+                timeout=15
             )
+
 
             if r.status_code == 429:
                 print("429 detectado — cambiando proxy...")
@@ -178,12 +189,14 @@ def obtener_lowest_sell_price(item_nameid):
         proxy = get_proxy()
 
         try:
-            r = requests.get(
+            session.proxies.update(proxy)
+
+            r = session.get(
                 url,
-                headers=HEADERS,
-                timeout=15,
-                proxies=proxy
+                headers=get_headers(),
+                timeout=15
             )
+
 
             if r.status_code == 429:
                 print("429 Steam — cambiando proxy...")
