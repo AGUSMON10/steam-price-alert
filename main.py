@@ -175,29 +175,29 @@ grupos = [
 # ==============================
 
 def worker(grupo_skins, proxy_url):
-
     session = crear_session(proxy_url)
 
     while True:
         for url, precio_max in grupo_skins:
 
             logging.info(f"Chequeando {url}")
-            
+
             if url not in item_ids_cache:
                 item_ids_cache[url] = obtener_item_nameid(url, session)
 
             item_nameid = item_ids_cache.get(url)
             if not item_nameid:
+                logging.error(f"No se pudo obtener item_nameid para {url}")
                 continue
 
             precio_actual = obtener_lowest_sell_price(item_nameid, session)
             if not precio_actual:
+                logging.error(f"No se pudo obtener precio para {url} (item_nameid {item_nameid})")
                 continue
 
-            logging.info(f"Precio actual: {precio_actual} | Objetivo: {precio_max}")
+            logging.info(f"Precio obtenido: {precio_actual:.2f} USD | Objetivo: {precio_max} USD")
 
             ultima_alerta = notificados.get(url)
-
             if precio_actual <= precio_max and (
                 ultima_alerta is None or precio_actual < ultima_alerta
             ):
@@ -207,10 +207,12 @@ def worker(grupo_skins, proxy_url):
                     f"💵 {precio_actual:.2f} USD"
                 )
                 enviar_telegram(mensaje)
-                logging.info("Alerta enviada a Telegram")
+                logging.info(f"Alerta enviada a Telegram: {url} -> {precio_actual:.2f} USD")
                 notificados[url] = precio_actual
 
-            time.sleep(random.uniform(4, 6))  # 3 skins → ~15s ciclo
+            sleep_time = random.uniform(4, 6)
+            logging.info(f"Esperando {sleep_time:.2f} segundos antes de la siguiente skin")
+            time.sleep(sleep_time)
 
 # ==============================
 # 🌐 SERVIDOR (OPCIONAL)
