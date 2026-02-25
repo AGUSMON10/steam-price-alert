@@ -6,6 +6,12 @@ import os
 import threading
 from flask import Flask, jsonify
 from datetime import datetime
+import logging
+
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s [%(levelname)s] %(message)s",
+)
 
 # ==============================
 # 🔐 TUS 4 STATIC RESIDENTIAL
@@ -101,12 +107,15 @@ def obtener_item_nameid(url_item, session):
         try:
             r = session.get(url_item, timeout=7)
 
+            logging.info(f"Status code: {r.status_code}")
+
             if r.status_code == 200:
                 match = re.search(r"Market_LoadOrderSpread\(\s*(\d+)\s*\)", r.text)
                 if match:
                     return match.group(1)
 
-        except:
+        except Exception as e:
+            logging.error(f"Error obteniendo item_nameid de {url_item}: {e}")
             time.sleep(2)
 
     return None
@@ -123,12 +132,15 @@ def obtener_lowest_sell_price(item_nameid, session):
         try:
             r = session.get(url, timeout=7)
 
+            logging.info(f"Status code: {r.status_code}")
+
             if r.status_code == 200:
                 data = r.json()
                 if "lowest_sell_order" in data:
                     return int(data["lowest_sell_order"]) / 100
 
-        except:
+        except Exception as e:
+            logging.error(f"Error obteniendo precio de {item_nameid}: {e}")
             time.sleep(2)
 
     return None
@@ -142,8 +154,8 @@ def enviar_telegram(mensaje):
         url = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendMessage"
         data = {"chat_id": TELEGRAM_CHAT_ID, "text": mensaje}
         requests.post(url, data=data, timeout=10)
-    except:
-        pass
+    except Exception as e:
+        logging.error(f"Error enviando Telegram: {e}")
 
 # ==============================
 # 📦 DIVIDIR 12 SKINS EN 4 GRUPOS
@@ -169,6 +181,8 @@ def worker(grupo_skins, proxy_url):
     while True:
         for url, precio_max in grupo_skins:
 
+            logging.info(f"Chequeando {url}")
+            
             if url not in item_ids_cache:
                 item_ids_cache[url] = obtener_item_nameid(url, session)
 
@@ -179,6 +193,8 @@ def worker(grupo_skins, proxy_url):
             precio_actual = obtener_lowest_sell_price(item_nameid, session)
             if not precio_actual:
                 continue
+
+            logging.info(f"Precio actual: {precio_actual} | Objetivo: {precio_max}")
 
             ultima_alerta = notificados.get(url)
 
@@ -191,6 +207,7 @@ def worker(grupo_skins, proxy_url):
                     f"💵 {precio_actual:.2f} USD"
                 )
                 enviar_telegram(mensaje)
+                logging.info("Alerta enviada a Telegram")
                 notificados[url] = precio_actual
 
             time.sleep(random.uniform(4, 6))  # 3 skins → ~15s ciclo
