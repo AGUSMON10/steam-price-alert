@@ -271,7 +271,7 @@ def escanear():
                 enviar_telegram(mensaje)
                 notificados[url] = precio_actual
 
-        time.sleep(random.randint(3, 10))
+        time.sleep(random.randint(8, 16))
 
 
 
@@ -283,7 +283,7 @@ def monitor_loop():
             print("\n🔄 Escaneando precios de venta en Steam...\n")
             escanear()
             print(f"[INFO] Esperando 60, 120 segundos antes del próximo escaneo...")
-            time.sleep(random.randint(65, 110))
+            time.sleep(random.randint(80, 130))
 
         except KeyboardInterrupt:
             print("[INFO] Deteniendo monitoreo...")
