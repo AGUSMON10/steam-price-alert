@@ -57,7 +57,7 @@ if not TELEGRAM_BOT_TOKEN or not TELEGRAM_CHAT_ID:
 # Lista de ítems con URL y precio máximo aceptado
 skins_a_vigilar = {
     "https://steamcommunity.com/market/listings/730/%E2%98%85%20StatTrak%E2%84%A2%20Falchion%20Knife#":
-    155.00,
+    192.00,
     "https://steamcommunity.com/market/listings/730/%E2%98%85%20StatTrak%E2%84%A2%20Kukri%20Knife%20%7C%20Crimson%20Web%20%28Field-Tested%29":
     155.00,
     "https://steamcommunity.com/market/listings/730/%E2%98%85%20StatTrak%E2%84%A2%20Falchion%20Knife%20%7C%20Lore%20%28Well-Worn%29":
@@ -269,7 +269,7 @@ def escanear():
                 enviar_telegram(mensaje)
                 notificados[url] = precio_actual
 
-        time.sleep(random.randint(40, 90))
+        time.sleep(random.randint(5, 10))
 
 
 
@@ -280,8 +280,8 @@ def monitor_loop():
         try:
             print("\n🔄 Escaneando precios de venta en Steam...\n")
             escanear()
-            print(f"[INFO] Esperando 300 segundos antes del próximo escaneo...")
-            time.sleep(random.randint(600, 900))
+            print(f"[INFO] Esperando 60, 120 segundos antes del próximo escaneo...")
+            time.sleep(random.randint(60, 120))
 
         except KeyboardInterrupt:
             print("[INFO] Deteniendo monitoreo...")
