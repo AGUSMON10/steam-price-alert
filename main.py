@@ -6,39 +6,51 @@ import os
 import threading
 from flask import Flask, jsonify
 from datetime import datetime
-import logging
+import builtins
 
-logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s [%(levelname)s] %(message)s",
-)
+# Lista de proxies (pegá los tuyos de Webshare)
 
-# ==============================
-# 🔐 TUS 4 STATIC RESIDENTIAL
-# ==============================
-
-STATIC_PROXIES = [
+PROXIES = [
+    "http://olrliwpe:v769pjjmxnb1@198.23.239.134:6540",
     "http://olrliwpe:v769pjjmxnb1@136.0.167.151:7154",
     "http://olrliwpe:v769pjjmxnb1@103.130.178.157:5821",
     "http://olrliwpe:v769pjjmxnb1@192.46.203.98:6064",
-    "http://olrliwpe:v769pjjmxnb1@192.53.140.59:5155"
+    "http://olrliwpe:v769pjjmxnb1@192.53.140.59:5155",
+    "http://olrliwpe:v769pjjmxnb1@107.172.163.27:6543"
 ]
 
-# ==============================
-# 🔔 TELEGRAM
-# ==============================
+BAD_PROXIES = set()
+session = requests.Session()
 
+def get_proxy():
+    disponibles = [p for p in PROXIES if p not in BAD_PROXIES]
+    if not disponibles:
+        disponibles = PROXIES
+    proxy = random.choice(disponibles)
+    return {"http": proxy, "https": proxy}
+
+
+# Redefinir print global con flush automático
+original_print = print
+def flush_print(*args, **kwargs):
+    kwargs['flush'] = True
+    return original_print(*args, **kwargs)
+
+builtins.print = flush_print
+
+# Configuración desde variables de entorno
 TELEGRAM_BOT_TOKEN = os.environ.get("TELEGRAM_BOT_TOKEN")
 TELEGRAM_CHAT_ID = os.environ.get("TELEGRAM_CHAT_ID")
 
+# Verificar que las variables de entorno estén configuradas
 if not TELEGRAM_BOT_TOKEN or not TELEGRAM_CHAT_ID:
-    print("Faltan variables TELEGRAM_BOT_TOKEN o TELEGRAM_CHAT_ID")
+    print(
+        "[ERROR] Faltan variables de entorno: TELEGRAM_BOT_TOKEN y/o TELEGRAM_CHAT_ID"
+    )
+    print("Configúralas en la herramienta de Secrets de Replit")
     exit(1)
 
-# ==============================
-# 🎮 SKINS A VIGILAR (12)
-# ==============================
-
+# Lista de ítems con URL y precio máximo aceptado
 skins_a_vigilar = {
     "https://steamcommunity.com/market/listings/730/%E2%98%85%20StatTrak%E2%84%A2%20Falchion%20Knife%20%7C%20Autotronic%20%28Minimal%20Wear%29":
     175.00,
@@ -68,177 +80,230 @@ skins_a_vigilar = {
     175.00
 }
 
-# ==============================
-# 🧠 VARIABLES INTERNAS
-# ==============================
-
 notificados = {}
 item_ids_cache = {}
+ultimo_escaneo = None
+estado_app = {"activo": True, "errores": 0, "ultimo_escaneo": None}
 
+# Headers realistas
 USER_AGENTS = [
     "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/121 Safari/537.36",
     "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 Chrome/120 Safari/537.36",
     "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 Chrome/119 Safari/537.36",
+    "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:122.0) Gecko/20100101 Firefox/122.0",
+    "Mozilla/5.0 (Macintosh; Intel Mac OS X 13_0) AppleWebKit/605.1.15 Version/17.0 Safari/605.1.15"
 ]
 
-# ==============================
-# 🔧 CREAR SESSION POR IP
-# ==============================
-
-def crear_session(proxy_url):
-    s = requests.Session()
-    s.proxies = {
-        "http": proxy_url,
-        "https": proxy_url
-    }
-    s.headers.update({
+def get_headers():
+    return {
         "User-Agent": random.choice(USER_AGENTS),
         "Accept-Language": "en-US,en;q=0.9"
+    }
+
+# Crear app Flask para UptimeRobot
+app = Flask(__name__)
+
+@app.route("/")
+def home():
+    """Endpoint para UptimeRobot"""
+    return jsonify({
+        "status": "ok",
+        "mensaje": "Steam Alert Bot está activo",
+        "ultimo_escaneo": estado_app["ultimo_escaneo"],
+        "errores": estado_app["errores"],
+        "timestamp": datetime.now().isoformat()
     })
-    return s
 
-# ==============================
-# 🔍 OBTENER item_nameid
-# ==============================
+@app.route('/status')
+def status():
+    """Endpoint detallado de estado"""
+    return jsonify({
+        "activo": estado_app["activo"],
+        "ultimo_escaneo": estado_app["ultimo_escaneo"],
+        "errores_totales": estado_app["errores"],
+        "items_vigilados": len(skins_a_vigilar),
+        "notificaciones_enviadas": len(notificados)
+    })
 
-def obtener_item_nameid(url_item, session):
 
-    for _ in range(3):
+def limpiar_url(url):
+    return url.split("?")[0]
+
+
+def obtener_item_nameid(url_item):
+    url_item = limpiar_url(url_item)
+
+    for intento in range(4):
+        proxy = get_proxy()
+
         try:
-            r = session.get(url_item, timeout=7)
+            session.proxies.update(proxy)
 
-            logging.info(f"Status code: {r.status_code}")
+            r = session.get(
+                url_item,
+                headers=get_headers(),
+                timeout=7
+            )
+
+
+            if r.status_code == 429:
+                print("429 detectado — cambiando proxy...")
+                time.sleep(10)
+                continue
 
             if r.status_code == 200:
                 match = re.search(r"Market_LoadOrderSpread\(\s*(\d+)\s*\)", r.text)
                 if match:
                     return match.group(1)
 
-        except Exception as e:
-            logging.error(f"Error obteniendo item_nameid de {url_item}: {e}")
-            time.sleep(2)
+                print("[WARN] Probando fallback item_nameid...")
+                fallback = re.search(
+                    r'ItemActivityTicker.Start\( \{"sessionid":.+?"item_nameid":"(\d+)"',
+                    r.text
+                )
+                if fallback:
+                    return fallback.group(1)
+
+            else:
+                print(f"[ERROR] HTTP {r.status_code}")
+
+        except Exception:
+            print("Proxy malo:", proxy)
+            BAD_PROXIES.add(proxy["http"])
+            time.sleep(5)
 
     return None
 
-# ==============================
-# 💰 OBTENER PRECIO ACTUAL
-# ==============================
 
-def obtener_lowest_sell_price(item_nameid, session):
-
+def obtener_lowest_sell_price(item_nameid):
     url = f"https://steamcommunity.com/market/itemordershistogram?language=english&currency=1&item_nameid={item_nameid}"
 
-    for _ in range(3):
-        try:
-            r = session.get(url, timeout=7)
+    for intento in range(4):
+        proxy = get_proxy()
 
-            logging.info(f"Status code: {r.status_code}")
+        try:
+            session.proxies.update(proxy)
+
+            r = session.get(
+                url,
+                headers=get_headers(),
+                timeout=7
+            )
+
+
+            if r.status_code == 429:
+                print("429 Steam — cambiando proxy...")
+                time.sleep(10)
+                continue
 
             if r.status_code == 200:
                 data = r.json()
                 if "lowest_sell_order" in data:
                     return int(data["lowest_sell_order"]) / 100
 
-        except Exception as e:
-            logging.error(f"Error obteniendo precio de {item_nameid}: {e}")
-            time.sleep(2)
+            else:
+                print(f"[ERROR] HTTP {r.status_code}")
+
+        except Exception:
+            print("Proxy malo:", proxy)
+            BAD_PROXIES.add(proxy["http"])
+            time.sleep(5)
 
     return None
 
-# ==============================
-# 📲 TELEGRAM
-# ==============================
+
 
 def enviar_telegram(mensaje):
     try:
         url = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendMessage"
         data = {"chat_id": TELEGRAM_CHAT_ID, "text": mensaje}
-        requests.post(url, data=data, timeout=10)
+        response = requests.post(url, data=data, timeout=15)
+        if response.status_code == 200:
+            print("[INFO] Mensaje enviado a Telegram exitosamente")
+        else:
+            print(
+                f"[ERROR] Error al enviar mensaje a Telegram: {response.status_code}"
+            )
     except Exception as e:
-        logging.error(f"Error enviando Telegram: {e}")
+        print(f"[ERROR] No se pudo enviar el mensaje a Telegram: {e}")
+        estado_app["errores"] += 1
 
-# ==============================
-# 📦 DIVIDIR 12 SKINS EN 4 GRUPOS
-# ==============================
 
-skins_items = list(skins_a_vigilar.items())
+def escanear():
+    global ultimo_escaneo
+    estado_app["ultimo_escaneo"] = datetime.now().isoformat()
 
-grupos = [
-    skins_items[0:3],
-    skins_items[3:6],
-    skins_items[6:9],
-    skins_items[9:12],
-]
+    for url, precio_max in skins_a_vigilar.items():
+        print(f"[INFO] Revisando: {url}")
 
-# ==============================
-# 🧵 WORKER POR IP
-# ==============================
+        # Cachear item_nameid (evita scrapear siempre)
+        if url not in item_ids_cache:
+            item_ids_cache[url] = obtener_item_nameid(url)
 
-def worker(grupo_skins, proxy_url):
-    session = crear_session(proxy_url)
+        item_nameid = item_ids_cache.get(url)
 
-    while True:
-        for url, precio_max in grupo_skins:
+        if not item_nameid:
+            print(f"[ERROR] No se pudo obtener item_nameid para: {url}")
+            continue
 
-            logging.info(f"Chequeando {url}")
+        precio_actual = obtener_lowest_sell_price(item_nameid)
 
-            if url not in item_ids_cache:
-                item_ids_cache[url] = obtener_item_nameid(url, session)
-
-            item_nameid = item_ids_cache.get(url)
-            if not item_nameid:
-                continue
-
-            precio_actual = obtener_lowest_sell_price(item_nameid, session)
-            if not precio_actual:
-                continue
-
-            logging.info(f"Precio obtenido: {precio_actual:.2f} USD | Objetivo: {precio_max} USD")
-
+        if precio_actual is None:
+            print(f"[INFO] No hay datos de venta para: {url}")
+        else:
+            print(f"[INFO] Precio de venta más bajo: {precio_actual:.2f} USD")
             ultima_alerta = notificados.get(url)
+
             if precio_actual <= precio_max and (
                 ultima_alerta is None or precio_actual < ultima_alerta
             ):
                 mensaje = (
-                    f"🛒 Skin por debajo del objetivo!\n"
+                    f"🛒 ¡Skin en venta por debajo del precio objetivo!\n"
                     f"{url}\n"
-                    f"💵 {precio_actual:.2f} USD"
+                    f"💵 Precio actual: {precio_actual:.2f} USD\n"
+                    f"📉 Tu máximo: {precio_max:.2f} USD\n"
+                    f"🕒 {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}"
                 )
                 enviar_telegram(mensaje)
-                logging.info(f"Alerta enviada a Telegram: {url} -> {precio_actual:.2f} USD")
                 notificados[url] = precio_actual
 
-            sleep_time = random.uniform(4, 6)
-            logging.info(f"Esperando {sleep_time:.2f} segundos antes de la siguiente skin")
-            time.sleep(sleep_time)  # 3 skins → ~15s ciclo
+        time.sleep(random.randint(8, 16))
 
-# ==============================
-# 🌐 SERVIDOR (OPCIONAL)
-# ==============================
 
-app = Flask(__name__)
 
-@app.route("/")
-def home():
-    return jsonify({"status": "ok"})
+def monitor_loop():
+    """Bucle principal de monitoreo"""
+    print("[INFO] Iniciando monitoreo de precios de Steam...")
+    while estado_app["activo"]:
+        try:
+            print("\n🔄 Escaneando precios de venta en Steam...\n")
+            escanear()
+            print(f"[INFO] Esperando 60, 120 segundos antes del próximo escaneo...")
+            time.sleep(random.randint(80, 130))
 
+        except KeyboardInterrupt:
+            print("[INFO] Deteniendo monitoreo...")
+            estado_app["activo"] = False
+            break
+        except Exception as e:
+            print(f"[ERROR] Error en el bucle principal: {e}")
+            estado_app["errores"] += 1
+            time.sleep(150)  # Esperar menos tiempo en caso de error
+
+
+# 🔁 Ejecutar el servidor Flask en hilo separado
 def iniciar_servidor():
     app.run(host="0.0.0.0", port=8080)
 
-# ==============================
-# 🚀 MAIN
-# ==============================
-
 if __name__ == "__main__":
+    # Iniciar el hilo de monitoreo
+    monitor_thread = threading.Thread(target=monitor_loop)
+    monitor_thread.start()
 
-    for i in range(4):
-        threading.Thread(
-            target=worker,
-            args=(grupos[i], STATIC_PROXIES[i]),
-            daemon=True
-        ).start()
+    # Iniciar el servidor web en otro hilo
+    servidor_thread = threading.Thread(target=iniciar_servidor)
+    servidor_thread.start()
 
-    threading.Thread(target=iniciar_servidor).start()
-
-    while True:
-        time.sleep(60)
+    # Esperar ambos hilos (nunca termina)
+    monitor_thread.join()
+    servidor_thread.join()
