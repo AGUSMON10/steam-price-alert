@@ -187,12 +187,10 @@ def worker(grupo_skins, proxy_url):
 
             item_nameid = item_ids_cache.get(url)
             if not item_nameid:
-                logging.error(f"No se pudo obtener item_nameid para {url}")
                 continue
 
             precio_actual = obtener_lowest_sell_price(item_nameid, session)
             if not precio_actual:
-                logging.error(f"No se pudo obtener precio para {url} (item_nameid {item_nameid})")
                 continue
 
             logging.info(f"Precio obtenido: {precio_actual:.2f} USD | Objetivo: {precio_max} USD")
@@ -212,7 +210,7 @@ def worker(grupo_skins, proxy_url):
 
             sleep_time = random.uniform(4, 6)
             logging.info(f"Esperando {sleep_time:.2f} segundos antes de la siguiente skin")
-            time.sleep(sleep_time)
+            time.sleep(sleep_time)  # 3 skins → ~15s ciclo
 
 # ==============================
 # 🌐 SERVIDOR (OPCIONAL)
