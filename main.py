@@ -11,15 +11,11 @@ import builtins
 # Lista de proxies (pegá los tuyos de Webshare)
 
 PROXIES = [
-    "http://olrliwpe:v769pjjmxnb1@31.59.20.176:6754",
-    "http://olrliwpe:v769pjjmxnb1@23.95.150.145:6114",
-    "http://olrliwpe:v769pjjmxnb1@64.137.96.74:6641",
-    "http://olrliwpe:v769pjjmxnb1@142.111.67.146:5611",
-    "http://olrliwpe:v769pjjmxnb1@23.229.19.94:8689",
-    "http://olrliwpe:v769pjjmxnb1@198.105.121.200:6462",
-    "http://olrliwpe:v769pjjmxnb1@216.10.27.159:6837",
-    "http://olrliwpe:v769pjjmxnb1@45.38.107.97:6014",
     "http://olrliwpe:v769pjjmxnb1@198.23.239.134:6540",
+    "http://olrliwpe:v769pjjmxnb1@136.0.167.151:7154",
+    "http://olrliwpe:v769pjjmxnb1@103.130.178.157:5821",
+    "http://olrliwpe:v769pjjmxnb1@192.46.203.98:6064",
+    "http://olrliwpe:v769pjjmxnb1@192.53.140.59:5155",
     "http://olrliwpe:v769pjjmxnb1@107.172.163.27:6543"
 ]
 
