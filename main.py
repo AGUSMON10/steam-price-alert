@@ -11,24 +11,14 @@ import builtins
 # Lista de proxies (pegá los tuyos de Webshare)
 
 PROXIES = [
-    "http://olrliwpe:v769pjjmxnb1@198.23.239.134:6540",
     "http://olrliwpe:v769pjjmxnb1@136.0.167.151:7154",
     "http://olrliwpe:v769pjjmxnb1@103.130.178.157:5821",
     "http://olrliwpe:v769pjjmxnb1@192.46.203.98:6064",
-    "http://olrliwpe:v769pjjmxnb1@192.53.140.59:5155",
-    "http://olrliwpe:v769pjjmxnb1@107.172.163.27:6543"
+    "http://olrliwpe:v769pjjmxnb1@192.53.140.59:5155"
 ]
 
 BAD_PROXIES = set()
 session = requests.Session()
-
-def get_proxy():
-    disponibles = [p for p in PROXIES if p not in BAD_PROXIES]
-    if not disponibles:
-        disponibles = PROXIES
-    proxy = random.choice(disponibles)
-    return {"http": proxy, "https": proxy}
-
 
 # Redefinir print global con flush automático
 original_print = print
@@ -74,8 +64,6 @@ skins_a_vigilar = {
     155.00,
     "https://steamcommunity.com/market/listings/730/%E2%98%85%20StatTrak%E2%84%A2%20Bowie%20Knife%20%7C%20Autotronic%20%28Minimal%20Wear%29":
     165.00,
-    "https://steamcommunity.com/market/listings/730/%E2%98%85%20StatTrak%E2%84%A2%20Huntsman%20Knife%20%7C%20Damascus%20Steel%20%28Field-Tested%29":
-    132.00,
     "https://steamcommunity.com/market/listings/730/%E2%98%85%20StatTrak%E2%84%A2%20Bowie%20Knife%20%7C%20Black%20Laminate%20%28Factory%20New%29":
     175.00
 }
@@ -130,18 +118,17 @@ def limpiar_url(url):
     return url.split("?")[0]
 
 
-def obtener_item_nameid(url_item):
+def obtener_item_nameid(url_item, proxy):
     url_item = limpiar_url(url_item)
 
     for intento in range(4):
-        proxy = get_proxy()
 
         try:
-            session.proxies.update(proxy)
 
             r = session.get(
                 url_item,
                 headers=get_headers(),
+                proxies=proxy,
                 timeout=7
             )
 
@@ -175,18 +162,17 @@ def obtener_item_nameid(url_item):
     return None
 
 
-def obtener_lowest_sell_price(item_nameid):
+def obtener_lowest_sell_price(item_nameid, proxy):
     url = f"https://steamcommunity.com/market/itemordershistogram?language=english&currency=1&item_nameid={item_nameid}"
 
     for intento in range(4):
-        proxy = get_proxy()
 
         try:
-            session.proxies.update(proxy)
 
             r = session.get(
                 url,
                 headers=get_headers(),
+                proxies=proxy,
                 timeout=7
             )
 
@@ -228,67 +214,55 @@ def enviar_telegram(mensaje):
         print(f"[ERROR] No se pudo enviar el mensaje a Telegram: {e}")
         estado_app["errores"] += 1
 
+def dividir_skins_en_grupos():
+    lista = list(skins_a_vigilar.items())
+    return [
+        lista[0:3],
+        lista[3:6],
+        lista[6:9],
+        lista[9:12]
+    ]
 
-def escanear():
-    global ultimo_escaneo
-    estado_app["ultimo_escaneo"] = datetime.now().isoformat()
+def worker(grupo_skins, proxy_url):
+    proxy = {"http": proxy_url, "https": proxy_url}
 
-    for url, precio_max in skins_a_vigilar.items():
-        print(f"[INFO] Revisando: {url}")
+    while estado_app["activo"]:
+        for url, precio_max in grupo_skins:
 
-        # Cachear item_nameid (evita scrapear siempre)
-        if url not in item_ids_cache:
-            item_ids_cache[url] = obtener_item_nameid(url)
+            print(f"[INFO] Revisando: {url}")
 
-        item_nameid = item_ids_cache.get(url)
+            if url not in item_ids_cache:
+                item_ids_cache[url] = obtener_item_nameid(url, proxy)
 
-        if not item_nameid:
-            print(f"[ERROR] No se pudo obtener item_nameid para: {url}")
-            continue
+            item_nameid = item_ids_cache.get(url)
 
-        precio_actual = obtener_lowest_sell_price(item_nameid)
+            if not item_nameid:
+                continue
 
-        if precio_actual is None:
-            print(f"[INFO] No hay datos de venta para: {url}")
-        else:
-            print(f"[INFO] Precio de venta más bajo: {precio_actual:.2f} USD")
+            precio_actual = obtener_lowest_sell_price(item_nameid, proxy)
+
+            if precio_actual is None:
+                continue
+
+            print(f"[INFO] Precio más bajo: {precio_actual:.2f}")
+
             ultima_alerta = notificados.get(url)
 
             if precio_actual <= precio_max and (
                 ultima_alerta is None or precio_actual < ultima_alerta
             ):
                 mensaje = (
-                    f"🛒 ¡Skin en venta por debajo del precio objetivo!\n"
+                    f"🛒 ¡Skin en oferta!\n"
                     f"{url}\n"
                     f"💵 Precio actual: {precio_actual:.2f} USD\n"
-                    f"📉 Tu máximo: {precio_max:.2f} USD\n"
-                    f"🕒 {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}"
+                    f"📉 Tu máximo: {precio_max:.2f} USD"
                 )
                 enviar_telegram(mensaje)
                 notificados[url] = precio_actual
 
-        time.sleep(random.randint(8, 16))
+            time.sleep(random.randint(5, 9))
 
-
-
-def monitor_loop():
-    """Bucle principal de monitoreo"""
-    print("[INFO] Iniciando monitoreo de precios de Steam...")
-    while estado_app["activo"]:
-        try:
-            print("\n🔄 Escaneando precios de venta en Steam...\n")
-            escanear()
-            print(f"[INFO] Esperando 60, 120 segundos antes del próximo escaneo...")
-            time.sleep(random.randint(80, 130))
-
-        except KeyboardInterrupt:
-            print("[INFO] Deteniendo monitoreo...")
-            estado_app["activo"] = False
-            break
-        except Exception as e:
-            print(f"[ERROR] Error en el bucle principal: {e}")
-            estado_app["errores"] += 1
-            time.sleep(150)  # Esperar menos tiempo en caso de error
+        time.sleep(random.randint(40, 70))
 
 
 # 🔁 Ejecutar el servidor Flask en hilo separado
@@ -296,14 +270,23 @@ def iniciar_servidor():
     app.run(host="0.0.0.0", port=8080)
 
 if __name__ == "__main__":
-    # Iniciar el hilo de monitoreo
-    monitor_thread = threading.Thread(target=monitor_loop)
-    monitor_thread.start()
 
-    # Iniciar el servidor web en otro hilo
+    grupos = dividir_skins_en_grupos()
+
+    threads = []
+
+    for i in range(4):
+        t = threading.Thread(
+            target=worker,
+            args=(grupos[i], PROXIES[i])
+        )
+        t.start()
+        threads.append(t)
+
     servidor_thread = threading.Thread(target=iniciar_servidor)
     servidor_thread.start()
 
-    # Esperar ambos hilos (nunca termina)
-    monitor_thread.join()
+    for t in threads:
+        t.join()
+
     servidor_thread.join()
