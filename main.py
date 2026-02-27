@@ -17,14 +17,18 @@ PROXIES = [
     "http://olrliwpe:v769pjjmxnb1@192.53.140.59:5155"
 ]
 
-BAD_PROXIES = set()
-session = requests.Session()
+# Manejo avanzado de proxies
+PROXY_COOLDOWN = 900  # 15 minutos
+PROXY_STATUS = {p: 0 for p in PROXIES}  # proxy: timestamp_habilitado
+
 
 # Redefinir print global con flush automático
 original_print = print
+
 def flush_print(*args, **kwargs):
     kwargs['flush'] = True
-    return original_print(*args, **kwargs)
+    timestamp = datetime.now().strftime("%H:%M:%S")
+    original_print(f"[{timestamp}]", *args, **kwargs)
 
 builtins.print = flush_print
 
@@ -88,6 +92,20 @@ def get_headers():
         "Accept-Language": "en-US,en;q=0.9"
     }
 
+def obtener_proxy():
+    ahora = time.time()
+    disponibles = [p for p, t in PROXY_STATUS.items() if t <= ahora]
+
+    if not disponibles:
+        print("[WARN] Todos los proxies en cooldown, usando cualquiera...")
+        return random.choice(PROXIES)
+
+    return random.choice(disponibles)
+
+def marcar_proxy_malo(proxy_url):
+    PROXY_STATUS[proxy_url] = time.time() + PROXY_COOLDOWN
+    print(f"[INFO] Proxy en cooldown 15 min: {proxy_url}")
+
 # Crear app Flask para UptimeRobot
 app = Flask(__name__)
 
@@ -118,23 +136,27 @@ def limpiar_url(url):
     return url.split("?")[0]
 
 
-def obtener_item_nameid(url_item, proxy):
+def obtener_item_nameid(url_item, session):
     url_item = limpiar_url(url_item)
 
     for intento in range(4):
+
+        proxy_url = obtener_proxy()
+        proxy_dict = {"http": proxy_url, "https": proxy_url}
+        print(f"[PROXY] Usando: {proxy_url}")
 
         try:
 
             r = session.get(
                 url_item,
                 headers=get_headers(),
-                proxies=proxy,
+                proxies=proxy_dict,
                 timeout=7
             )
 
-
             if r.status_code == 429:
-                print("429 detectado — cambiando proxy...")
+                print(f"429 detectado — proxy en cooldown: {proxy_url}")
+                marcar_proxy_malo(proxy_url)
                 time.sleep(10)
                 continue
 
@@ -155,49 +177,53 @@ def obtener_item_nameid(url_item, proxy):
                 print(f"[ERROR] HTTP {r.status_code}")
 
         except Exception:
-            print("Proxy malo:", proxy)
-            BAD_PROXIES.add(proxy["http"])
+            print("Proxy malo:", proxy_url)
+            marcar_proxy_malo(proxy_url)
             time.sleep(5)
 
     return None
 
 
-def obtener_lowest_sell_price(item_nameid, proxy):
+def obtener_lowest_sell_price(item_nameid, session):
     url = f"https://steamcommunity.com/market/itemordershistogram?language=english&currency=1&item_nameid={item_nameid}"
 
     for intento in range(4):
+
+        proxy_url = obtener_proxy()
+        proxy_dict = {"http": proxy_url, "https": proxy_url}
+        print(f"[PROXY] Usando: {proxy_url}")
 
         try:
 
             r = session.get(
                 url,
                 headers=get_headers(),
-                proxies=proxy,
+                proxies=proxy_dict,
                 timeout=7
             )
 
-
             if r.status_code == 429:
-                print("429 Steam — cambiando proxy...")
+                print(f"429 Steam — proxy en cooldown: {proxy_url}")
+                marcar_proxy_malo(proxy_url)
                 time.sleep(10)
                 continue
 
             if r.status_code == 200:
                 data = r.json()
-                if "lowest_sell_order" in data:
-                    return int(data["lowest_sell_order"]) / 100
+                lowest = data.get("lowest_sell_order")
+
+                if lowest and str(lowest).isdigit():
+                    return int(lowest) / 100
 
             else:
                 print(f"[ERROR] HTTP {r.status_code}")
 
         except Exception:
-            print("Proxy malo:", proxy)
-            BAD_PROXIES.add(proxy["http"])
+            print("Proxy malo:", proxy_url)
+            marcar_proxy_malo(proxy_url)
             time.sleep(5)
 
     return None
-
-
 
 def enviar_telegram(mensaje):
     try:
@@ -223,8 +249,8 @@ def dividir_skins_en_grupos():
         lista[9:12]
     ]
 
-def worker(grupo_skins, proxy_url):
-    proxy = {"http": proxy_url, "https": proxy_url}
+def worker(grupo_skins):
+    session = requests.Session()
 
     while estado_app["activo"]:
         for url, precio_max in grupo_skins:
@@ -232,19 +258,19 @@ def worker(grupo_skins, proxy_url):
             print(f"[INFO] Revisando: {url}")
 
             if url not in item_ids_cache:
-                item_ids_cache[url] = obtener_item_nameid(url, proxy)
+                item_ids_cache[url] = obtener_item_nameid(url, session)
 
             item_nameid = item_ids_cache.get(url)
 
             if not item_nameid:
                 continue
 
-            precio_actual = obtener_lowest_sell_price(item_nameid, proxy)
+            precio_actual = obtener_lowest_sell_price(item_nameid, session)
 
             if precio_actual is None:
                 continue
 
-            print(f"[INFO] Precio más bajo: {precio_actual:.2f}")
+            print(f"[PRICE] {precio_actual:.2f} USD | Max: {precio_max:.2f}")
 
             ultima_alerta = notificados.get(url)
 
@@ -263,6 +289,7 @@ def worker(grupo_skins, proxy_url):
             time.sleep(random.randint(5, 9))
 
         time.sleep(random.randint(40, 70))
+        print("[STATUS] Ciclo completo\n")
 
 
 # 🔁 Ejecutar el servidor Flask en hilo separado
@@ -278,8 +305,8 @@ if __name__ == "__main__":
     for i in range(4):
         t = threading.Thread(
             target=worker,
-            args=(grupos[i], PROXIES[i])
-        )
+            args=(grupos[i],)
+    )
         t.start()
         threads.append(t)
 
