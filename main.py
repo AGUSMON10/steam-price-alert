@@ -7,6 +7,7 @@ import threading
 from flask import Flask, jsonify
 from datetime import datetime
 import builtins
+from urllib.parse import unquote
 
 # Lista de proxies (pegá los tuyos de Webshare)
 
@@ -135,6 +136,10 @@ def status():
 def limpiar_url(url):
     return url.split("?")[0]
 
+def obtener_nombre_skin(url):
+    parte = url.split("/730/")[-1]
+    nombre = unquote(parte)
+    return nombre
 
 def obtener_item_nameid(url_item, session):
     url_item = limpiar_url(url_item)
@@ -255,7 +260,8 @@ def worker(grupo_skins):
     while estado_app["activo"]:
         for url, precio_max in grupo_skins:
 
-            print(f"[INFO] Revisando: {url}")
+            nombre_skin = obtener_nombre_skin(url)
+            print(f"[INFO] Revisando: {nombre_skin}")
 
             if url not in item_ids_cache:
                 item_ids_cache[url] = obtener_item_nameid(url, session)
