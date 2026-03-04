@@ -49,19 +49,19 @@ if not TELEGRAM_BOT_TOKEN or not TELEGRAM_CHAT_ID:
 skins_a_vigilar = {
     "https://steamcommunity.com/market/listings/730/%E2%98%85%20StatTrak%E2%84%A2%20Falchion%20Knife%20%7C%20Autotronic%20%28Minimal%20Wear%29":
     175.00,
-    "https://steamcommunity.com/market/listings/730/%E2%98%85%20StatTrak%E2%84%A2%20Huntsman%20Knife%20%7C%20Bright%20Water%20%28Factory%20New%29":
-    125.00,
+    "https://steamcommunity.com/market/listings/730/%E2%98%85%20StatTrak%E2%84%A2%20Huntsman%20Knife%20%7C%20Damascus%20Steel%20%28Factory%20New%29":
+    215.00,
     "https://steamcommunity.com/market/listings/730/%E2%98%85%20StatTrak%E2%84%A2%20Paracord%20Knife%20%7C%20Tiger%20Tooth%20%28Minimal%20Wear%29":
     180.00,
     "https://steamcommunity.com/market/listings/730/%E2%98%85%20StatTrak%E2%84%A2%20Bowie%20Knife%20%7C%20Autotronic%20%28Well-Worn%29":
     123.00,
-    "https://steamcommunity.com/market/listings/730/%E2%98%85%20StatTrak%E2%84%A2%20Kukri%20Knife%20%7C%20Blue%20Steel%20%28Field-Tested%29":
-    131.00,
+    "https://steamcommunity.com/market/listings/730/%E2%98%85%20StatTrak%E2%84%A2%20Huntsman%20Knife%20%7C%20Ultraviolet%20%28Minimal%20Wear%29":
+    140.00,
     "https://steamcommunity.com/market/listings/730/%E2%98%85%20StatTrak%E2%84%A2%20Bowie%20Knife":
     165.00,
     "https://steamcommunity.com/market/listings/730/%E2%98%85%20Huntsman%20Knife%20%7C%20Black%20Laminate%20%28Factory%20New%29":
     158.00,
-    "https://steamcommunity.com/market/listings/730/%E2%98%85%20StatTrak%E2%84%A2%20Huntsman%20Knife%20%7C%20Ultraviolet%20%28Minimal%20Wear%29":
+    "https://steamcommunity.com/market/listings/730/%E2%98%85%20StatTrak%E2%84%A2%20Huntsman%20Knife%20%7C%20Blue%20Steel%20%28Field-Tested%29":
     160.00,
     "https://steamcommunity.com/market/listings/730/%E2%98%85%20StatTrak%E2%84%A2%20Nomad%20Knife%20%7C%20Ultraviolet%20%28Field-Tested%29":
     166.00,
@@ -70,7 +70,7 @@ skins_a_vigilar = {
     "https://steamcommunity.com/market/listings/730/%E2%98%85%20StatTrak%E2%84%A2%20Bowie%20Knife%20%7C%20Autotronic%20%28Minimal%20Wear%29":
     165.00,
     "https://steamcommunity.com/market/listings/730/%E2%98%85%20StatTrak%E2%84%A2%20Bowie%20Knife%20%7C%20Black%20Laminate%20%28Factory%20New%29":
-    175.00
+    190.00
 }
 
 notificados = {}
@@ -247,12 +247,14 @@ def enviar_telegram(mensaje):
 
 def dividir_skins_en_grupos():
     lista = list(skins_a_vigilar.items())
-    return [
-        lista[0:3],
-        lista[3:6],
-        lista[6:9],
-        lista[9:12]
-    ]
+    cantidad_proxies = len(PROXIES)
+
+    grupos = [[] for _ in range(cantidad_proxies)]
+
+    for i, item in enumerate(lista):
+        grupos[i % cantidad_proxies].append(item)
+
+    return grupos
 
 def worker(grupo_skins):
     session = requests.Session()
@@ -308,11 +310,11 @@ if __name__ == "__main__":
 
     threads = []
 
-    for i in range(4):
+    for i in range(len(grupos)):
         t = threading.Thread(
             target=worker,
             args=(grupos[i],)
-    )
+        )
         t.start()
         threads.append(t)
 
