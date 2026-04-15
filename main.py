@@ -55,7 +55,7 @@ skins_a_vigilar = {
     153.00,
     "https://steamcommunity.com/market/listings/730/%E2%98%85%20StatTrak%E2%84%A2%20Survival%20Knife%20%7C%20Ultraviolet%20%28Minimal%20Wear%29":
     145.00,
-    "https://steamcommunity.com/market/listings/730/%E2%98%85%20StatTrak%E2%84%A2%20Falchion%20Knife%20%7C%20Stained%20%28Minimal%20Wear%29":
+    "https://steamcommunity.com/market/listings/730/%E2%98%85%20Specialist%20Gloves%20%7C%20Crimson%20Web%20%28Battle-Scarred%29":
     150.00,
     "https://steamcommunity.com/market/listings/730/%E2%98%85%20StatTrak%E2%84%A2%20Bowie%20Knife%20%7C%20Damascus%20Steel%20%28Minimal%20Wear%29":
     148.00,
