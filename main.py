@@ -61,8 +61,8 @@ skins_a_vigilar = {
     565.00,
     "https://steamcommunity.com/market/listings/730/%E2%98%85%20StatTrak%E2%84%A2%20Nomad%20Knife%20%7C%20Scorched%20%28Minimal%20Wear%29":
     149.00,
-    "https://steamcommunity.com/market/listings/730/%E2%98%85%20Survival%20Knife%20%7C%20Ultraviolet%20%28Factory%20New%29":
-    202.00,
+    "https://steamcommunity.com/market/listings/730/AK-47%20%7C%20Bloodsport%20%28Minimal%20Wear%29":
+    205.00,
     "https://steamcommunity.com/market/listings/730/%E2%98%85%20StatTrak%E2%84%A2%20Talon%20Knife%20%7C%20Blue%20Steel%20%28Minimal%20Wear%29":
     556.00,
     "https://steamcommunity.com/market/listings/730/%E2%98%85%20Classic%20Knife%20%7C%20Blue%20Steel%20%28Minimal%20Wear%29":
