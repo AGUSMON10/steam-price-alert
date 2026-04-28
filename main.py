@@ -73,6 +73,8 @@ skins_a_vigilar = {
     160.00,
     "https://steamcommunity.com/market/listings/730/%E2%98%85%20StatTrak%E2%84%A2%20Falchion%20Knife%20%7C%20Black%20Laminate%20%28Factory%20New%29":
     200.00,
+    "https://steamcommunity.com/market/listings/730/AK-47%20%7C%20Bloodsport%20%28Field-Tested%29":
+    185.00,
     "https://steamcommunity.com/market/listings/730/%E2%98%85%20StatTrak%E2%84%A2%20Talon%20Knife%20%7C%20Ultraviolet%20%28Minimal%20Wear%29":
     530.00
 }
