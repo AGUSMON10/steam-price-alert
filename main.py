@@ -122,6 +122,14 @@ skins_a_vigilar = {
     145.00,
     "https://steamcommunity.com/market/listings/730/%E2%98%85%20StatTrak%E2%84%A2%20Shadow%20Daggers%20%7C%20Tiger%20Tooth%20%28Factory%20New%29":
     151.00,
+    "https://steamcommunity.com/market/listings/730/%E2%98%85%20Classic%20Knife%20%7C%20Crimson%20Web%20%28Minimal%20Wear%29":
+    231.00,
+    "https://steamcommunity.com/market/listings/730/%E2%98%85%20Flip%20Knife%20%7C%20Ultraviolet%20%28Field-Tested%29":
+    152.00,
+    "https://steamcommunity.com/market/listings/730/%E2%98%85%20StatTrak%E2%84%A2%20Flip%20Knife%20%7C%20Ultraviolet%20%28Field-Tested%29":
+    162.00,
+    "https://steamcommunity.com/market/listings/730/%E2%98%85%20Flip%20Knife%20%7C%20Case%20Hardened%20%28Field-Tested%29":
+    194.00,
     "https://steamcommunity.com/market/listings/730/%E2%98%85%20StatTrak%E2%84%A2%20Falchion%20Knife%20%7C%20Bright%20Water%20%28Factory%20New%29":
     145.00
 }
