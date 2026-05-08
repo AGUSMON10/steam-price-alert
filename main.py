@@ -134,6 +134,20 @@ skins_a_vigilar = {
     161.00,
     "https://steamcommunity.com/market/listings/730/%E2%98%85%20StatTrak%E2%84%A2%20Nomad%20Knife%20%7C%20Damascus%20Steel%20%28Factory%20New%29":
     221.00,
+    "https://steamcommunity.com/market/listings/730/%E2%98%85%20StatTrak%E2%84%A2%20Survival%20Knife%20%7C%20Blue%20Steel%20%28Field-Tested%29":
+    106.00,
+    "https://steamcommunity.com/market/listings/730/%E2%98%85%20StatTrak%E2%84%A2%20Survival%20Knife%20%7C%20Crimson%20Web%20%28Field-Tested%29":
+    149.00,
+    "https://steamcommunity.com/market/listings/730/%E2%98%85%20StatTrak%E2%84%A2%20Survival%20Knife%20%7C%20Crimson%20Web%20%28Well-Worn%29":
+    149.00,
+    "https://steamcommunity.com/market/listings/730/%E2%98%85%20Survival%20Knife%20%7C%20Blue%20Steel%20%28Factory%20New%29":
+    149.00,
+    "https://steamcommunity.com/market/listings/730/%E2%98%85%20StatTrak%E2%84%A2%20Survival%20Knife%20%7C%20Crimson%20Web%20%28Minimal%20Wear%29":
+    174.00,
+    "https://steamcommunity.com/market/listings/730/%E2%98%85%20StatTrak%E2%84%A2%20Flip%20Knife%20%7C%20Ultraviolet%20%28Well-Worn%29":
+    160.00,
+    "https://steamcommunity.com/market/listings/730/%E2%98%85%20Flip%20Knife%20%7C%20Lore%20%28Field-Tested%29":
+    200.00,
     "https://steamcommunity.com/market/listings/730/%E2%98%85%20StatTrak%E2%84%A2%20Falchion%20Knife%20%7C%20Bright%20Water%20%28Factory%20New%29":
     145.00
 }
@@ -245,9 +259,10 @@ def obtener_item_nameid(url_item, session):
 
             else:
                 print(f"[ERROR] HTTP {r.status_code}")
+                estado_app["errores"] += 1
 
-        except Exception:
-            print("Proxy malo:", proxy_url)
+        except Exception as e:
+            print(f"[ERROR] Proxy malo: {proxy_url} | Error: {e}")
             marcar_proxy_malo(proxy_url)
             time.sleep(5)
 
@@ -287,9 +302,10 @@ def obtener_lowest_sell_price(item_nameid, session):
 
             else:
                 print(f"[ERROR] HTTP {r.status_code}")
+                estado_app["errores"] += 1
 
-        except Exception:
-            print("Proxy malo:", proxy_url)
+        except Exception as e:
+            print(f"[ERROR] Proxy malo: {proxy_url} | Error: {e}")
             marcar_proxy_malo(proxy_url)
             time.sleep(5)
 
@@ -362,6 +378,7 @@ def worker(grupo_skins):
             time.sleep(random.randint(5, 8))
 
         time.sleep(random.randint(30, 50))
+        estado_app["ultimo_escaneo"] = datetime.now().isoformat()
         print("[STATUS] Ciclo completo\n")
 
 
