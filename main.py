@@ -224,7 +224,7 @@ def obtener_proxy():
 
 def marcar_proxy_malo(proxy_url):
     PROXY_STATUS[proxy_url] = time.time() + PROXY_COOLDOWN
-    print(f"[INFO] Proxy en cooldown 15 min: {proxy_url}")
+    print(f"[COOLDOWN] Proxy bloqueado 15 min: {proxy_url}")
 
 # Crear app Flask para UptimeRobot
 app = Flask(__name__)
@@ -380,6 +380,9 @@ def worker(grupo_skins, worker_id):
 
     while estado_app["activo"]:
         inicio_ciclo = time.time()
+
+        skins_revisadas = 0
+        
         for url, precio_max in grupo_skins:
 
             nombre_skin = obtener_nombre_skin(url)
@@ -399,6 +402,8 @@ def worker(grupo_skins, worker_id):
                 continue
 
             print(f"[PRICE] {precio_actual:.2f} USD | Max: {precio_max:.2f}")
+
+            skins_revisadas += 1
 
             ultima_alerta = notificados.get(url)
 
@@ -437,6 +442,7 @@ def worker(grupo_skins, worker_id):
             print(f"[INFO] Proxies cooldown: {proxies_bloqueados}")
             
             print(f"[INFO] Skins notificadas: {len(notificados)}")
+            print(f"[INFO] Skins revisadas: {skins_revisadas}")
 
             duracion = round(time.time() - inicio_ciclo, 1)
 
