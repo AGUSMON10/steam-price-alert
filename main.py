@@ -379,6 +379,7 @@ def worker(grupo_skins, worker_id):
     session = requests.Session()
 
     while estado_app["activo"]:
+        inicio_ciclo = time.time()
         for url, precio_max in grupo_skins:
 
             nombre_skin = obtener_nombre_skin(url)
@@ -419,12 +420,15 @@ def worker(grupo_skins, worker_id):
 
         estado_app["ultimo_escaneo"] = datetime.now().isoformat()
 
-if worker_id == 0:
-    print(f"[INFO] Total skins: {len(skins_a_vigilar)}")
-    print(f"[INFO] Proxies activos: {len(PROXIES)}")
-    print(f"[INFO] Skins notificadas: {len(notificados)}")
+        if worker_id == 0:
+            print(f"[INFO] Total skins: {len(skins_a_vigilar)}")
+            print(f"[INFO] Proxies activos: {len(PROXIES)}")
+            print(f"[INFO] Skins notificadas: {len(notificados)}")
 
-    print("[STATUS] Ciclo completo\n")
+            duracion = round(time.time() - inicio_ciclo, 1)
+
+            print(f"[INFO] Duración ciclo: {duracion} segundos")
+            print("[STATUS] Ciclo completo\n")
 
 # 🔁 Ejecutar el servidor Flask en hilo separado
 def iniciar_servidor():
