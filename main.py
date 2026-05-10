@@ -412,6 +412,11 @@ def worker(grupo_skins, worker_id):
                     f"📉 Tu máximo: {precio_max:.2f} USD"
                 )
                 enviar_telegram(mensaje)
+
+                time.sleep(6)
+
+                enviar_telegram("🔔 RECORDATORIO 🔔\n\n" + mensaje)
+
                 notificados[url] = precio_actual
 
             time.sleep(random.randint(5, 8))
@@ -423,6 +428,14 @@ def worker(grupo_skins, worker_id):
         if worker_id == 0:
             print(f"[INFO] Total skins: {len(skins_a_vigilar)}")
             print(f"[INFO] Proxies activos: {len(PROXIES)}")
+
+            proxies_bloqueados = sum(
+                1 for t in PROXY_STATUS.values()
+                if t > time.time()
+            )
+
+            print(f"[INFO] Proxies cooldown: {proxies_bloqueados}")
+            
             print(f"[INFO] Skins notificadas: {len(notificados)}")
 
             duracion = round(time.time() - inicio_ciclo, 1)
