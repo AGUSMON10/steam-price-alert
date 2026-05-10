@@ -375,7 +375,7 @@ def dividir_skins_en_grupos():
 
     return grupos
 
-def worker(grupo_skins):
+def worker(grupo_skins, worker_id):
     session = requests.Session()
 
     while estado_app["activo"]:
@@ -419,11 +419,12 @@ def worker(grupo_skins):
 
         estado_app["ultimo_escaneo"] = datetime.now().isoformat()
 
-        print(f"[INFO] Total skins: {len(skins_a_vigilar)}")
-        print(f"[INFO] Proxies activos: {len(PROXIES)}")
-        print(f"[INFO] Skins notificadas: {len(notificados)}")
+if worker_id == 0:
+    print(f"[INFO] Total skins: {len(skins_a_vigilar)}")
+    print(f"[INFO] Proxies activos: {len(PROXIES)}")
+    print(f"[INFO] Skins notificadas: {len(notificados)}")
 
-        print("[STATUS] Ciclo completo\n")
+    print("[STATUS] Ciclo completo\n")
 
 # 🔁 Ejecutar el servidor Flask en hilo separado
 def iniciar_servidor():
@@ -438,7 +439,7 @@ if __name__ == "__main__":
     for i in range(len(grupos)):
         t = threading.Thread(
             target=worker,
-            args=(grupos[i],)
+            args=(grupos[i], i)
         )
         t.start()
         threads.append(t)
