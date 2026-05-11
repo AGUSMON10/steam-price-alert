@@ -206,6 +206,7 @@ USER_AGENTS = [
     "Mozilla/5.0 (Macintosh; Intel Mac OS X 13_0) AppleWebKit/605.1.15 Version/17.0 Safari/605.1.15"
 ]
 
+
 def get_headers():
     return {
         "User-Agent": random.choice(USER_AGENTS),
