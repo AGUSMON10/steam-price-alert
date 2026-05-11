@@ -198,6 +198,7 @@ skins_a_vigilar = {
 notificados = {}
 item_ids_cache = {}
 ultimo_escaneo = None
+skins_revisadas_total = 0
 estado_app = {"activo": True, "errores": 0, "ultimo_escaneo": None}
 
 # Headers realistas
@@ -270,7 +271,6 @@ def obtener_item_nameid(url_item, session):
 
         proxy_url = obtener_proxy()
         proxy_dict = {"http": proxy_url, "https": proxy_url}
-        print(f"[PROXY] Usando: {proxy_url}")
 
         try:
 
@@ -278,7 +278,7 @@ def obtener_item_nameid(url_item, session):
                 url_item,
                 headers=get_headers(),
                 proxies=proxy_dict,
-                timeout=7
+                timeout=5
             )
 
             if r.status_code == 429:
@@ -318,7 +318,6 @@ def obtener_lowest_sell_price(item_nameid, session):
 
         proxy_url = obtener_proxy()
         proxy_dict = {"http": proxy_url, "https": proxy_url}
-        print(f"[PROXY] Usando: {proxy_url}")
 
         try:
 
@@ -326,7 +325,7 @@ def obtener_lowest_sell_price(item_nameid, session):
                 url,
                 headers=get_headers(),
                 proxies=proxy_dict,
-                timeout=7
+                timeout=5
             )
 
             if r.status_code == 429:
@@ -381,16 +380,13 @@ def dividir_skins_en_grupos():
 
 def worker(grupo_skins, worker_id):
     session = requests.Session()
+    session.headers.update(get_headers())
 
     while estado_app["activo"]:
         inicio_ciclo = time.time()
-
-        skins_revisadas = 0
         
         for url, precio_max in grupo_skins:
 
-            nombre_skin = obtener_nombre_skin(url)
-            print(f"[INFO] Revisando: {nombre_skin}")
 
             if url not in item_ids_cache:
                 item_ids_cache[url] = obtener_item_nameid(url, session)
@@ -405,9 +401,8 @@ def worker(grupo_skins, worker_id):
             if precio_actual is None:
                 continue
 
-            print(f"[PRICE] {precio_actual:.2f} USD | Max: {precio_max:.2f}")
-
-            skins_revisadas += 1
+            global skins_revisadas_total
+            skins_revisadas_total += 1
 
             ultima_alerta = notificados.get(url)
 
@@ -430,7 +425,7 @@ def worker(grupo_skins, worker_id):
 
             time.sleep(random.randint(5, 8))
 
-        time.sleep(random.randint(30, 50))
+        time.sleep(random.randint(25, 45))
 
         estado_app["ultimo_escaneo"] = datetime.now().isoformat()
 
@@ -446,7 +441,8 @@ def worker(grupo_skins, worker_id):
             print(f"[INFO] Proxies cooldown: {proxies_bloqueados}")
             
             print(f"[INFO] Skins notificadas: {len(notificados)}")
-            print(f"[INFO] Skins revisadas: {skins_revisadas}")
+            print(f"[INFO] Skins revisadas: {skins_revisadas_total}")
+            skins_revisadas_total = 0
 
             duracion = round(time.time() - inicio_ciclo, 1)
 
