@@ -18,6 +18,9 @@ PROXIES = [
     "http://olrliwpe:v769pjjmxnb1@136.0.170.101:6104",
     "http://olrliwpe:v769pjjmxnb1@82.29.143.14:7728",
     "http://olrliwpe:v769pjjmxnb1@136.0.170.36:6039",
+    "http://olrliwpe:v769pjjmxnb1@31.98.8.228:5906",
+    "http://olrliwpe:v769pjjmxnb1@150.241.111.94:6598",
+    "http://olrliwpe:v769pjjmxnb1@9.142.8.27:5684",
     "http://olrliwpe:v769pjjmxnb1@103.130.178.157:5821"
 ]
 
