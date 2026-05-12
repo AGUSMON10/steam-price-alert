@@ -199,6 +199,12 @@ skins_a_vigilar = {
     122.00,
     "https://steamcommunity.com/market/listings/730/StatTrak%E2%84%A2%20AWP%20%7C%20Corticera%20%28Factory%20New%29":
     164.00,
+    "https://steamcommunity.com/market/listings/730/%E2%98%85%20StatTrak%E2%84%A2%20Survival%20Knife%20%7C%20Damascus%20Steel%20%28Minimal%20Wear%29":
+    106.00,
+    "https://steamcommunity.com/market/listings/730/StatTrak%E2%84%A2%20M4A4%20%7C%20%E9%BE%8D%E7%8E%8B%20%28Dragon%20King%29%20%28Factory%20New%29":
+    135.00,
+    "https://steamcommunity.com/market/listings/730/Souvenir%20M4A4%20%7C%20Hellish%20%28Minimal%20Wear%29":
+    140.00,
     "https://steamcommunity.com/market/listings/730/%E2%98%85%20StatTrak%E2%84%A2%20Falchion%20Knife%20%7C%20Bright%20Water%20%28Factory%20New%29":
     145.00
 }
