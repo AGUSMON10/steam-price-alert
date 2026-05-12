@@ -205,6 +205,12 @@ skins_a_vigilar = {
     135.00,
     "https://steamcommunity.com/market/listings/730/Souvenir%20M4A4%20%7C%20Hellish%20%28Minimal%20Wear%29":
     140.00,
+    "https://steamcommunity.com/market/listings/730/%E2%98%85%20Falchion%20Knife%20%7C%20Lore%20%28Well-Worn%29":
+    125.00,
+    "https://steamcommunity.com/market/listings/730/%E2%98%85%20Falchion%20Knife%20%7C%20Blue%20Steel%20%28Well-Worn%29":
+    153.00,
+    "https://steamcommunity.com/market/listings/730/%E2%98%85%20StatTrak%E2%84%A2%20Falchion%20Knife%20%7C%20Freehand%20%28Factory%20New%29":
+    165.00,
     "https://steamcommunity.com/market/listings/730/%E2%98%85%20StatTrak%E2%84%A2%20Falchion%20Knife%20%7C%20Bright%20Water%20%28Factory%20New%29":
     145.00
 }
@@ -431,7 +437,7 @@ def worker(grupo_skins, worker_id):
                 )
                 enviar_telegram(mensaje)
 
-                time.sleep(9)
+                time.sleep(15)
 
                 enviar_telegram("🔔 RECORDATORIO 🔔\n\n" + mensaje)
 
