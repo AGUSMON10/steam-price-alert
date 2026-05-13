@@ -155,11 +155,15 @@ def obtener_lowest_sell_price(url_item, session):
         proxy_dict = {"http": proxy_url, "https": proxy_url}
 
         try:
-            
+
             time.sleep(random.uniform(1.5, 4.5))
 
+            # Agregamos render=false para obtener JSON
+            separator = "&" if "?" in url_item else "?"
+            api_url = url_item + f"{separator}format=json"
+
             r = session.get(
-                url_item,
+                api_url,
                 headers=get_headers(),
                 proxies=proxy_dict,
                 timeout=20
@@ -186,27 +190,27 @@ def obtener_lowest_sell_price(url_item, session):
             if r.status_code != 200:
                 continue
 
-            html = r.text
+            try:
+                data = r.json()
+            except Exception:
+                print("[WARN] No se pudo parsear JSON")
+                continue
 
-            match = re.search(
-                r'"lowest_sell_order_price":"?([\d]+)"?',
-                html
-            )
+            # Buscar el precio más barato
+            lowest_price = data.get("lowest_sell_order_price")
 
-            if not match:
+            if not lowest_price:
                 print("[WARN] No se encontró lowest_sell_order_price")
                 continue
 
-            precio_centavos = int(match.group(1))
+            print(f"[DEBUG] Precio raw Steam: {lowest_price}")
 
-            precio = precio_centavos / 100
+            # Steam devuelve centavos
+            precio = float(lowest_price) / 100
 
-            print(f"[DEBUG] Precio centavos: {precio_centavos}")
             print(f"[DEBUG] Precio final: {precio}")
 
             return precio
-
-            print(f"[DEBUG] Precio raw: {precio_raw}")
 
         except Exception as e:
             print(f"[ERROR] Listing exception: {e}")
@@ -242,23 +246,22 @@ def dividir_skins_en_grupos():
     return grupos
 
 def worker(grupo_skins, worker_id):
-
-    global skins_revisadas_total
-    
     session = requests.Session()
     session.headers.update(get_headers())
 
     while estado_app["activo"]:
         inicio_ciclo = time.time()
-        
-        for url, precio_max in grupo_skins:
+
+        for nombre_skin, (url, precio_max) in grupo_skins:
 
             precio_actual = obtener_lowest_sell_price(url, session)
-            print(f"[CHECK] {obtener_nombre_skin(url)} -> {precio_actual}$ / objetivo {precio_max}$")
+
+            print(f"[CHECK] {nombre_skin} -> {precio_actual}$ / objetivo {precio_max}$")
 
             if precio_actual is None:
                 continue
 
+            global skins_revisadas_total
             skins_revisadas_total += 1
 
             ultima_alerta = notificados.get(url)
@@ -266,12 +269,15 @@ def worker(grupo_skins, worker_id):
             if precio_actual <= precio_max and (
                 ultima_alerta is None or precio_actual < ultima_alerta
             ):
+
                 mensaje = (
-                    f"🛒 ¡Skin en oferta!\n"
-                    f"{url}\n"
+                    f"🛒 ¡Skin en oferta!\n\n"
+                    f"🎮 {nombre_skin}\n"
                     f"💵 Precio actual: {precio_actual:.2f} USD\n"
-                    f"📉 Tu máximo: {precio_max:.2f} USD"
+                    f"📉 Tu máximo: {precio_max:.2f} USD\n\n"
+                    f"{url}"
                 )
+
                 enviar_telegram(mensaje)
 
                 time.sleep(15)
@@ -287,6 +293,7 @@ def worker(grupo_skins, worker_id):
         estado_app["ultimo_escaneo"] = datetime.now().isoformat()
 
         if worker_id == 0:
+
             print(f"[INFO] Total skins: {len(skins_a_vigilar)}")
             print(f"[INFO] Proxies activos: {len(PROXIES)}")
 
@@ -296,9 +303,9 @@ def worker(grupo_skins, worker_id):
             )
 
             print(f"[INFO] Proxies cooldown: {proxies_bloqueados}")
-            
             print(f"[INFO] Skins notificadas: {len(notificados)}")
             print(f"[INFO] Skins revisadas: {skins_revisadas_total}")
+
             skins_revisadas_total = 0
 
             duracion = round(time.time() - inicio_ciclo, 1)
