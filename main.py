@@ -134,7 +134,7 @@ def obtener_nombre_skin(url):
 def obtener_lowest_sell_price(url_item, session):
 
     market_hash_name = requests.utils.unquote(
-    url_item.split("/730/")[-1]
+        url_item.split("/730/")[-1]
     )
 
     url = (
@@ -166,6 +166,11 @@ def obtener_lowest_sell_price(url_item, session):
                 marcar_proxy_malo(proxy_url)
                 continue
 
+            if r.status_code == 502:
+                print("[WARN] 502 Bad Gateway")
+                marcar_proxy_malo(proxy_url)
+                continue
+
             if r.status_code != 200:
                 continue
 
@@ -175,22 +180,26 @@ def obtener_lowest_sell_price(url_item, session):
             if not data.get("success"):
                 continue
 
+            # SOLO usar lowest_price
             lowest_price = data.get("lowest_price")
 
             if not lowest_price:
-                lowest_price = data.get("median_price")
+                print("[WARN] No vino lowest_price")
+                continue
 
             print(f"[DEBUG] Precio raw: {lowest_price}")
 
-            if not lowest_price:
-                continue
-
             precio = re.sub(r"[^\d.,]", "", lowest_price)
-            precio = precio.replace(",", ".")
+
+            # Steam usa coma o punto según región
+            if "," in precio and "." in precio:
+                precio = precio.replace(",", "")
+            else:
+                precio = precio.replace(",", ".")
 
             try:
                 precio = float(precio)
-            except:
+            except Exception:
                 print(f"[ERROR] No se pudo convertir precio: {lowest_price}")
                 continue
 
@@ -240,6 +249,7 @@ def worker(grupo_skins, worker_id):
         for url, precio_max in grupo_skins:
 
             precio_actual = obtener_lowest_sell_price(url, session)
+            print(f"[CHECK] {obtener_nombre_skin(url)} -> {precio_actual}$ / objetivo {precio_max}$")
 
             if precio_actual is None:
                 continue
