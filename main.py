@@ -57,160 +57,6 @@ skins_a_vigilar = {
     182.00,
     "https://steamcommunity.com/market/listings/730/%E2%98%85%20StatTrak%E2%84%A2%20Huntsman%20Knife%20%7C%20Damascus%20Steel%20%28Factory%20New%29":
     215.00,
-    "https://steamcommunity.com/market/listings/730/%E2%98%85%20StatTrak%E2%84%A2%20Falchion%20Knife%20%7C%20Stained%20%28Minimal%20Wear%29":
-    150.00,
-    "https://steamcommunity.com/market/listings/730/%E2%98%85%20Falchion%20Knife%20%7C%20Crimson%20Web%20%28Field-Tested%29":
-    150.00,
-    "https://steamcommunity.com/market/listings/730/%E2%98%85%20StatTrak%E2%84%A2%20Falchion%20Knife%20%7C%20Crimson%20Web%20%28Field-Tested%29":
-    211.00,
-    "https://steamcommunity.com/market/listings/730/%E2%98%85%20StatTrak%E2%84%A2%20Bowie%20Knife%20%7C%20Autotronic%20%28Minimal%20Wear%29":
-    170.00,
-    "https://steamcommunity.com/market/listings/730/%E2%98%85%20StatTrak%E2%84%A2%20Survival%20Knife%20%7C%20Case%20Hardened%20%28Minimal%20Wear%29":
-    170.00,
-    "https://steamcommunity.com/market/listings/730/%E2%98%85%20StatTrak%E2%84%A2%20Bowie%20Knife":
-    163.00,
-    "https://steamcommunity.com/market/listings/730/%E2%98%85%20StatTrak%E2%84%A2%20Paracord%20Knife%20%7C%20Blue%20Steel%20%28Minimal%20Wear%29":
-    150.00,
-    "https://steamcommunity.com/market/listings/730/%E2%98%85%20StatTrak%E2%84%A2%20Falchion%20Knife%20%7C%20Lore%20%28Minimal%20Wear%29":
-    199.00,
-    "https://steamcommunity.com/market/listings/730/%E2%98%85%20Classic%20Knife%20%7C%20Blue%20Steel%20%28Minimal%20Wear%29":
-    174.00,
-    "https://steamcommunity.com/market/listings/730/%E2%98%85%20Bowie%20Knife%20%7C%20Blue%20Steel%20%28Minimal%20Wear%29":
-    165.00,
-    "https://steamcommunity.com/market/listings/730/%E2%98%85%20StatTrak%E2%84%A2%20Survival%20Knife%20%7C%20Case%20Hardened%20%28Well-Worn%29":
-    160.00,
-    "https://steamcommunity.com/market/listings/730/%E2%98%85%20StatTrak%E2%84%A2%20Falchion%20Knife%20%7C%20Black%20Laminate%20%28Factory%20New%29":
-    200.00,
-    "https://steamcommunity.com/market/listings/730/%E2%98%85%20Kukri%20Knife%20%7C%20Night%20Stripe%20%28Factory%20New%29":
-    154.00,
-    "https://steamcommunity.com/market/listings/730/%E2%98%85%20StatTrak%E2%84%A2%20Skeleton%20Knife%20%7C%20Scorched%20%28Field-Tested%29":
-    194.00,
-    "https://steamcommunity.com/market/listings/730/%E2%98%85%20Falchion%20Knife%20%7C%20Ultraviolet%20%28Minimal%20Wear%29":
-    150.00,
-    "https://steamcommunity.com/market/listings/730/%E2%98%85%20Specialist%20Gloves%20%7C%20Crimson%20Web%20%28Battle-Scarred%29":
-    150.00,
-    "https://steamcommunity.com/market/listings/730/%E2%98%85%20StatTrak%E2%84%A2%20Nomad%20Knife%20%7C%20Ultraviolet%20%28Field-Tested%29":
-    165.00,
-    "https://steamcommunity.com/market/listings/730/%E2%98%85%20StatTrak%E2%84%A2%20Bowie%20Knife%20%7C%20Ultraviolet%20%28Field-Tested%29":
-    112.00,
-    "https://steamcommunity.com/market/listings/730/%E2%98%85%20StatTrak%E2%84%A2%20Bowie%20Knife%20%7C%20Bright%20Water%20%28Well-Worn%29":
-    86.00,
-    "https://steamcommunity.com/market/listings/730/%E2%98%85%20StatTrak%E2%84%A2%20Bowie%20Knife%20%7C%20Lore%20%28Well-Worn%29":
-    134.00,
-    "https://steamcommunity.com/market/listings/730/%E2%98%85%20StatTrak%E2%84%A2%20Bowie%20Knife%20%7C%20Autotronic%20%28Well-Worn%29":
-    134.00,
-    "https://steamcommunity.com/market/listings/730/%E2%98%85%20StatTrak%E2%84%A2%20Bowie%20Knife%20%7C%20Damascus%20Steel%20%28Minimal%20Wear%29":
-    147.00,
-    "https://steamcommunity.com/market/listings/730/%E2%98%85%20StatTrak%E2%84%A2%20Bowie%20Knife%20%7C%20Lore%20%28Minimal%20Wear%29":
-    175.00,
-    "https://steamcommunity.com/market/listings/730/%E2%98%85%20StatTrak%E2%84%A2%20Paracord%20Knife%20%7C%20Damascus%20Steel%20%28Factory%20New%29":
-    133.00,
-    "https://steamcommunity.com/market/listings/730/%E2%98%85%20StatTrak%E2%84%A2%20Paracord%20Knife%20%7C%20Ultraviolet%20%28Minimal%20Wear%29":
-    145.00,
-    "https://steamcommunity.com/market/listings/730/%E2%98%85%20StatTrak%E2%84%A2%20Paracord%20Knife%20%7C%20Crimson%20Web%20%28Minimal%20Wear%29":
-    210.00,
-    "https://steamcommunity.com/market/listings/730/%E2%98%85%20StatTrak%E2%84%A2%20Kukri%20Knife%20%7C%20Crimson%20Web%20%28Field-Tested%29":
-    130.00,
-    "https://steamcommunity.com/market/listings/730/%E2%98%85%20StatTrak%E2%84%A2%20Kukri%20Knife%20%7C%20Blue%20Steel%20%28Minimal%20Wear%29":
-    155.00,
-    "https://steamcommunity.com/market/listings/730/%E2%98%85%20StatTrak%E2%84%A2%20Huntsman%20Knife%20%7C%20Freehand%20%28Minimal%20Wear%29":
-    120.00,
-    "https://steamcommunity.com/market/listings/730/%E2%98%85%20Huntsman%20Knife%20%7C%20Ultraviolet%20%28Minimal%20Wear%29":
-    131.00,
-    "https://steamcommunity.com/market/listings/730/%E2%98%85%20StatTrak%E2%84%A2%20Huntsman%20Knife%20%7C%20Blue%20Steel%20%28Field-Tested%29":
-    182.00,
-    "https://steamcommunity.com/market/listings/730/%E2%98%85%20Shadow%20Daggers%20%7C%20Marble%20Fade%20%28Minimal%20Wear%29":
-    150.00,
-    "https://steamcommunity.com/market/listings/730/%E2%98%85%20StatTrak%E2%84%A2%20Shadow%20Daggers%20%7C%20Tiger%20Tooth%20%28Minimal%20Wear%29":
-    145.00,
-    "https://steamcommunity.com/market/listings/730/%E2%98%85%20StatTrak%E2%84%A2%20Shadow%20Daggers%20%7C%20Tiger%20Tooth%20%28Factory%20New%29":
-    151.00,
-    "https://steamcommunity.com/market/listings/730/%E2%98%85%20Classic%20Knife%20%7C%20Crimson%20Web%20%28Minimal%20Wear%29":
-    231.00,
-    "https://steamcommunity.com/market/listings/730/%E2%98%85%20Flip%20Knife%20%7C%20Ultraviolet%20%28Field-Tested%29":
-    152.00,
-    "https://steamcommunity.com/market/listings/730/%E2%98%85%20StatTrak%E2%84%A2%20Flip%20Knife%20%7C%20Ultraviolet%20%28Field-Tested%29":
-    170.00,
-    "https://steamcommunity.com/market/listings/730/%E2%98%85%20Flip%20Knife%20%7C%20Case%20Hardened%20%28Field-Tested%29":
-    194.00,
-    "https://steamcommunity.com/market/listings/730/%E2%98%85%20Nomad%20Knife%20%7C%20Stained%20%28Minimal%20Wear%29":
-    161.00,
-    "https://steamcommunity.com/market/listings/730/%E2%98%85%20StatTrak%E2%84%A2%20Nomad%20Knife%20%7C%20Damascus%20Steel%20%28Factory%20New%29":
-    221.00,
-    "https://steamcommunity.com/market/listings/730/%E2%98%85%20StatTrak%E2%84%A2%20Survival%20Knife%20%7C%20Blue%20Steel%20%28Field-Tested%29":
-    106.00,
-    "https://steamcommunity.com/market/listings/730/%E2%98%85%20StatTrak%E2%84%A2%20Survival%20Knife%20%7C%20Crimson%20Web%20%28Field-Tested%29":
-    149.00,
-    "https://steamcommunity.com/market/listings/730/%E2%98%85%20StatTrak%E2%84%A2%20Survival%20Knife%20%7C%20Crimson%20Web%20%28Well-Worn%29":
-    149.00,
-    "https://steamcommunity.com/market/listings/730/%E2%98%85%20Survival%20Knife%20%7C%20Blue%20Steel%20%28Factory%20New%29":
-    149.00,
-    "https://steamcommunity.com/market/listings/730/%E2%98%85%20StatTrak%E2%84%A2%20Survival%20Knife%20%7C%20Crimson%20Web%20%28Minimal%20Wear%29":
-    174.00,
-    "https://steamcommunity.com/market/listings/730/%E2%98%85%20StatTrak%E2%84%A2%20Flip%20Knife%20%7C%20Ultraviolet%20%28Well-Worn%29":
-    160.00,
-    "https://steamcommunity.com/market/listings/730/%E2%98%85%20Flip%20Knife%20%7C%20Lore%20%28Field-Tested%29":
-    200.00,
-    "https://steamcommunity.com/market/listings/730/%E2%98%85%20Shadow%20Daggers%20%7C%20Case%20Hardened%20%28Minimal%20Wear%29":
-    135.00,
-    "https://steamcommunity.com/market/listings/730/%E2%98%85%20StatTrak%E2%84%A2%20Falchion%20Knife%20%7C%20Lore%20%28Field-Tested%29":
-    150.00,
-    "https://steamcommunity.com/market/listings/730/%E2%98%85%20StatTrak%E2%84%A2%20Falchion%20Knife":
-    175.00,
-    "https://steamcommunity.com/market/listings/730/%E2%98%85%20StatTrak%E2%84%A2%20Paracord%20Knife%20%7C%20Ultraviolet%20%28Well-Worn%29":
-    100.00,
-    "https://steamcommunity.com/market/listings/730/%E2%98%85%20StatTrak%E2%84%A2%20Paracord%20Knife%20%7C%20Blue%20Steel%20%28Field-Tested%29":
-    135.00,
-    "https://steamcommunity.com/market/listings/730/%E2%98%85%20StatTrak%E2%84%A2%20Bowie%20Knife%20%7C%20Lore%20%28Field-Tested%29":
-    138.00,
-    "https://steamcommunity.com/market/listings/730/%E2%98%85%20Bowie%20Knife%20%7C%20Ultraviolet%20%28Minimal%20Wear%29":
-    113.00,
-    "https://steamcommunity.com/market/listings/730/%E2%98%85%20Ursus%20Knife%20%7C%20Blue%20Steel%20%28Minimal%20Wear%29":
-    142.00,
-    "https://steamcommunity.com/market/listings/730/%E2%98%85%20StatTrak%E2%84%A2%20Ursus%20Knife%20%7C%20Ultraviolet%20%28Field-Tested%29":
-    142.00,
-    "https://steamcommunity.com/market/listings/730/%E2%98%85%20StatTrak%E2%84%A2%20Ursus%20Knife%20%7C%20Blue%20Steel%20%28Minimal%20Wear%29":
-    149.00,
-    "https://steamcommunity.com/market/listings/730/%E2%98%85%20StatTrak%E2%84%A2%20Ursus%20Knife%20%7C%20Crimson%20Web%20%28Field-Tested%29":
-    215.00,
-    "https://steamcommunity.com/market/listings/730/%E2%98%85%20StatTrak%E2%84%A2%20Ursus%20Knife%20%7C%20Ultraviolet%20%28Minimal%20Wear%29":
-    160.00,
-    "https://steamcommunity.com/market/listings/730/%E2%98%85%20StatTrak%E2%84%A2%20Nomad%20Knife%20%7C%20Damascus%20Steel%20%28Minimal%20Wear%29":
-    200.00,
-    "https://steamcommunity.com/market/listings/730/%E2%98%85%20StatTrak%E2%84%A2%20Gut%20Knife%20%7C%20Blue%20Steel%20%28Minimal%20Wear%29":
-    100.00,
-    "https://steamcommunity.com/market/listings/730/%E2%98%85%20Gut%20Knife%20%7C%20Autotronic%20%28Minimal%20Wear%29":
-    149.00,
-    "https://steamcommunity.com/market/listings/730/%E2%98%85%20StatTrak%E2%84%A2%20Gut%20Knife%20%7C%20Autotronic%20%28Field-Tested%29":
-    148.00,
-    "https://steamcommunity.com/market/listings/730/%E2%98%85%20StatTrak%E2%84%A2%20Skeleton%20Knife%20%7C%20Urban%20Masked%20%28Minimal%20Wear%29":
-    231.00,
-    "https://steamcommunity.com/market/listings/730/%E2%98%85%20Paracord%20Knife%20%7C%20Stained%20%28Factory%20New%29":
-    134.00,
-    "https://steamcommunity.com/market/listings/730/%E2%98%85%20StatTrak%E2%84%A2%20Paracord%20Knife%20%7C%20Crimson%20Web%20%28Well-Worn%29":
-    142.00,
-    "https://steamcommunity.com/market/listings/730/%E2%98%85%20Survival%20Knife%20%7C%20Crimson%20Web%20%28Minimal%20Wear%29":
-    150.00,
-    "https://steamcommunity.com/market/listings/730/StatTrak%E2%84%A2%20AWP%20%7C%20Asiimov%20%28Battle-Scarred%29":
-    165.00,
-    "https://steamcommunity.com/market/listings/730/StatTrak%E2%84%A2%20AWP%20%7C%20Man-o%27-war%20%28Minimal%20Wear%29":
-    160.00,
-    "https://steamcommunity.com/market/listings/730/StatTrak%E2%84%A2%20AWP%20%7C%20Neo-Noir%20%28Factory%20New%29":
-    122.00,
-    "https://steamcommunity.com/market/listings/730/StatTrak%E2%84%A2%20AWP%20%7C%20Corticera%20%28Factory%20New%29":
-    164.00,
-    "https://steamcommunity.com/market/listings/730/%E2%98%85%20StatTrak%E2%84%A2%20Survival%20Knife%20%7C%20Damascus%20Steel%20%28Minimal%20Wear%29":
-    106.00,
-    "https://steamcommunity.com/market/listings/730/StatTrak%E2%84%A2%20M4A4%20%7C%20%E9%BE%8D%E7%8E%8B%20%28Dragon%20King%29%20%28Factory%20New%29":
-    135.00,
-    "https://steamcommunity.com/market/listings/730/Souvenir%20M4A4%20%7C%20Hellish%20%28Minimal%20Wear%29":
-    140.00,
-    "https://steamcommunity.com/market/listings/730/%E2%98%85%20Falchion%20Knife%20%7C%20Lore%20%28Well-Worn%29":
-    125.00,
-    "https://steamcommunity.com/market/listings/730/%E2%98%85%20Falchion%20Knife%20%7C%20Blue%20Steel%20%28Well-Worn%29":
-    153.00,
-    "https://steamcommunity.com/market/listings/730/%E2%98%85%20StatTrak%E2%84%A2%20Falchion%20Knife%20%7C%20Freehand%20%28Factory%20New%29":
-    165.00,
     "https://steamcommunity.com/market/listings/730/%E2%98%85%20StatTrak%E2%84%A2%20Falchion%20Knife%20%7C%20Bright%20Water%20%28Factory%20New%29":
     145.00
 }
@@ -234,7 +80,9 @@ USER_AGENTS = [
 def get_headers():
     return {
         "User-Agent": random.choice(USER_AGENTS),
-        "Accept-Language": "en-US,en;q=0.9"
+        "Accept-Language": "en-US,en;q=0.9",
+        "Referer": "https://steamcommunity.com/market/",
+        "Connection": "keep-alive"
     }
 
 def obtener_proxy():
@@ -287,6 +135,8 @@ def obtener_nombre_skin(url):
 def obtener_item_nameid(url_item, session):
     url_item = limpiar_url(url_item)
 
+    print(f"[DEBUG] URL original: {url_item}")
+
     for intento in range(4):
 
         proxy_url = obtener_proxy()
@@ -294,55 +144,44 @@ def obtener_item_nameid(url_item, session):
 
         try:
 
+            print(f"[DEBUG] Intento {intento+1}")
+            print(f"[DEBUG] Proxy usado: {proxy_url}")
+
             r = session.get(
                 url_item,
                 headers=get_headers(),
                 proxies=proxy_dict,
-                timeout=10,
+                timeout=20,
                 allow_redirects=True
             )
 
-            if r.status_code == 429:
-                print(f"429 detectado — proxy en cooldown: {proxy_url}")
-                marcar_proxy_malo(proxy_url)
-                time.sleep(10)
-                continue
+            print(f"[DEBUG] Status code: {r.status_code}")
+            print(f"[DEBUG] URL final: {r.url}")
 
-            if r.status_code != 200:
-                print(f"[ERROR] HTTP {r.status_code}")
-                continue
+            print(r.text[:5000])
 
-            final_url = r.url
+            match = re.search(r"item_nameid.*?(\d+)", r.text)
 
-            match = re.search(r'/730/([A-Z0-9]+)', final_url)
+            if match:
+                item_nameid = match.group(1)
 
-            if not match:
-                print("[WARN] No se encontró nuevo ID de Steam")
-                continue
+                print(f"[DEBUG] item_nameid encontrado: {item_nameid}")
 
-            market_hash = match.group(1)
+                return item_nameid
 
-            api_url = f"https://steamcommunity.com/market/itemordershistogram?country=US&language=english&currency=1&item_nameid={market_hash}"
-
-            test = session.get(
-                api_url,
-                headers=get_headers(),
-                proxies=proxy_dict,
-                timeout=10
-            )
-
-            if test.status_code == 200:
-                return market_hash
+            print("[WARN] No se encontró item_nameid")
 
         except Exception as e:
-            print(f"[ERROR] Proxy malo: {proxy_url} | Error: {e}")
+            print(f"[ERROR] Exception: {e}")
             marcar_proxy_malo(proxy_url)
-            time.sleep(5)
 
     return None
 
 def obtener_lowest_sell_price(item_nameid, session):
+
     url = f"https://steamcommunity.com/market/itemordershistogram?country=US&language=english&currency=1&item_nameid={item_nameid}"
+
+    print(f"[DEBUG] Consultando histogram: {url}")
 
     for intento in range(4):
 
@@ -355,30 +194,38 @@ def obtener_lowest_sell_price(item_nameid, session):
                 url,
                 headers=get_headers(),
                 proxies=proxy_dict,
-                timeout=5
+                timeout=20
             )
 
+            print(f"[DEBUG] Histogram status: {r.status_code}")
+
             if r.status_code == 429:
-                print(f"429 Steam — proxy en cooldown: {proxy_url}")
+                print("[WARN] 429 histogram")
                 marcar_proxy_malo(proxy_url)
-                time.sleep(10)
                 continue
 
-            if r.status_code == 200:
-                data = r.json()
-                lowest = data.get("lowest_sell_order")
+            if r.status_code != 200:
+                print(f"[ERROR] Histogram HTTP {r.status_code}")
+                continue
 
-                if lowest and str(lowest).isdigit():
-                    return int(lowest) / 100
+            print(f"[DEBUG] Histogram response: {r.text[:500]}")
 
-            else:
-                print(f"[ERROR] HTTP {r.status_code}")
-                estado_app["errores"] += 1
+            data = r.json()
+
+            lowest = data.get("lowest_sell_order")
+
+            print(f"[DEBUG] Lowest raw: {lowest}")
+
+            if lowest and str(lowest).isdigit():
+                precio = int(lowest) / 100
+
+                print(f"[DEBUG] Precio final: {precio}")
+
+                return precio
 
         except Exception as e:
-            print(f"[ERROR] Proxy malo: {proxy_url} | Error: {e}")
+            print(f"[ERROR] Histogram exception: {e}")
             marcar_proxy_malo(proxy_url)
-            time.sleep(5)
 
     return None
 
@@ -453,9 +300,9 @@ def worker(grupo_skins, worker_id):
 
                 notificados[url] = precio_actual
 
-            time.sleep(random.randint(5, 8))
+            time.sleep(random.randint(8, 15))
 
-        time.sleep(random.randint(25, 45))
+        time.sleep(5)
 
         estado_app["ultimo_escaneo"] = datetime.now().isoformat()
 
