@@ -346,14 +346,16 @@ def enviar_telegram(mensaje):
 
 def dividir_skins_en_grupos():
     lista = list(skins_a_vigilar.items())
-    cantidad_proxies = len(PROXIES)
 
-    grupos = [[] for _ in range(cantidad_proxies)]
+    # 🔥 SOLO tantos grupos como skins (no proxies)
+    cantidad_grupos = min(len(PROXIES), len(lista))
+
+    grupos = [[] for _ in range(cantidad_grupos)]
 
     for i, item in enumerate(lista):
-        grupos[i % cantidad_proxies].append(item)
+        grupos[i % cantidad_grupos].append(item)
 
-    return grupos
+    return [g for g in grupos if g]  # elimina vacíos
 
 def worker(grupo_skins, worker_id):
     session = requests.Session()
