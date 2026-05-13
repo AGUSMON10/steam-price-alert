@@ -62,7 +62,6 @@ skins_a_vigilar = {
 }
 
 notificados = {}
-item_ids_cache = {}
 ultimo_escaneo = None
 skins_revisadas_total = 0
 estado_app = {"activo": True, "errores": 0, "ultimo_escaneo": None}
@@ -132,56 +131,18 @@ def obtener_nombre_skin(url):
     nombre = unquote(parte)
     return nombre
 
-def obtener_item_nameid(url_item, session):
-    url_item = limpiar_url(url_item)
+def obtener_lowest_sell_price(url_item, session):
 
-    print(f"[DEBUG] URL original: {url_item}")
+    market_hash_name = requests.utils.unquote(
+    url_item.split("/730/")[-1]
+    )
 
-    for intento in range(4):
+    url = (
+        "https://steamcommunity.com/market/priceoverview/"
+        f"?appid=730&currency=1&market_hash_name={market_hash_name}"
+    )
 
-        proxy_url = obtener_proxy()
-        proxy_dict = {"http": proxy_url, "https": proxy_url}
-
-        try:
-
-            print(f"[DEBUG] Intento {intento+1}")
-            print(f"[DEBUG] Proxy usado: {proxy_url}")
-
-            r = session.get(
-                url_item,
-                headers=get_headers(),
-                proxies=proxy_dict,
-                timeout=20,
-                allow_redirects=True
-            )
-
-            print(f"[DEBUG] Status code: {r.status_code}")
-            print(f"[DEBUG] URL final: {r.url}")
-
-            print(r.text[:5000])
-
-            match = re.search(r"item_nameid.*?(\d+)", r.text)
-
-            if match:
-                item_nameid = match.group(1)
-
-                print(f"[DEBUG] item_nameid encontrado: {item_nameid}")
-
-                return item_nameid
-
-            print("[WARN] No se encontró item_nameid")
-
-        except Exception as e:
-            print(f"[ERROR] Exception: {e}")
-            marcar_proxy_malo(proxy_url)
-
-    return None
-
-def obtener_lowest_sell_price(item_nameid, session):
-
-    url = f"https://steamcommunity.com/market/itemordershistogram?country=US&language=english&currency=1&item_nameid={item_nameid}"
-
-    print(f"[DEBUG] Consultando histogram: {url}")
+    print(f"[DEBUG] Consultando: {url}")
 
     for intento in range(4):
 
@@ -197,34 +158,44 @@ def obtener_lowest_sell_price(item_nameid, session):
                 timeout=20
             )
 
-            print(f"[DEBUG] Histogram status: {r.status_code}")
+            print(f"[DEBUG] Status: {r.status_code}")
+            print(f"[DEBUG] Response: {r.text[:500]}")
 
             if r.status_code == 429:
-                print("[WARN] 429 histogram")
+                print("[WARN] 429 detectado")
                 marcar_proxy_malo(proxy_url)
                 continue
 
             if r.status_code != 200:
-                print(f"[ERROR] Histogram HTTP {r.status_code}")
                 continue
 
-            print(f"[DEBUG] Histogram response: {r.text[:500]}")
-
             data = r.json()
+            print(f"[DEBUG] JSON: {data}")
 
-            lowest = data.get("lowest_sell_order")
+            if not data.get("success"):
+                continue
 
-            print(f"[DEBUG] Lowest raw: {lowest}")
+            lowest_price = data.get("lowest_price")
+            print(f"[DEBUG] lowest_price raw: {lowest_price}")
 
-            if lowest and str(lowest).isdigit():
-                precio = int(lowest) / 100
+            if not lowest_price:
+                continue
 
-                print(f"[DEBUG] Precio final: {precio}")
+            precio = re.sub(r"[^\d.,]", "", lowest_price)
+            precio = precio.replace(",", ".")
 
-                return precio
+            try:
+                precio = float(precio)
+            except:
+                print(f"[ERROR] No se pudo convertir precio: {lowest_price}")
+                continue
+
+            print(f"[DEBUG] Precio final: {precio}")
+
+            return precio
 
         except Exception as e:
-            print(f"[ERROR] Histogram exception: {e}")
+            print(f"[ERROR] Priceoverview exception: {e}")
             marcar_proxy_malo(proxy_url)
 
     return None
@@ -264,16 +235,7 @@ def worker(grupo_skins, worker_id):
         
         for url, precio_max in grupo_skins:
 
-
-            if url not in item_ids_cache:
-                item_ids_cache[url] = obtener_item_nameid(url, session)
-
-            item_nameid = item_ids_cache.get(url)
-
-            if not item_nameid:
-                continue
-
-            precio_actual = obtener_lowest_sell_price(item_nameid, session)
+            precio_actual = obtener_lowest_sell_price(url, session)
 
             if precio_actual is None:
                 continue
@@ -300,7 +262,7 @@ def worker(grupo_skins, worker_id):
 
                 notificados[url] = precio_actual
 
-            time.sleep(random.randint(8, 15))
+            time.sleep(random.randint(15, 30))
 
         time.sleep(5)
 
