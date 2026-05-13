@@ -252,11 +252,11 @@ def worker(grupo_skins, worker_id):
     while estado_app["activo"]:
         inicio_ciclo = time.time()
 
-        for nombre_skin, (url, precio_max) in grupo_skins:
+        for url, precio_max in grupo_skins:
 
             precio_actual = obtener_lowest_sell_price(url, session)
 
-            print(f"[CHECK] {nombre_skin} -> {precio_actual}$ / objetivo {precio_max}$")
+            print(f"[CHECK] {obtener_nombre_skin(url)} -> {precio_actual}$ / objetivo {precio_max}$")
 
             if precio_actual is None:
                 continue
@@ -272,7 +272,7 @@ def worker(grupo_skins, worker_id):
 
                 mensaje = (
                     f"🛒 ¡Skin en oferta!\n\n"
-                    f"🎮 {nombre_skin}\n"
+                    f"🎮 {obtener_nombre_skin(url)}\n"
                     f"💵 Precio actual: {precio_actual:.2f} USD\n"
                     f"📉 Tu máximo: {precio_max:.2f} USD\n\n"
                     f"{url}"
