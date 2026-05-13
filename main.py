@@ -308,17 +308,12 @@ def obtener_item_nameid(url_item, session):
                 continue
 
             if r.status_code == 200:
-                match = re.search(r"Market_LoadOrderSpread\(\s*(\d+)\s*\)", r.text)
+                match = re.search(r"item_nameid\":\"(\d+)\"", r.text)
+
                 if match:
                     return match.group(1)
 
-                print("[WARN] Probando fallback item_nameid...")
-                fallback = re.search(
-                    r'ItemActivityTicker.Start\( \{"sessionid":.+?"item_nameid":"(\d+)"',
-                    r.text
-                )
-                if fallback:
-                    return fallback.group(1)
+                print("[WARN] No se encontró item_nameid")
 
             else:
                 print(f"[ERROR] HTTP {r.status_code}")
