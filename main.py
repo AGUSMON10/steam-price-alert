@@ -188,40 +188,25 @@ def obtener_lowest_sell_price(url_item, session):
 
             html = r.text
 
-            # Buscar el precio más barato visible
             match = re.search(
-                r'market_listing_price market_listing_price_with_fee">\s*\$?([\d,.]+)',
+                r'"lowest_sell_order_price":"?([\d]+)"?',
                 html
             )
 
             if not match:
-
-                match = re.search(
-                    r'"lowest_price":"\$?([\d,.]+)"',
-                    html
-                )
-
-            if not match:
-                print("[WARN] No se encontró precio")
-                print(html[:3000])
+                print("[WARN] No se encontró lowest_sell_order_price")
                 continue
 
-            precio_raw = "$" + match.group(1)
+            precio_centavos = int(match.group(1))
 
-            print(f"[DEBUG] Precio raw: {precio_raw}")
+            precio = precio_centavos / 100
 
-            precio = re.sub(r"[^\d.,]", "", precio_raw)
-
-            if "," in precio and "." in precio:
-                precio = precio.replace(",", "")
-            else:
-                precio = precio.replace(",", ".")
-
-            precio = float(precio)
-
+            print(f"[DEBUG] Precio centavos: {precio_centavos}")
             print(f"[DEBUG] Precio final: {precio}")
 
             return precio
+
+            print(f"[DEBUG] Precio raw: {precio_raw}")
 
         except Exception as e:
             print(f"[ERROR] Listing exception: {e}")
