@@ -308,6 +308,9 @@ def obtener_item_nameid(url_item, session):
                 continue
 
             if r.status_code == 200:
+                
+                print(r.text[:1000])
+                
                 match = re.search(r"item_nameid\":\"(\d+)\"", r.text)
 
                 if match:
