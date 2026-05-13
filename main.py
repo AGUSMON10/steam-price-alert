@@ -221,6 +221,8 @@ ultimo_escaneo = None
 skins_revisadas_total = 0
 estado_app = {"activo": True, "errores": 0, "ultimo_escaneo": None}
 
+lock = threading.Lock()
+
 # Headers realistas
 USER_AGENTS = [
     "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/121 Safari/537.36",
@@ -239,13 +241,17 @@ def get_headers():
 
 def obtener_proxy():
     ahora = time.time()
+
     disponibles = [p for p, t in PROXY_STATUS.items() if t <= ahora]
 
-    if not disponibles:
-        print("[WARN] Todos los proxies en cooldown, usando cualquiera...")
-        return random.choice(PROXIES)
+    # si hay libres → usar uno libre
+    if disponibles:
+        return random.choice(disponibles)
 
-    return random.choice(disponibles)
+    # si no hay libres → igual devolver uno, PERO ya sabes que está saturado
+    proxy = random.choice(PROXIES)
+    print("[WARN] No hay proxies libres, usando uno en cooldown")
+    return proxy
 
 def marcar_proxy_malo(proxy_url):
     PROXY_STATUS[proxy_url] = time.time() + PROXY_COOLDOWN
@@ -280,97 +286,50 @@ def limpiar_url(url):
     return url.split("?")[0]
 
 def obtener_nombre_skin(url):
-    parte = url.split("/730/")[-1]
-    nombre = unquote(parte)
+    nombre = url.split("/730/")[-1]
+    nombre = unquote(nombre)
+    nombre = nombre.split("?")[0]  # seguridad extra
     return nombre
+    
+def obtener_precio(url, session, proxy_dict):
+    try:
+        market_hash_name = obtener_nombre_skin(url)
 
-def obtener_item_nameid(url_item, session):
-    url_item = limpiar_url(url_item)
+        api_url = "https://steamcommunity.com/market/priceoverview/"
+        params = {
+            "appid": 730,
+            "currency": 1,
+            "market_hash_name": market_hash_name
+        }
 
-    for intento in range(4):
+        response = session.get(
+            api_url,
+            params=params,
+            proxies=proxy_dict,
+            timeout=10
+        )
 
-        proxy_url = obtener_proxy()
-        proxy_dict = {"http": proxy_url, "https": proxy_url}
+        if response.status_code != 200:
+            return None
 
-        try:
+        data = response.json()
 
-            r = session.get(
-                url_item,
-                headers=get_headers(),
-                proxies=proxy_dict,
-                timeout=5
-            )
+        if not data.get("success"):
+            return None
 
-            if r.status_code == 429:
-                print(f"429 detectado — proxy en cooldown: {proxy_url}")
-                marcar_proxy_malo(proxy_url)
-                time.sleep(10)
-                continue
+        price = data.get("lowest_price") or data.get("median_price")
 
-            if r.status_code == 200:
-                match = re.search(r"Market_LoadOrderSpread\(\s*(\d+)\s*\)", r.text)
-                if match:
-                    return match.group(1)
+        if not price:
+            return None
 
-                print("[WARN] Probando fallback item_nameid...")
-                fallback = re.search(
-                    r'ItemActivityTicker.Start\( \{"sessionid":.+?"item_nameid":"(\d+)"',
-                    r.text
-                )
-                if fallback:
-                    return fallback.group(1)
+        price = price.replace("$", "").replace(",", "").strip()
 
-            else:
-                print(f"[ERROR] HTTP {r.status_code}")
-                estado_app["errores"] += 1
+        return float(price)
 
-        except Exception as e:
-            print(f"[ERROR] Proxy malo: {proxy_url} | Error: {e}")
-            marcar_proxy_malo(proxy_url)
-            time.sleep(5)
-
-    return None
-
-def obtener_lowest_sell_price(item_nameid, session):
-    url = f"https://steamcommunity.com/market/itemordershistogram?language=english&currency=1&item_nameid={item_nameid}"
-
-    for intento in range(4):
-
-        proxy_url = obtener_proxy()
-        proxy_dict = {"http": proxy_url, "https": proxy_url}
-
-        try:
-
-            r = session.get(
-                url,
-                headers=get_headers(),
-                proxies=proxy_dict,
-                timeout=5
-            )
-
-            if r.status_code == 429:
-                print(f"429 Steam — proxy en cooldown: {proxy_url}")
-                marcar_proxy_malo(proxy_url)
-                time.sleep(10)
-                continue
-
-            if r.status_code == 200:
-                data = r.json()
-                lowest = data.get("lowest_sell_order")
-
-                if lowest and str(lowest).isdigit():
-                    return int(lowest) / 100
-
-            else:
-                print(f"[ERROR] HTTP {r.status_code}")
-                estado_app["errores"] += 1
-
-        except Exception as e:
-            print(f"[ERROR] Proxy malo: {proxy_url} | Error: {e}")
-            marcar_proxy_malo(proxy_url)
-            time.sleep(5)
-
-    return None
+    except Exception as e:
+        estado_app["errores"] += 1
+        print(f"[ERROR] priceoverview falló: {e}")
+        return None
 
 def enviar_telegram(mensaje):
     try:
@@ -402,27 +361,29 @@ def worker(grupo_skins, worker_id):
     session = requests.Session()
     session.headers.update(get_headers())
 
+    global skins_revisadas_total
+
     while estado_app["activo"]:
         inicio_ciclo = time.time()
-        
+
         for url, precio_max in grupo_skins:
 
+            proxy_url = obtener_proxy()
+            proxy_dict = {"http": proxy_url, "https": proxy_url}
 
-            if url not in item_ids_cache:
-                item_ids_cache[url] = obtener_item_nameid(url, session)
+            market_hash_name = obtener_nombre_skin(url)
 
-            item_nameid = item_ids_cache.get(url)
+            print(f"[DEBUG] Consultando: {market_hash_name} | Proxy: {proxy_url}")
 
-            if not item_nameid:
-                continue
+            with lock:
+                skins_revisadas_total += 1
 
-            precio_actual = obtener_lowest_sell_price(item_nameid, session)
+            precio_actual = obtener_precio(url, session, proxy_dict)
 
+            # ❌ si falla la request
             if precio_actual is None:
+                marcar_proxy_malo(proxy_url)
                 continue
-
-            global skins_revisadas_total
-            skins_revisadas_total += 1
 
             ultima_alerta = notificados.get(url)
 
@@ -435,6 +396,7 @@ def worker(grupo_skins, worker_id):
                     f"💵 Precio actual: {precio_actual:.2f} USD\n"
                     f"📉 Tu máximo: {precio_max:.2f} USD"
                 )
+
                 enviar_telegram(mensaje)
 
                 time.sleep(15)
@@ -459,9 +421,10 @@ def worker(grupo_skins, worker_id):
             )
 
             print(f"[INFO] Proxies cooldown: {proxies_bloqueados}")
-            
+
             print(f"[INFO] Skins notificadas: {len(notificados)}")
             print(f"[INFO] Skins revisadas: {skins_revisadas_total}")
+
             skins_revisadas_total = 0
 
             duracion = round(time.time() - inicio_ciclo, 1)
