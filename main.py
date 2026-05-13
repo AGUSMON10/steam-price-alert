@@ -176,7 +176,11 @@ def obtener_lowest_sell_price(url_item, session):
                 continue
 
             lowest_price = data.get("lowest_price")
-            print(f"[DEBUG] lowest_price raw: {lowest_price}")
+
+            if not lowest_price:
+                lowest_price = data.get("median_price")
+
+            print(f"[DEBUG] Precio raw: {lowest_price}")
 
             if not lowest_price:
                 continue
