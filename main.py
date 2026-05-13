@@ -298,7 +298,8 @@ def obtener_item_nameid(url_item, session):
                 url_item,
                 headers=get_headers(),
                 proxies=proxy_dict,
-                timeout=5
+                timeout=10,
+                allow_redirects=True
             )
 
             if r.status_code == 429:
@@ -307,20 +308,31 @@ def obtener_item_nameid(url_item, session):
                 time.sleep(10)
                 continue
 
-            if r.status_code == 200:
-                
-                print(r.text[:1000])
-                
-                match = re.search(r"item_nameid\":\"(\d+)\"", r.text)
-
-                if match:
-                    return match.group(1)
-
-                print("[WARN] No se encontró item_nameid")
-
-            else:
+            if r.status_code != 200:
                 print(f"[ERROR] HTTP {r.status_code}")
-                estado_app["errores"] += 1
+                continue
+
+            final_url = r.url
+
+            match = re.search(r'/730/([A-Z0-9]+)', final_url)
+
+            if not match:
+                print("[WARN] No se encontró nuevo ID de Steam")
+                continue
+
+            market_hash = match.group(1)
+
+            api_url = f"https://steamcommunity.com/market/itemordershistogram?country=US&language=english&currency=1&item_nameid={market_hash}"
+
+            test = session.get(
+                api_url,
+                headers=get_headers(),
+                proxies=proxy_dict,
+                timeout=10
+            )
+
+            if test.status_code == 200:
+                return market_hash
 
         except Exception as e:
             print(f"[ERROR] Proxy malo: {proxy_url} | Error: {e}")
@@ -330,7 +342,7 @@ def obtener_item_nameid(url_item, session):
     return None
 
 def obtener_lowest_sell_price(item_nameid, session):
-    url = f"https://steamcommunity.com/market/itemordershistogram?language=english&currency=1&item_nameid={item_nameid}"
+    url = f"https://steamcommunity.com/market/itemordershistogram?country=US&language=english&currency=1&item_nameid={item_nameid}"
 
     for intento in range(4):
 
