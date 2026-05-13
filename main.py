@@ -55,23 +55,23 @@ if not TELEGRAM_BOT_TOKEN or not TELEGRAM_CHAT_ID:
 skins_a_vigilar = {
     "https://steamcommunity.com/market/listings/730/G18800420DC083003?appid=730&category_730_Quality=tag_strange&category_730_Exterior=tag_WearCategory1":
     182.00,
-    "https://steamcommunity.com/market/listings/730/G18FD03209B033003?appid=730&category_730_Quality=tag_strange&category_730_Exterior=tag_WearCategory0":
-    215.00,
-    "https://steamcommunity.com/market/listings/730/G188004202B3003?appid=730&category_730_Quality=tag_strange&category_730_Exterior=tag_WearCategory1":
-    150.00,
-    "https://steamcommunity.com/market/listings/730/G188004200C3003?appid=730&category_730_Exterior=tag_WearCategory2":
-    150.00,
-    "https://steamcommunity.com/market/listings/730/G188004200C3003?appid=730&category_730_Quality=tag_strange&category_730_Exterior=tag_WearCategory2":
-    211.00,
-    "https://steamcommunity.com/market/listings/730/G18820420DA083003?appid=730&category_730_Quality=tag_strange&category_730_Exterior=tag_WearCategory1":
-    170.00,
-    "https://steamcommunity.com/market/listings/730/G188604202C3003?appid=730&category_730_Quality=tag_strange&category_730_Exterior=tag_WearCategory1":
-    170.00,
-    "https://steamcommunity.com/market/listings/730/G18800420D2083003?appid=730&category_730_Quality=tag_strange&category_730_Exterior=tag_WearCategory1":
-    199.00,
-    "https://steamcommunity.com/market/listings/730/G188504202A3003?appid=730&category_730_Quality=tag_strange&category_730_Exterior=tag_WearCategory1":
-    150.00,
-    "https://steamcommunity.com/market/listings/730/G18800420C3043003?appid=730&category_730_Quality=tag_strange&category_730_Exterior=tag_WearCategory0":
+    "https://steamcommunity.com/market/listings/730/StatTrak%E2%84%A2%20AWP%20%7C%20Neo-Noir%20%28Factory%20New%29":
+    122.00,
+    "https://steamcommunity.com/market/listings/730/StatTrak%E2%84%A2%20AWP%20%7C%20Corticera%20%28Factory%20New%29":
+    164.00,
+    "https://steamcommunity.com/market/listings/730/%E2%98%85%20StatTrak%E2%84%A2%20Survival%20Knife%20%7C%20Damascus%20Steel%20%28Minimal%20Wear%29":
+    106.00,
+    "https://steamcommunity.com/market/listings/730/StatTrak%E2%84%A2%20M4A4%20%7C%20%E9%BE%8D%E7%8E%8B%20%28Dragon%20King%29%20%28Factory%20New%29":
+    135.00,
+    "https://steamcommunity.com/market/listings/730/Souvenir%20M4A4%20%7C%20Hellish%20%28Minimal%20Wear%29":
+    140.00,
+    "https://steamcommunity.com/market/listings/730/%E2%98%85%20Falchion%20Knife%20%7C%20Lore%20%28Well-Worn%29":
+    125.00,
+    "https://steamcommunity.com/market/listings/730/%E2%98%85%20Falchion%20Knife%20%7C%20Blue%20Steel%20%28Well-Worn%29":
+    153.00,
+    "https://steamcommunity.com/market/listings/730/%E2%98%85%20StatTrak%E2%84%A2%20Falchion%20Knife%20%7C%20Freehand%20%28Factory%20New%29":
+    165.00,
+    "https://steamcommunity.com/market/listings/730/%E2%98%85%20StatTrak%E2%84%A2%20Falchion%20Knife%20%7C%20Bright%20Water%20%28Factory%20New%29":
     145.00
 }
 
@@ -158,9 +158,13 @@ def obtener_lowest_sell_price(url_item, session):
 
             time.sleep(random.uniform(1.5, 4.5))
 
-            # Agregamos render=false para obtener JSON
-            separator = "&" if "?" in url_item else "?"
-            api_url = url_item + f"{separator}format=json"
+            # Convertimos listing URL a market_hash_name
+            market_hash_name = url_item.split("/730/")[-1].split("?")[0]
+
+            api_url = (
+                "https://steamcommunity.com/market/priceoverview/"
+                f"?appid=730&currency=1&market_hash_name={market_hash_name}"
+            )
 
             r = session.get(
                 api_url,
@@ -194,19 +198,27 @@ def obtener_lowest_sell_price(url_item, session):
                 data = r.json()
             except Exception:
                 print("[WARN] No se pudo parsear JSON")
+                print(f"[DEBUG] Response preview: {r.text[:300]}")
                 continue
 
-            # Buscar el precio más barato
-            lowest_price = data.get("lowest_sell_order_price")
+            print(f"[DEBUG] JSON: {data}")
+
+            lowest_price = data.get("lowest_price")
 
             if not lowest_price:
-                print("[WARN] No se encontró lowest_sell_order_price")
+                print("[WARN] No vino lowest_price")
                 continue
 
-            print(f"[DEBUG] Precio raw Steam: {lowest_price}")
+            print(f"[DEBUG] Precio raw: {lowest_price}")
 
-            # Steam devuelve centavos
-            precio = float(lowest_price) / 100
+            precio = re.sub(r"[^\d.,]", "", lowest_price)
+
+            if "," in precio and "." in precio:
+                precio = precio.replace(",", "")
+            else:
+                precio = precio.replace(",", ".")
+
+            precio = float(precio)
 
             print(f"[DEBUG] Precio final: {precio}")
 
