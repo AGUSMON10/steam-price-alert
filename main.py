@@ -57,6 +57,20 @@ skins_a_vigilar = {
     182.00,
     "https://steamcommunity.com/market/listings/730/G18FD03209B033003?appid=730&category_730_Quality=tag_strange&category_730_Exterior=tag_WearCategory0":
     215.00,
+    "https://steamcommunity.com/market/listings/730/G188004202B3003?appid=730&category_730_Quality=tag_strange&category_730_Exterior=tag_WearCategory1":
+    150.00,
+    "https://steamcommunity.com/market/listings/730/G188004200C3003?appid=730&category_730_Exterior=tag_WearCategory2":
+    150.00,
+    "https://steamcommunity.com/market/listings/730/G188004200C3003?appid=730&category_730_Quality=tag_strange&category_730_Exterior=tag_WearCategory2":
+    211.00,
+    "https://steamcommunity.com/market/listings/730/G18820420DA083003?appid=730&category_730_Quality=tag_strange&category_730_Exterior=tag_WearCategory1":
+    170.00,
+    "https://steamcommunity.com/market/listings/730/G188604202C3003?appid=730&category_730_Quality=tag_strange&category_730_Exterior=tag_WearCategory1":
+    170.00,
+    "https://steamcommunity.com/market/listings/730/G18800420D2083003?appid=730&category_730_Quality=tag_strange&category_730_Exterior=tag_WearCategory1":
+    199.00,
+    "https://steamcommunity.com/market/listings/730/G188504202A3003?appid=730&category_730_Quality=tag_strange&category_730_Exterior=tag_WearCategory1":
+    150.00,
     "https://steamcommunity.com/market/listings/730/G18800420C3043003?appid=730&category_730_Quality=tag_strange&category_730_Exterior=tag_WearCategory0":
     145.00
 }
@@ -141,6 +155,8 @@ def obtener_lowest_sell_price(url_item, session):
         proxy_dict = {"http": proxy_url, "https": proxy_url}
 
         try:
+            
+            time.sleep(random.uniform(1.5, 4.5))
 
             r = session.get(
                 url_item,
@@ -150,9 +166,15 @@ def obtener_lowest_sell_price(url_item, session):
             )
 
             print(f"[DEBUG] Status: {r.status_code}")
+            print(f"[DEBUG] Proxy usado: {proxy_url}")
 
             if r.status_code == 429:
                 print("[WARN] 429 detectado")
+                marcar_proxy_malo(proxy_url)
+                continue
+
+            if r.status_code == 403:
+                print("[WARN] 403 Forbidden")
                 marcar_proxy_malo(proxy_url)
                 continue
 
@@ -176,7 +198,7 @@ def obtener_lowest_sell_price(url_item, session):
 
                 # Fallback alternativo
                 match = re.search(
-                    r'market_listing_price market_listing_price_with_fee">\s*([^<]+)',
+                    r'market_listing_price market_listing_price_with_fee">\s*([\s\S]*?)\s*<',
                     html
                 )
 
@@ -224,7 +246,8 @@ def enviar_telegram(mensaje):
 
 def dividir_skins_en_grupos():
     lista = list(skins_a_vigilar.items())
-    cantidad_proxies = len(PROXIES)
+
+    cantidad_proxies = min(len(PROXIES), len(lista))
 
     grupos = [[] for _ in range(cantidad_proxies)]
 
@@ -234,6 +257,9 @@ def dividir_skins_en_grupos():
     return grupos
 
 def worker(grupo_skins, worker_id):
+
+    global skins_revisadas_total
+    
     session = requests.Session()
     session.headers.update(get_headers())
 
@@ -248,7 +274,6 @@ def worker(grupo_skins, worker_id):
             if precio_actual is None:
                 continue
 
-            global skins_revisadas_total
             skins_revisadas_total += 1
 
             ultima_alerta = notificados.get(url)
@@ -309,12 +334,16 @@ if __name__ == "__main__":
     for i in range(len(grupos)):
         t = threading.Thread(
             target=worker,
-            args=(grupos[i], i)
+            args=(grupos[i], i),
+            daemon=True
         )
         t.start()
         threads.append(t)
 
-    servidor_thread = threading.Thread(target=iniciar_servidor)
+    servidor_thread = threading.Thread(
+        target=iniciar_servidor,
+        daemon=True
+    )
     servidor_thread.start()
 
     for t in threads:
