@@ -190,23 +190,23 @@ def obtener_lowest_sell_price(url_item, session):
 
             # Buscar el precio más barato visible
             match = re.search(
-                r'"lowest_price"\s*:\s*"([^"]+)"',
+                r'market_listing_price market_listing_price_with_fee">\s*\$?([\d,.]+)',
                 html
             )
 
             if not match:
 
-                # Fallback alternativo
                 match = re.search(
-                    r'market_listing_price market_listing_price_with_fee">\s*([\s\S]*?)\s*<',
+                    r'"lowest_price":"\$?([\d,.]+)"',
                     html
                 )
 
             if not match:
                 print("[WARN] No se encontró precio")
+                print(html[:3000])
                 continue
 
-            precio_raw = match.group(1)
+            precio_raw = "$" + match.group(1)
 
             print(f"[DEBUG] Precio raw: {precio_raw}")
 
