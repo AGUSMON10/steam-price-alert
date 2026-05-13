@@ -1,237 +1,61 @@
 import random
 import requests
 import time
-import re
 import os
 import threading
 from flask import Flask, jsonify
 from datetime import datetime
-import builtins
-from urllib.parse import unquote
 
-# Lista de proxies (pegá los tuyos de Webshare)
+# =========================
+# CONFIG
+# =========================
 
 PROXIES = [
     "http://olrliwpe:v769pjjmxnb1@136.0.167.151:7154",
     "http://olrliwpe:v769pjjmxnb1@46.202.3.10:7276",
-    "http://olrliwpe:v769pjjmxnb1@192.46.203.98:6064",
-    "http://olrliwpe:v769pjjmxnb1@136.0.170.101:6104",
-    "http://olrliwpe:v769pjjmxnb1@82.29.143.14:7728",
-    "http://olrliwpe:v769pjjmxnb1@136.0.170.36:6039",
-    "http://olrliwpe:v769pjjmxnb1@31.98.8.228:5906",
-    "http://olrliwpe:v769pjjmxnb1@150.241.111.94:6598",
-    "http://olrliwpe:v769pjjmxnb1@9.142.8.27:5684",
     "http://olrliwpe:v769pjjmxnb1@103.130.178.157:5821"
 ]
 
-# Manejo avanzado de proxies
-PROXY_COOLDOWN = 900  # 15 minutos
-PROXY_STATUS = {p: 0 for p in PROXIES}  # proxy: timestamp_habilitado
+PROXY_STATUS = {p: 0 for p in PROXIES}
+PROXY_COOLDOWN = 900
 
-
-# Redefinir print global con flush automático
-original_print = print
-
-def flush_print(*args, **kwargs):
-    kwargs['flush'] = True
-    timestamp = datetime.now().strftime("%H:%M:%S")
-    original_print(f"[{timestamp}]", *args, **kwargs)
-
-builtins.print = flush_print
-
-# Configuración desde variables de entorno
 TELEGRAM_BOT_TOKEN = os.environ.get("TELEGRAM_BOT_TOKEN")
 TELEGRAM_CHAT_ID = os.environ.get("TELEGRAM_CHAT_ID")
 
-# Verificar que las variables de entorno estén configuradas
 if not TELEGRAM_BOT_TOKEN or not TELEGRAM_CHAT_ID:
-    print(
-        "[ERROR] Faltan variables de entorno: TELEGRAM_BOT_TOKEN y/o TELEGRAM_CHAT_ID"
-    )
-    print("Configúralas en la herramienta de Secrets de Replit")
+    print("Faltan variables de entorno")
     exit(1)
 
-# Lista de ítems con URL y precio máximo aceptado
+# =========================
+# SKINS (QUERY-BASED)
+# =========================
+
 skins_a_vigilar = {
-    "https://steamcommunity.com/market/listings/730/%E2%98%85%20StatTrak%E2%84%A2%20Falchion%20Knife%20%7C%20Autotronic%20%28Minimal%20Wear%29":
-    182.00,
-    "https://steamcommunity.com/market/listings/730/%E2%98%85%20StatTrak%E2%84%A2%20Huntsman%20Knife%20%7C%20Damascus%20Steel%20%28Factory%20New%29":
-    215.00,
-    "https://steamcommunity.com/market/listings/730/%E2%98%85%20StatTrak%E2%84%A2%20Falchion%20Knife%20%7C%20Stained%20%28Minimal%20Wear%29":
-    150.00,
-    "https://steamcommunity.com/market/listings/730/%E2%98%85%20Falchion%20Knife%20%7C%20Crimson%20Web%20%28Field-Tested%29":
-    150.00,
-    "https://steamcommunity.com/market/listings/730/%E2%98%85%20StatTrak%E2%84%A2%20Falchion%20Knife%20%7C%20Crimson%20Web%20%28Field-Tested%29":
-    211.00,
-    "https://steamcommunity.com/market/listings/730/%E2%98%85%20StatTrak%E2%84%A2%20Bowie%20Knife%20%7C%20Autotronic%20%28Minimal%20Wear%29":
-    170.00,
-    "https://steamcommunity.com/market/listings/730/%E2%98%85%20StatTrak%E2%84%A2%20Survival%20Knife%20%7C%20Case%20Hardened%20%28Minimal%20Wear%29":
-    170.00,
-    "https://steamcommunity.com/market/listings/730/%E2%98%85%20StatTrak%E2%84%A2%20Bowie%20Knife":
-    163.00,
-    "https://steamcommunity.com/market/listings/730/%E2%98%85%20StatTrak%E2%84%A2%20Paracord%20Knife%20%7C%20Blue%20Steel%20%28Minimal%20Wear%29":
-    150.00,
-    "https://steamcommunity.com/market/listings/730/%E2%98%85%20StatTrak%E2%84%A2%20Falchion%20Knife%20%7C%20Lore%20%28Minimal%20Wear%29":
-    199.00,
-    "https://steamcommunity.com/market/listings/730/%E2%98%85%20Classic%20Knife%20%7C%20Blue%20Steel%20%28Minimal%20Wear%29":
-    174.00,
-    "https://steamcommunity.com/market/listings/730/%E2%98%85%20Bowie%20Knife%20%7C%20Blue%20Steel%20%28Minimal%20Wear%29":
-    165.00,
-    "https://steamcommunity.com/market/listings/730/%E2%98%85%20StatTrak%E2%84%A2%20Survival%20Knife%20%7C%20Case%20Hardened%20%28Well-Worn%29":
-    160.00,
-    "https://steamcommunity.com/market/listings/730/%E2%98%85%20StatTrak%E2%84%A2%20Falchion%20Knife%20%7C%20Black%20Laminate%20%28Factory%20New%29":
-    200.00,
-    "https://steamcommunity.com/market/listings/730/%E2%98%85%20Kukri%20Knife%20%7C%20Night%20Stripe%20%28Factory%20New%29":
-    154.00,
-    "https://steamcommunity.com/market/listings/730/%E2%98%85%20StatTrak%E2%84%A2%20Skeleton%20Knife%20%7C%20Scorched%20%28Field-Tested%29":
-    194.00,
-    "https://steamcommunity.com/market/listings/730/%E2%98%85%20Falchion%20Knife%20%7C%20Ultraviolet%20%28Minimal%20Wear%29":
-    150.00,
-    "https://steamcommunity.com/market/listings/730/%E2%98%85%20Specialist%20Gloves%20%7C%20Crimson%20Web%20%28Battle-Scarred%29":
-    150.00,
-    "https://steamcommunity.com/market/listings/730/%E2%98%85%20StatTrak%E2%84%A2%20Nomad%20Knife%20%7C%20Ultraviolet%20%28Field-Tested%29":
-    165.00,
-    "https://steamcommunity.com/market/listings/730/%E2%98%85%20StatTrak%E2%84%A2%20Bowie%20Knife%20%7C%20Ultraviolet%20%28Field-Tested%29":
-    112.00,
-    "https://steamcommunity.com/market/listings/730/%E2%98%85%20StatTrak%E2%84%A2%20Bowie%20Knife%20%7C%20Bright%20Water%20%28Well-Worn%29":
-    86.00,
-    "https://steamcommunity.com/market/listings/730/%E2%98%85%20StatTrak%E2%84%A2%20Bowie%20Knife%20%7C%20Lore%20%28Well-Worn%29":
-    134.00,
-    "https://steamcommunity.com/market/listings/730/%E2%98%85%20StatTrak%E2%84%A2%20Bowie%20Knife%20%7C%20Autotronic%20%28Well-Worn%29":
-    134.00,
-    "https://steamcommunity.com/market/listings/730/%E2%98%85%20StatTrak%E2%84%A2%20Bowie%20Knife%20%7C%20Damascus%20Steel%20%28Minimal%20Wear%29":
-    147.00,
-    "https://steamcommunity.com/market/listings/730/%E2%98%85%20StatTrak%E2%84%A2%20Bowie%20Knife%20%7C%20Lore%20%28Minimal%20Wear%29":
-    175.00,
-    "https://steamcommunity.com/market/listings/730/%E2%98%85%20StatTrak%E2%84%A2%20Paracord%20Knife%20%7C%20Damascus%20Steel%20%28Factory%20New%29":
-    133.00,
-    "https://steamcommunity.com/market/listings/730/%E2%98%85%20StatTrak%E2%84%A2%20Paracord%20Knife%20%7C%20Ultraviolet%20%28Minimal%20Wear%29":
-    145.00,
-    "https://steamcommunity.com/market/listings/730/%E2%98%85%20StatTrak%E2%84%A2%20Paracord%20Knife%20%7C%20Crimson%20Web%20%28Minimal%20Wear%29":
-    210.00,
-    "https://steamcommunity.com/market/listings/730/%E2%98%85%20StatTrak%E2%84%A2%20Kukri%20Knife%20%7C%20Crimson%20Web%20%28Field-Tested%29":
-    130.00,
-    "https://steamcommunity.com/market/listings/730/%E2%98%85%20StatTrak%E2%84%A2%20Kukri%20Knife%20%7C%20Blue%20Steel%20%28Minimal%20Wear%29":
-    155.00,
-    "https://steamcommunity.com/market/listings/730/%E2%98%85%20StatTrak%E2%84%A2%20Huntsman%20Knife%20%7C%20Freehand%20%28Minimal%20Wear%29":
-    120.00,
-    "https://steamcommunity.com/market/listings/730/%E2%98%85%20Huntsman%20Knife%20%7C%20Ultraviolet%20%28Minimal%20Wear%29":
-    131.00,
-    "https://steamcommunity.com/market/listings/730/%E2%98%85%20StatTrak%E2%84%A2%20Huntsman%20Knife%20%7C%20Blue%20Steel%20%28Field-Tested%29":
-    182.00,
-    "https://steamcommunity.com/market/listings/730/%E2%98%85%20Shadow%20Daggers%20%7C%20Marble%20Fade%20%28Minimal%20Wear%29":
-    150.00,
-    "https://steamcommunity.com/market/listings/730/%E2%98%85%20StatTrak%E2%84%A2%20Shadow%20Daggers%20%7C%20Tiger%20Tooth%20%28Minimal%20Wear%29":
-    145.00,
-    "https://steamcommunity.com/market/listings/730/%E2%98%85%20StatTrak%E2%84%A2%20Shadow%20Daggers%20%7C%20Tiger%20Tooth%20%28Factory%20New%29":
-    151.00,
-    "https://steamcommunity.com/market/listings/730/%E2%98%85%20Classic%20Knife%20%7C%20Crimson%20Web%20%28Minimal%20Wear%29":
-    231.00,
-    "https://steamcommunity.com/market/listings/730/%E2%98%85%20Flip%20Knife%20%7C%20Ultraviolet%20%28Field-Tested%29":
-    152.00,
-    "https://steamcommunity.com/market/listings/730/%E2%98%85%20StatTrak%E2%84%A2%20Flip%20Knife%20%7C%20Ultraviolet%20%28Field-Tested%29":
-    170.00,
-    "https://steamcommunity.com/market/listings/730/%E2%98%85%20Flip%20Knife%20%7C%20Case%20Hardened%20%28Field-Tested%29":
-    194.00,
-    "https://steamcommunity.com/market/listings/730/%E2%98%85%20Nomad%20Knife%20%7C%20Stained%20%28Minimal%20Wear%29":
-    161.00,
-    "https://steamcommunity.com/market/listings/730/%E2%98%85%20StatTrak%E2%84%A2%20Nomad%20Knife%20%7C%20Damascus%20Steel%20%28Factory%20New%29":
-    221.00,
-    "https://steamcommunity.com/market/listings/730/%E2%98%85%20StatTrak%E2%84%A2%20Survival%20Knife%20%7C%20Blue%20Steel%20%28Field-Tested%29":
-    106.00,
-    "https://steamcommunity.com/market/listings/730/%E2%98%85%20StatTrak%E2%84%A2%20Survival%20Knife%20%7C%20Crimson%20Web%20%28Field-Tested%29":
-    149.00,
-    "https://steamcommunity.com/market/listings/730/%E2%98%85%20StatTrak%E2%84%A2%20Survival%20Knife%20%7C%20Crimson%20Web%20%28Well-Worn%29":
-    149.00,
-    "https://steamcommunity.com/market/listings/730/%E2%98%85%20Survival%20Knife%20%7C%20Blue%20Steel%20%28Factory%20New%29":
-    149.00,
-    "https://steamcommunity.com/market/listings/730/%E2%98%85%20StatTrak%E2%84%A2%20Survival%20Knife%20%7C%20Crimson%20Web%20%28Minimal%20Wear%29":
-    174.00,
-    "https://steamcommunity.com/market/listings/730/%E2%98%85%20StatTrak%E2%84%A2%20Flip%20Knife%20%7C%20Ultraviolet%20%28Well-Worn%29":
-    160.00,
-    "https://steamcommunity.com/market/listings/730/%E2%98%85%20Flip%20Knife%20%7C%20Lore%20%28Field-Tested%29":
-    200.00,
-    "https://steamcommunity.com/market/listings/730/%E2%98%85%20Shadow%20Daggers%20%7C%20Case%20Hardened%20%28Minimal%20Wear%29":
-    135.00,
-    "https://steamcommunity.com/market/listings/730/%E2%98%85%20StatTrak%E2%84%A2%20Falchion%20Knife%20%7C%20Lore%20%28Field-Tested%29":
-    150.00,
-    "https://steamcommunity.com/market/listings/730/%E2%98%85%20StatTrak%E2%84%A2%20Falchion%20Knife":
-    175.00,
-    "https://steamcommunity.com/market/listings/730/%E2%98%85%20StatTrak%E2%84%A2%20Paracord%20Knife%20%7C%20Ultraviolet%20%28Well-Worn%29":
-    100.00,
-    "https://steamcommunity.com/market/listings/730/%E2%98%85%20StatTrak%E2%84%A2%20Paracord%20Knife%20%7C%20Blue%20Steel%20%28Field-Tested%29":
-    135.00,
-    "https://steamcommunity.com/market/listings/730/%E2%98%85%20StatTrak%E2%84%A2%20Bowie%20Knife%20%7C%20Lore%20%28Field-Tested%29":
-    138.00,
-    "https://steamcommunity.com/market/listings/730/%E2%98%85%20Bowie%20Knife%20%7C%20Ultraviolet%20%28Minimal%20Wear%29":
-    113.00,
-    "https://steamcommunity.com/market/listings/730/%E2%98%85%20Ursus%20Knife%20%7C%20Blue%20Steel%20%28Minimal%20Wear%29":
-    142.00,
-    "https://steamcommunity.com/market/listings/730/%E2%98%85%20StatTrak%E2%84%A2%20Ursus%20Knife%20%7C%20Ultraviolet%20%28Field-Tested%29":
-    142.00,
-    "https://steamcommunity.com/market/listings/730/%E2%98%85%20StatTrak%E2%84%A2%20Ursus%20Knife%20%7C%20Blue%20Steel%20%28Minimal%20Wear%29":
-    149.00,
-    "https://steamcommunity.com/market/listings/730/%E2%98%85%20StatTrak%E2%84%A2%20Ursus%20Knife%20%7C%20Crimson%20Web%20%28Field-Tested%29":
-    215.00,
-    "https://steamcommunity.com/market/listings/730/%E2%98%85%20StatTrak%E2%84%A2%20Ursus%20Knife%20%7C%20Ultraviolet%20%28Minimal%20Wear%29":
-    160.00,
-    "https://steamcommunity.com/market/listings/730/%E2%98%85%20StatTrak%E2%84%A2%20Nomad%20Knife%20%7C%20Damascus%20Steel%20%28Minimal%20Wear%29":
-    200.00,
-    "https://steamcommunity.com/market/listings/730/%E2%98%85%20StatTrak%E2%84%A2%20Gut%20Knife%20%7C%20Blue%20Steel%20%28Minimal%20Wear%29":
-    100.00,
-    "https://steamcommunity.com/market/listings/730/%E2%98%85%20Gut%20Knife%20%7C%20Autotronic%20%28Minimal%20Wear%29":
-    149.00,
-    "https://steamcommunity.com/market/listings/730/%E2%98%85%20StatTrak%E2%84%A2%20Gut%20Knife%20%7C%20Autotronic%20%28Field-Tested%29":
-    148.00,
-    "https://steamcommunity.com/market/listings/730/%E2%98%85%20StatTrak%E2%84%A2%20Skeleton%20Knife%20%7C%20Urban%20Masked%20%28Minimal%20Wear%29":
-    231.00,
-    "https://steamcommunity.com/market/listings/730/%E2%98%85%20Paracord%20Knife%20%7C%20Stained%20%28Factory%20New%29":
-    134.00,
-    "https://steamcommunity.com/market/listings/730/%E2%98%85%20StatTrak%E2%84%A2%20Paracord%20Knife%20%7C%20Crimson%20Web%20%28Well-Worn%29":
-    142.00,
-    "https://steamcommunity.com/market/listings/730/%E2%98%85%20Survival%20Knife%20%7C%20Crimson%20Web%20%28Minimal%20Wear%29":
-    150.00,
-    "https://steamcommunity.com/market/listings/730/StatTrak%E2%84%A2%20AWP%20%7C%20Asiimov%20%28Battle-Scarred%29":
-    165.00,
-    "https://steamcommunity.com/market/listings/730/StatTrak%E2%84%A2%20AWP%20%7C%20Man-o%27-war%20%28Minimal%20Wear%29":
-    160.00,
-    "https://steamcommunity.com/market/listings/730/StatTrak%E2%84%A2%20AWP%20%7C%20Neo-Noir%20%28Factory%20New%29":
-    122.00,
-    "https://steamcommunity.com/market/listings/730/StatTrak%E2%84%A2%20AWP%20%7C%20Corticera%20%28Factory%20New%29":
-    164.00,
-    "https://steamcommunity.com/market/listings/730/%E2%98%85%20StatTrak%E2%84%A2%20Survival%20Knife%20%7C%20Damascus%20Steel%20%28Minimal%20Wear%29":
-    106.00,
-    "https://steamcommunity.com/market/listings/730/StatTrak%E2%84%A2%20M4A4%20%7C%20%E9%BE%8D%E7%8E%8B%20%28Dragon%20King%29%20%28Factory%20New%29":
-    135.00,
-    "https://steamcommunity.com/market/listings/730/Souvenir%20M4A4%20%7C%20Hellish%20%28Minimal%20Wear%29":
-    140.00,
-    "https://steamcommunity.com/market/listings/730/%E2%98%85%20Falchion%20Knife%20%7C%20Lore%20%28Well-Worn%29":
-    125.00,
-    "https://steamcommunity.com/market/listings/730/%E2%98%85%20Falchion%20Knife%20%7C%20Blue%20Steel%20%28Well-Worn%29":
-    153.00,
-    "https://steamcommunity.com/market/listings/730/%E2%98%85%20StatTrak%E2%84%A2%20Falchion%20Knife%20%7C%20Freehand%20%28Factory%20New%29":
-    165.00,
-    "https://steamcommunity.com/market/listings/730/%E2%98%85%20StatTrak%E2%84%A2%20Falchion%20Knife%20%7C%20Bright%20Water%20%28Factory%20New%29":
-    145.00
+    "StatTrak Falchion Knife Autotronic Minimal Wear": 182.00,
+    "StatTrak Huntsman Knife Damascus Steel Factory New": 215.00,
+    "StatTrak Falchion Knife Stained Minimal Wear": 210.00,
 }
 
-notificados = {}
-item_ids_cache = {}
-ultimo_escaneo = None
-skins_revisadas_total = 0
-estado_app = {"activo": True, "errores": 0, "ultimo_escaneo": None}
+# =========================
+# STATE (SNIPER ENGINE)
+# =========================
 
-lock = threading.Lock()
+price_cache = {}     # {query: {price, last_update}}
+cooldowns = {}       # anti spam alerts
+estado = {
+    "errores": 0,
+    "ultima_iteracion": None
+}
 
-# Headers realistas
+# =========================
+# HEADERS
+# =========================
+
 USER_AGENTS = [
-    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/121 Safari/537.36",
-    "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 Chrome/120 Safari/537.36",
-    "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 Chrome/119 Safari/537.36",
-    "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:122.0) Gecko/20100101 Firefox/122.0",
-    "Mozilla/5.0 (Macintosh; Intel Mac OS X 13_0) AppleWebKit/605.1.15 Version/17.0 Safari/605.1.15"
+    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) Chrome/121",
+    "Mozilla/5.0 (Macintosh; Intel Mac OS X)",
+    "Mozilla/5.0 (X11; Linux x86_64) Chrome/120",
 ]
-
 
 def get_headers():
     return {
@@ -239,221 +63,190 @@ def get_headers():
         "Accept-Language": "en-US,en;q=0.9"
     }
 
+# =========================
+# PROXIES
+# =========================
+
 def obtener_proxy():
-    ahora = time.time()
+    now = time.time()
+    validos = [p for p, t in PROXY_STATUS.items() if t <= now]
+    return random.choice(validos) if validos else random.choice(PROXIES)
 
-    disponibles = [p for p, t in PROXY_STATUS.items() if t <= ahora]
+def marcar_proxy_malo(proxy):
+    PROXY_STATUS[proxy] = time.time() + PROXY_COOLDOWN
 
-    # si hay libres → usar uno libre
-    if disponibles:
-        return random.choice(disponibles)
+# =========================
+# STEAM SEARCH ENGINE
+# =========================
 
-    # si no hay libres → igual devolver uno, PERO ya sabes que está saturado
-    proxy = random.choice(PROXIES)
-    print("[WARN] No hay proxies libres, usando uno en cooldown")
-    return proxy
+def steam_search(query, session):
+    url = "https://steamcommunity.com/market/search/render/"
 
-def marcar_proxy_malo(proxy_url):
-    PROXY_STATUS[proxy_url] = time.time() + PROXY_COOLDOWN
-    print(f"[COOLDOWN] Proxy bloqueado 15 min: {proxy_url}")
+    params = {
+        "query": query,
+        "start": 0,
+        "count": 5,   # sniper mode = mínimo ruido
+        "currency": 1,
+        "language": "english"
+    }
 
-# Crear app Flask para UptimeRobot
+    for _ in range(3):
+        proxy = obtener_proxy()
+        proxies = {"http": proxy, "https": proxy}
+
+        try:
+            r = session.get(url, params=params, headers=get_headers(), proxies=proxies, timeout=10)
+
+            if r.status_code == 429:
+                marcar_proxy_malo(proxy)
+                time.sleep(3)
+                continue
+
+            if r.status_code != 200:
+                return None
+
+            data = r.json().get("results", [])
+
+            prices = [
+                item["sell_price"] / 100
+                for item in data
+                if item.get("sell_price")
+            ]
+
+            return min(prices) if prices else None
+
+        except:
+            marcar_proxy_malo(proxy)
+            time.sleep(2)
+
+    return None
+
+# =========================
+# QUERY BUILDER
+# =========================
+
+def build_query(name):
+    return name.replace("_", " ")
+
+# =========================
+# SNIPER LOGIC
+# =========================
+
+def should_update(query):
+    last = price_cache.get(query, {}).get("last_update", 0)
+    return time.time() - last > 45  # cada 45s max por item
+
+def is_opportunity(query, price, max_price):
+    old = price_cache.get(query, {}).get("price")
+
+    if old is None:
+        return False
+
+    drop = old - price
+
+    return (
+        price <= max_price and
+        (price < old * 0.95 or drop > 3)
+    )
+
+# =========================
+# TELEGRAM
+# =========================
+
+def send_telegram(msg):
+    try:
+        url = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendMessage"
+        requests.post(url, data={
+            "chat_id": TELEGRAM_CHAT_ID,
+            "text": msg
+        }, timeout=10)
+    except:
+        pass
+
+def alert(query, price, max_price):
+    now = time.time()
+
+    if now - cooldowns.get(query, 0) < 30:
+        return
+
+    cooldowns[query] = now
+
+    msg = (
+        f"🎯 SNIPER DEAL\n\n"
+        f"{query}\n"
+        f"💵 Precio: {price:.2f} USD\n"
+        f"📉 Máx: {max_price:.2f} USD"
+    )
+
+    send_telegram(msg)
+
+# =========================
+# WORKER SNIPER
+# =========================
+
+def worker(items):
+    session = requests.Session()
+
+    while True:
+        for name, max_price in items.items():
+
+            query = build_query(name)
+
+            if not should_update(query):
+                continue
+
+            price = steam_search(query, session)
+
+            if price is None:
+                continue
+
+            old = price_cache.get(query, {}).get("price")
+
+            price_cache[query] = {
+                "price": price,
+                "last_update": time.time()
+            }
+
+            if is_opportunity(query, price, max_price):
+                alert(query, price, max_price)
+
+            time.sleep(random.uniform(2, 4))
+
+        estado["ultima_iteracion"] = datetime.now().isoformat()
+        time.sleep(10)
+
+# =========================
+# FLASK STATUS
+# =========================
+
 app = Flask(__name__)
 
 @app.route("/")
 def home():
-    """Endpoint para UptimeRobot"""
     return jsonify({
         "status": "ok",
-        "mensaje": "Steam Alert Bot está activo",
-        "ultimo_escaneo": estado_app["ultimo_escaneo"],
-        "errores": estado_app["errores"],
-        "timestamp": datetime.now().isoformat()
+        "items": len(skins_a_vigilar),
+        "time": datetime.now().isoformat()
     })
 
-@app.route('/status')
+@app.route("/status")
 def status():
-    """Endpoint detallado de estado"""
     return jsonify({
-        "activo": estado_app["activo"],
-        "ultimo_escaneo": estado_app["ultimo_escaneo"],
-        "errores_totales": estado_app["errores"],
-        "items_vigilados": len(skins_a_vigilar),
-        "notificaciones_enviadas": len(notificados)
+        "items": len(skins_a_vigilar),
+        "cache": len(price_cache),
+        "cooldowns": len(cooldowns),
+        "ultima_iteracion": estado["ultima_iteracion"]
     })
 
-def limpiar_url(url):
-    return url.split("?")[0]
+# =========================
+# START
+# =========================
 
-def obtener_nombre_skin(url):
-    nombre = url.split("/730/")[-1]
-    nombre = unquote(nombre)
-    nombre = nombre.split("?")[0]  # seguridad extra
-    return nombre
-    
-def obtener_precio(url, session, proxy_dict):
-    try:
-        market_hash_name = obtener_nombre_skin(url)
+def start():
+    t = threading.Thread(target=worker, args=(skins_a_vigilar,))
+    t.start()
 
-        api_url = "https://steamcommunity.com/market/priceoverview/"
-        params = {
-            "appid": 730,
-            "currency": 1,
-            "market_hash_name": market_hash_name
-        }
-
-        response = session.get(
-            api_url,
-            params=params,
-            proxies=proxy_dict,
-            timeout=10
-        )
-
-        if response.status_code != 200:
-            return None
-
-        data = response.json()
-
-        if not data.get("success"):
-            return None
-
-        price = data.get("lowest_price") or data.get("median_price")
-
-        if not price:
-            return None
-
-        price = price.replace("$", "").replace(",", "").strip()
-
-        return float(price)
-
-    except Exception as e:
-        estado_app["errores"] += 1
-        print(f"[ERROR] priceoverview falló: {e}")
-        return None
-
-def enviar_telegram(mensaje):
-    try:
-        url = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendMessage"
-        data = {"chat_id": TELEGRAM_CHAT_ID, "text": mensaje}
-        response = requests.post(url, data=data, timeout=15)
-        if response.status_code == 200:
-            print("[INFO] Mensaje enviado a Telegram exitosamente")
-        else:
-            print(
-                f"[ERROR] Error al enviar mensaje a Telegram: {response.status_code}"
-            )
-    except Exception as e:
-        print(f"[ERROR] No se pudo enviar el mensaje a Telegram: {e}")
-        estado_app["errores"] += 1
-
-def dividir_skins_en_grupos():
-    lista = list(skins_a_vigilar.items())
-    cantidad_proxies = len(PROXIES)
-
-    grupos = [[] for _ in range(cantidad_proxies)]
-
-    for i, item in enumerate(lista):
-        grupos[i % cantidad_proxies].append(item)
-
-    return grupos
-
-def worker(grupo_skins, worker_id):
-    session = requests.Session()
-    session.headers.update(get_headers())
-
-    global skins_revisadas_total
-
-    while estado_app["activo"]:
-        inicio_ciclo = time.time()
-
-        for url, precio_max in grupo_skins:
-
-            proxy_url = obtener_proxy()
-            proxy_dict = {"http": proxy_url, "https": proxy_url}
-
-            market_hash_name = obtener_nombre_skin(url)
-
-            print(f"[DEBUG] Consultando: {market_hash_name} | Proxy: {proxy_url}")
-
-            with lock:
-                skins_revisadas_total += 1
-
-            precio_actual = obtener_precio(url, session, proxy_dict)
-
-            # ❌ si falla la request
-            if precio_actual is None:
-                marcar_proxy_malo(proxy_url)
-                continue
-
-            ultima_alerta = notificados.get(url)
-
-            if precio_actual <= precio_max and (
-                ultima_alerta is None or precio_actual < ultima_alerta
-            ):
-                mensaje = (
-                    f"🛒 ¡Skin en oferta!\n"
-                    f"{url}\n"
-                    f"💵 Precio actual: {precio_actual:.2f} USD\n"
-                    f"📉 Tu máximo: {precio_max:.2f} USD"
-                )
-
-                enviar_telegram(mensaje)
-
-                time.sleep(15)
-
-                enviar_telegram("🔔 RECORDATORIO 🔔\n\n" + mensaje)
-
-                notificados[url] = precio_actual
-
-            time.sleep(random.randint(5, 8))
-
-        time.sleep(random.randint(25, 45))
-
-        estado_app["ultimo_escaneo"] = datetime.now().isoformat()
-
-        if worker_id == 0:
-            print(f"[INFO] Total skins: {len(skins_a_vigilar)}")
-            print(f"[INFO] Proxies activos: {len(PROXIES)}")
-
-            proxies_bloqueados = sum(
-                1 for t in PROXY_STATUS.values()
-                if t > time.time()
-            )
-
-            print(f"[INFO] Proxies cooldown: {proxies_bloqueados}")
-
-            print(f"[INFO] Skins notificadas: {len(notificados)}")
-            print(f"[INFO] Skins revisadas: {skins_revisadas_total}")
-
-            skins_revisadas_total = 0
-
-            duracion = round(time.time() - inicio_ciclo, 1)
-
-            print(f"[INFO] Duración ciclo: {duracion} segundos")
-            print("[STATUS] Ciclo completo\n")
-
-# 🔁 Ejecutar el servidor Flask en hilo separado
-def iniciar_servidor():
     app.run(host="0.0.0.0", port=8080)
 
 if __name__ == "__main__":
-
-    grupos = dividir_skins_en_grupos()
-
-    threads = []
-
-    for i in range(len(grupos)):
-        t = threading.Thread(
-            target=worker,
-            args=(grupos[i], i)
-        )
-        t.start()
-        threads.append(t)
-
-    servidor_thread = threading.Thread(target=iniciar_servidor)
-    servidor_thread.start()
-
-    for t in threads:
-        t.join()
-
-    servidor_thread.join()
+    start()
