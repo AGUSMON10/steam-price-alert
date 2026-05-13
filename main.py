@@ -53,11 +53,11 @@ if not TELEGRAM_BOT_TOKEN or not TELEGRAM_CHAT_ID:
 
 # Lista de ítems con URL y precio máximo aceptado
 skins_a_vigilar = {
-    "https://steamcommunity.com/market/listings/730/%E2%98%85%20StatTrak%E2%84%A2%20Falchion%20Knife%20%7C%20Autotronic%20%28Minimal%20Wear%29":
+    "https://steamcommunity.com/market/listings/730/G18800420DC083003?appid=730&category_730_Quality=tag_strange&category_730_Exterior=tag_WearCategory1":
     182.00,
-    "https://steamcommunity.com/market/listings/730/%E2%98%85%20StatTrak%E2%84%A2%20Huntsman%20Knife%20%7C%20Damascus%20Steel%20%28Factory%20New%29":
+    "https://steamcommunity.com/market/listings/730/G18FD03209B033003?appid=730&category_730_Quality=tag_strange&category_730_Exterior=tag_WearCategory0":
     215.00,
-    "https://steamcommunity.com/market/listings/730/%E2%98%85%20StatTrak%E2%84%A2%20Falchion%20Knife%20%7C%20Bright%20Water%20%28Factory%20New%29":
+    "https://steamcommunity.com/market/listings/730/G18800420C3043003?appid=730&category_730_Quality=tag_strange&category_730_Exterior=tag_WearCategory0":
     145.00
 }
 
@@ -133,16 +133,7 @@ def obtener_nombre_skin(url):
 
 def obtener_lowest_sell_price(url_item, session):
 
-    market_hash_name = requests.utils.unquote(
-        url_item.split("/730/")[-1]
-    )
-
-    url = (
-        "https://steamcommunity.com/market/priceoverview/"
-        f"?appid=730&currency=1&market_hash_name={market_hash_name}"
-    )
-
-    print(f"[DEBUG] Consultando: {url}")
+    print(f"[DEBUG] Consultando listing: {url_item}")
 
     for intento in range(4):
 
@@ -152,14 +143,13 @@ def obtener_lowest_sell_price(url_item, session):
         try:
 
             r = session.get(
-                url,
+                url_item,
                 headers=get_headers(),
                 proxies=proxy_dict,
                 timeout=20
             )
 
             print(f"[DEBUG] Status: {r.status_code}")
-            print(f"[DEBUG] Response: {r.text[:500]}")
 
             if r.status_code == 429:
                 print("[WARN] 429 detectado")
@@ -174,41 +164,45 @@ def obtener_lowest_sell_price(url_item, session):
             if r.status_code != 200:
                 continue
 
-            data = r.json()
-            print(f"[DEBUG] JSON: {data}")
+            html = r.text
 
-            if not data.get("success"):
+            # Buscar el precio más barato visible
+            match = re.search(
+                r'"lowest_price"\s*:\s*"([^"]+)"',
+                html
+            )
+
+            if not match:
+
+                # Fallback alternativo
+                match = re.search(
+                    r'market_listing_price market_listing_price_with_fee">\s*([^<]+)',
+                    html
+                )
+
+            if not match:
+                print("[WARN] No se encontró precio")
                 continue
 
-            # SOLO usar lowest_price
-            lowest_price = data.get("lowest_price")
+            precio_raw = match.group(1)
 
-            if not lowest_price:
-                print("[WARN] No vino lowest_price")
-                continue
+            print(f"[DEBUG] Precio raw: {precio_raw}")
 
-            print(f"[DEBUG] Precio raw: {lowest_price}")
+            precio = re.sub(r"[^\d.,]", "", precio_raw)
 
-            precio = re.sub(r"[^\d.,]", "", lowest_price)
-
-            # Steam usa coma o punto según región
             if "," in precio and "." in precio:
                 precio = precio.replace(",", "")
             else:
                 precio = precio.replace(",", ".")
 
-            try:
-                precio = float(precio)
-            except Exception:
-                print(f"[ERROR] No se pudo convertir precio: {lowest_price}")
-                continue
+            precio = float(precio)
 
             print(f"[DEBUG] Precio final: {precio}")
 
             return precio
 
         except Exception as e:
-            print(f"[ERROR] Priceoverview exception: {e}")
+            print(f"[ERROR] Listing exception: {e}")
             marcar_proxy_malo(proxy_url)
 
     return None
