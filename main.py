@@ -313,47 +313,28 @@ def buscar_precio(nombre, session, proxy):
             proxies=proxies
         )
 
-        print(f"[DEBUG] Query Steam: {nombre}")
-        print(f"[DEBUG] Proxy usado: {proxy}")
-        print(f"[DEBUG] Status code: {r.status_code}")
-        print(f"[DEBUG] Content-Type: {r.headers.get('content-type')}")
-        print(f"[DEBUG] Response preview: {r.text[:200]}")
-
         if r.status_code != 200:
-            if proxy:
-                PROXY_STATUS[proxy] = time.time() + PROXY_COOLDOWN
             return None
 
-        try:
-            data = r.json()
-        except Exception as e:
-            print("[DEBUG] JSON FAIL:", e)
-            print("[DEBUG] RAW:", r.text[:300])
-            return None
-
-        # ✅ FIX REAL: usar results correctamente
+        data = r.json()
         results = data.get("results", [])
 
         if not results:
             return None
 
-        # agarramos SOLO el primer resultado real (el más relevante)
-        price = None
-
+        # 🔥 FILTRO MÁS PRECISO: coincidencia exacta del nombre
         for item in results:
-            if item.get("sell_price"):
-                price = item["sell_price"]
-                break
+            name = item.get("name", "").lower()
+            query = nombre.lower()
 
-        if not price:
-            return None
+            if query in name:
+                price = item.get("sell_price")
+                if price:
+                    return price / 100
 
-        return price / 100
+        return None
 
-    except Exception as e:
-        print(f"[DEBUG] EXCEPTION: {e}")
-        if proxy:
-            PROXY_STATUS[proxy] = time.time() + PROXY_COOLDOWN
+    except Exception:
         return None
         
 def enviar_telegram(mensaje):
