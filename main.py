@@ -26,8 +26,6 @@ PROXIES = [
 PROXY_COOLDOWN = 900  # 15 min
 PROXY_STATUS = {p: 0 for p in PROXIES}
 
-PRICE_CACHE = {}
-CACHE_TIEMPO = 120  # segundos
 
 # Redefinir print global con flush automático
 original_print = print
@@ -324,137 +322,104 @@ def obtener_id_item(url):
     return url.split("/730/")[-1].replace("★", "").strip()
     
 def buscar_precio(market_hash_name, session, proxy):
-
-    ahora = time.time()
-
-    # =========================
-    # CACHE
-    # =========================
-    cache = PRICE_CACHE.get(market_hash_name)
-
-    if cache:
-        precio_cacheado, timestamp = cache
-
-        if ahora - timestamp < CACHE_TIEMPO:
-            print(f"[CACHE] {market_hash_name} -> ${precio_cacheado}")
-            return precio_cacheado
-
     print(f"\n[DEBUG] === BUSCANDO EXACTO: {market_hash_name} ===")
 
     url = "https://steamcommunity.com/market/search/render/"
 
+    query = normalizar(market_hash_name)
+
     params = {
-        "query": market_hash_name,
+        "query": query,
         "start": 0,
-        "count": 10,
-        "search_descriptions": 0,
-        "sort_column": "popular",
-        "sort_dir": "desc",
-        "appid": 730,
+        "count": 30,
+        "currency": 1,
+        "language": "english",
         "norender": 1
     }
 
     proxies = {"http": proxy, "https": proxy} if proxy else None
 
     try:
-
-        r = session.get(
-            url,
-            params=params,
-            headers=get_headers(),
-            timeout=10,
-            proxies=proxies
-        )
+        r = session.get(url, params=params, headers=get_headers(), timeout=10, proxies=proxies)
 
         if r.status_code != 200:
             return None
 
         data = r.json()
-
         results = data.get("results", [])
 
-        if not results:
-            return None
-
-        def normalizar(txt):
-            return (
-                txt.lower()
-                .replace("★", "")
-                .replace("stattrak™", "stattrak")
-                .replace("™", "")
-                .replace("  ", " ")
-                .strip()
-            )
-
-        query = normalizar(market_hash_name)
-
         best_price = None
-        best_item = None
         best_score = -1
+        best_name = None
 
         for item in results:
 
-            # 🔥 FILTRO SOLO CS2
-            if item.get("asset_description", {}).get("appid") != 730:
-                continue
-
-            item_name = item.get("name", "")
+            name_raw = item.get("name", "")
+            name = normalizar(name_raw)
             price_raw = item.get("sell_price")
 
             if not price_raw:
                 continue
 
-            name = normalizar(item_name)
+            # 🔥 FILTRO DURO
+            if not es_item_valido(name):
+                continue
+
+            price = price_raw / 100
 
             score = 0
 
-            # MATCH EXACTO
+            # match fuerte real
             if name == query:
-                score += 100
+                score = 100
 
-            # MATCH PARCIAL
             elif query in name:
-                score += 50
 
-            # StatTrak
-            if "stattrak" in query and "stattrak" in name:
-                score += 10
+                # evitar matches basura parciales
+                query_parts = query.split("|")
+                name_parts = name.split("|")
 
-            # Knife
+                if len(query_parts) == len(name_parts):
+                    score = 60
+
+            # reforzar exactitud CS2
             if "knife" in query and "knife" in name:
                 score += 10
 
-            # Wear
-            wears = [
-                "factory new",
-                "minimal wear",
-                "field-tested",
-                "well-worn",
-                "battle-scarred"
-            ]
+            if "stattrak" in query and "stattrak" in name:
+                score += 10
 
-            for wear in wears:
-                if wear in query and wear in name:
-                    score += 10
+            # penalizar ruido
+            if "case" in name:
+                score -= 999
 
             if score > best_score:
                 best_score = score
-                best_price = price_raw / 100
-                best_item = item_name
+                best_price = price
+                best_name = name_raw
 
-        print(f"[DEBUG] MATCH FINAL: {best_item} | ${best_price} | score {best_score}")
-
-        # =========================
-        # GUARDAR CACHE
-        # =========================
-        if best_price:
-            PRICE_CACHE[market_hash_name] = (best_price, ahora)
+        print(f"[DEBUG] MATCH FINAL: {best_name} | ${best_price} | score {best_score}")
 
         return best_price
 
     except Exception as e:
         print(f"[DEBUG] ERROR: {e}")
         return None
+        
+def enviar_telegram(mensaje):
+    try:
+        url = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendMessage"
+        data = {"chat_id": TELEGRAM_CHAT_ID, "text": mensaje}
+        response = requests.post(url, data=data, timeout=15)
+        if response.status_code == 200:
+            print("[INFO] Mensaje enviado a Telegram exitosamente")
+        else:
+            print(
+                f"[ERROR] Error al enviar mensaje a Telegram: {response.status_code}"
+            )
+    except Exception as e:
+        print(f"[ERROR] No se pudo enviar el mensaje a Telegram: {e}")
+        estado_app["errores"] += 1
 
 def dividir_skins_en_grupos():
     lista = list(skins_a_vigilar.items())
