@@ -274,8 +274,6 @@ def obtener_proxy():
 
     disponibles = [p for p, t in PROXY_STATUS.items() if t <= ahora]
 
-    print(f"[DEBUG] Proxies disponibles: {len(disponibles)}")
-
     if not disponibles:
         if len(PROXY_STATUS) == len(PROXIES):
             print("[WARN] Reset de cooldown global de proxies")
