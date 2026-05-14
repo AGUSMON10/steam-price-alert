@@ -378,7 +378,13 @@ def buscar_precio(market_hash_name, session, proxy):
                 score = 100
 
             elif query in name:
-                score = 60
+
+                # evitar matches basura parciales
+                query_parts = query.split("|")
+                name_parts = name.split("|")
+
+                if len(query_parts) == len(name_parts):
+                    score = 60
 
             # reforzar exactitud CS2
             if "knife" in query and "knife" in name:
