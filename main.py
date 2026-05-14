@@ -246,6 +246,9 @@ estado_app = {"activo": True, "errores": 0, "ultimo_escaneo": None}
 
 lock = threading.Lock()
 
+# Cache temporal de precios
+price_cache = {}
+CACHE_TTL = 60  # segundos
 
 # Headers realistas
 USER_AGENTS = [
@@ -322,6 +325,22 @@ def obtener_id_item(url):
     return url.split("/730/")[-1].replace("★", "").strip()
     
 def buscar_precio(market_hash_name, session, proxy):
+
+    ahora = time.time()
+
+    # =========================
+    # CACHE
+    # =========================
+    if market_hash_name in price_cache:
+
+        cache_data = price_cache[market_hash_name]
+
+        if ahora - cache_data["timestamp"] < CACHE_TTL:
+
+            print(f"[CACHE HIT] {market_hash_name}")
+
+            return cache_data["price"]
+
     print(f"\n[DEBUG] === BUSCANDO EXACTO: {market_hash_name} ===")
 
     url = "https://steamcommunity.com/market/search/render/"
@@ -340,12 +359,20 @@ def buscar_precio(market_hash_name, session, proxy):
     proxies = {"http": proxy, "https": proxy} if proxy else None
 
     try:
-        r = session.get(url, params=params, headers=get_headers(), timeout=10, proxies=proxies)
+
+        r = session.get(
+            url,
+            params=params,
+            headers=get_headers(),
+            timeout=10,
+            proxies=proxies
+        )
 
         if r.status_code != 200:
             return None
 
         data = r.json()
+
         results = data.get("results", [])
 
         best_price = None
@@ -355,13 +382,15 @@ def buscar_precio(market_hash_name, session, proxy):
         for item in results:
 
             name_raw = item.get("name", "")
+
             name = normalizar(name_raw)
+
             price_raw = item.get("sell_price")
 
             if not price_raw:
                 continue
 
-            # 🔥 FILTRO DURO
+            # filtro basura
             if not es_item_valido(name):
                 continue
 
@@ -369,27 +398,27 @@ def buscar_precio(market_hash_name, session, proxy):
 
             score = 0
 
-            # match fuerte real
+            # MATCH EXACTO
             if name == query:
                 score = 100
 
+            # MATCH PARCIAL CONTROLADO
             elif query in name:
 
-                # evitar matches basura parciales
                 query_parts = query.split("|")
                 name_parts = name.split("|")
 
                 if len(query_parts) == len(name_parts):
                     score = 60
 
-            # reforzar exactitud CS2
+            # bonus
             if "knife" in query and "knife" in name:
                 score += 10
 
             if "stattrak" in query and "stattrak" in name:
                 score += 10
 
-            # penalizar ruido
+            # castigo basura
             if "case" in name:
                 score -= 999
 
@@ -400,10 +429,22 @@ def buscar_precio(market_hash_name, session, proxy):
 
         print(f"[DEBUG] MATCH FINAL: {best_name} | ${best_price} | score {best_score}")
 
+        # =========================
+        # GUARDAR CACHE
+        # =========================
+        if best_price is not None:
+
+            price_cache[market_hash_name] = {
+                "price": best_price,
+                "timestamp": ahora
+            }
+
         return best_price
 
     except Exception as e:
+
         print(f"[DEBUG] ERROR: {e}")
+
         return None
         
 def enviar_telegram(mensaje):
