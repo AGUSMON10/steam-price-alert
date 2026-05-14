@@ -6,6 +6,7 @@ import threading
 from flask import Flask, jsonify
 from datetime import datetime
 import builtins
+from urllib.parse import unquote
 
 # Lista de proxies (pegá los tuyos de Webshare)
 
@@ -282,7 +283,12 @@ def status():
         "notificaciones_enviadas": len(notificados)
     })
 
-
+def limpiar_nombre(url):
+    nombre = url.split("/730/")[-1]
+    nombre = unquote(nombre)  # 🔥 esto arregla %20 %E2%98%85 etc
+    nombre = nombre.replace("★", "").strip()
+    return nombre
+    
 def obtener_nombre_skin(url):
     # toma el texto después de /730/
     return url.split("/730/")[-1].replace("%20", " ").replace("%E2%98%85", "").strip()
@@ -324,36 +330,50 @@ def buscar_precio(nombre, session, proxy):
         results = data.get("results", [])
 
         if not results:
-            print("[DEBUG] Sin resultados")
             return None
 
         query = nombre.lower()
 
+        best_price = None
+        best_match_score = 0
+
         for item in results:
 
-            name = item.get("name", "").lower()
-            price = item.get("sell_price")
+            item_name = item.get("name", "").lower()
+            price_raw = item.get("sell_price")
 
             print(f"[DEBUG] ITEM NAME: {item.get('name')}")
-            print(f"[DEBUG] ITEM PRICE RAW: {price}")
+            print(f"[DEBUG] ITEM PRICE RAW: {price_raw}")
 
-            if not price:
+            if not price_raw:
                 continue
 
-            final_price = price / 100
-            print(f"[DEBUG] PRECIO SELECCIONADO: {final_price} USD")
+            price = price_raw / 100
 
-            # filtro básico para evitar basura
-            if query.split("%")[0] in name or name in query:
-                return final_price
+            # 🔥 SCORE DE COINCIDENCIA REAL (evita basura tipo cases)
+            score = 0
 
-        # si no matchea bien, devuelve el primero válido igual
-        for item in results:
-            price = item.get("sell_price")
-            if price:
-                return price / 100
+            if query.replace("%20", " ") in item_name:
+                score += 3
 
-        return None
+            if "knife" in query and "knife" in item_name:
+                score += 2
+
+            if "stattrak" in query and "stattrak" in item_name:
+                score += 2
+
+            if len(item_name) > 10:
+                score += 1
+
+            # 🔥 elegimos el mejor match
+            if score > best_match_score:
+                best_match_score = score
+                best_price = price
+
+        if best_price:
+            print(f"[DEBUG] PRECIO FINAL SELECCIONADO: {best_price} USD (score {best_match_score})")
+
+        return best_price
 
     except Exception as e:
         print(f"[DEBUG] ERROR: {e}")
@@ -405,8 +425,8 @@ def worker(grupo_skins, worker_id):
                 time.sleep(2)
                 continue
 
-            item_id = obtener_id_item(url)
-            precio_actual = buscar_precio(item_id, session, proxy)
+            nombre = limpiar_nombre(url)
+            precio_actual = buscar_precio(nombre, session, proxy)
 
             with lock:
                 skins_revisadas_total += 1
