@@ -87,13 +87,24 @@ skins_a_vigilar = {
     "★ StatTrak™ Falchion Knife | Autotronic (Minimal Wear)": 182.00,
     "★ StatTrak™ Huntsman Knife | Damascus Steel (Factory New)": 215.00,
     "★ StatTrak™ Falchion Knife | Stained (Minimal Wear)": 150.00,
-    "★ Falchion Knife | Crimson Web (Field-Tested)": 150.00,
-    "★ StatTrak™ Falchion Knife | Crimson Web (Field-Tested)": 211.00,
+    "★ Falchion Knife | Crimson Web (Field Tested)": 150.00,
+    "★ StatTrak™ Falchion Knife | Crimson Web (Field Tested)": 211.00,
     "★ StatTrak™ Bowie Knife | Autotronic (Minimal Wear)": 170.00,
     "★ StatTrak™ Survival Knife | Case Hardened (Minimal Wear)": 170.00,
     "★ StatTrak™ Paracord Knife | Blue Steel (Minimal Wear)": 150.00,
     "★ StatTrak™ Falchion Knife | Lore (Minimal Wear)": 199.00,
     "★ Classic Knife | Blue Steel (Minimal Wear)": 174.00,
+    "★ Bowie Knife | Blue Steel (Minimal Wear)": 165.00,
+    "★ StatTrak™ Survival Knife | Case Hardened (Well-Worn)": 160.00,
+    "★ StatTrak™ Falchion Knife | Black Laminate (Factory New)": 200.00,
+    "★ Kukri Knife | Night Stripe (Factory New)": 154.00,
+    "★ StatTrak™ Skeleton Knife | Scorched (Field Tested)": 194.00,
+    "★ Falchion Knife | Ultraviolet (Minimal Wear)": 150.00,
+    "★ Specialist Gloves | Crimson Web (Battle-Scarred)": 150.00,
+    "★ StatTrak™ Nomad Knife | Ultraviolet (Field Tested)": 165.00,
+    "★ StatTrak™ Bowie Knife | Ultraviolet (Field Tested)": 112.00,
+    "★ StatTrak™ Bowie Knife | Bright Water (Well Worn)": 86.00,
+    
 }
 
 notificados = {}
