@@ -3,6 +3,7 @@ import requests
 import time
 import os
 import threading
+import re
 from flask import Flask, jsonify
 from datetime import datetime
 import builtins
@@ -29,6 +30,36 @@ PROXY_STATUS = {p: 0 for p in PROXIES}
 # Redefinir print global con flush automático
 original_print = print
 
+def normalizar(texto):
+    texto = texto.lower()
+    texto = unquote(texto)
+    texto = texto.replace("★", "")
+    texto = texto.replace("™", "")
+    texto = re.sub(r"\s+", " ", texto)
+    return texto.strip()
+
+
+def es_item_valido(name):
+    name = name.lower()
+
+    blacklist = [
+        "case",
+        "key",
+        "capsule",
+        "graffiti",
+        "soundtrack",
+        "booster",
+        "package",
+        "sealed",
+        "gift"
+    ]
+
+    for b in blacklist:
+        if b in name:
+            return False
+
+    return True
+    
 def flush_print(*args, **kwargs):
     kwargs['flush'] = True
     timestamp = datetime.now().strftime("%H:%M:%S")
@@ -299,10 +330,12 @@ def buscar_precio(market_hash_name, session, proxy):
 
     url = "https://steamcommunity.com/market/search/render/"
 
+    query = normalizar(market_hash_name)
+
     params = {
-        "query": market_hash_name,
+        "query": query,
         "start": 0,
-        "count": 20,
+        "count": 30,
         "currency": 1,
         "language": "english",
         "norender": 1
@@ -311,70 +344,57 @@ def buscar_precio(market_hash_name, session, proxy):
     proxies = {"http": proxy, "https": proxy} if proxy else None
 
     try:
-        r = session.get(
-            url,
-            params=params,
-            headers=get_headers(),
-            timeout=10,
-            proxies=proxies
-        )
+        r = session.get(url, params=params, headers=get_headers(), timeout=10, proxies=proxies)
 
         if r.status_code != 200:
-            print(f"[DEBUG] Status code: {r.status_code}")
             return None
 
         data = r.json()
         results = data.get("results", [])
-
-        if not results:
-            print("[DEBUG] Sin resultados")
-            return None
-
-        query = market_hash_name.lower().strip()
 
         best_price = None
         best_score = -1
         best_name = None
 
         for item in results:
-            name = item.get("name", "").lower().strip()
+
+            name_raw = item.get("name", "")
+            name = normalizar(name_raw)
             price_raw = item.get("sell_price")
-
-            # 🔥 FILTRO ANTI BASURA (cases / keys / etc)
-            if "case" in name and "knife" not in query and "glove" not in query:
-                continue
-
-            if "key" in name and "knife" in query:
-                continue
 
             if not price_raw:
                 continue
 
+            # 🔥 FILTRO DURO
+            if not es_item_valido(name):
+                continue
+
             price = price_raw / 100
 
-            # 🔥 MATCH REAL
             score = 0
 
+            # match fuerte real
             if name == query:
                 score = 100
 
-            elif query in name and len(query) > 10:
+            elif query in name:
                 score = 60
 
-            elif query.split("|")[0] in name:
-                score = 20
-
-            # bonus exact keywords CS2
-            if "stattrak" in query and "stattrak" in name:
-                score += 5
-
+            # reforzar exactitud CS2
             if "knife" in query and "knife" in name:
-                score += 5
+                score += 10
+
+            if "stattrak" in query and "stattrak" in name:
+                score += 10
+
+            # penalizar ruido
+            if "case" in name:
+                score -= 999
 
             if score > best_score:
                 best_score = score
                 best_price = price
-                best_name = item.get("name")
+                best_name = name_raw
 
         print(f"[DEBUG] MATCH FINAL: {best_name} | ${best_price} | score {best_score}")
 
