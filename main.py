@@ -90,12 +90,10 @@ skins_a_vigilar = {
     "★ Falchion Knife | Crimson Web (Field Tested)": 150.00,
     "StatTrak™ Falchion Knife | Crimson Web Field": 211.00,
     "★ StatTrak™ Bowie Knife | Autotronic (Minimal Wear)": 170.00,
-    "StatTrak™ Survival Knife | Case Hardened Minimal": 170.00,
     "stattrak Paracord Knife | Blue Steel Minimal": 150.00,
     "★ StatTrak™ Falchion Knife | Lore (Minimal Wear)": 199.00,
     "★ Classic Knife | Blue Steel (Minimal Wear)": 174.00,
     "★ Bowie Knife | Blue Steel (Minimal Wear)": 165.00,
-    "StatTrak™ Survival Knife | Case Hardened Well": 160.00,
     "StatTrak™ Falchion Knife | Black Laminate Factory": 200.00,
     "★ Kukri Knife | Night Stripe (Factory New)": 154.00,
     "★ StatTrak™ Skeleton Knife | Scorched (Field Tested)": 194.00,
@@ -103,7 +101,15 @@ skins_a_vigilar = {
     "★ Specialist Gloves | Crimson Web (Battle-Scarred)": 150.00,
     "★ StatTrak™ Nomad Knife | Ultraviolet Field": 165.00,
     "★ StatTrak™ Bowie Knife | Ultraviolet Field": 112.00,
-    "★ StatTrak™ Bowie Knife | Bright Water (Well Worn)": 86.00,
+    "★ StatTrak™ Bowie Knife | Lore Well": 134.00,
+    "★ StatTrak™ Bowie Knife | Autotronic Well": 134.00,
+    "★ StatTrak™ Bowie Knife | Damascus Steel minimal": 147.00,
+    "★ StatTrak™ Bowie Knife | Lore minimal": 175.00,
+    "★ StatTrak™ Paracord Knife | Damascus Steel factory": 133.00,
+    "★ StatTrak™ Paracord Knife | Ultraviolet minimal": 145.00,
+    "★ StatTrak™ Paracord Knife | Crimson Web minimal": 210.00,
+    "★ StatTrak™ Kukri Knife | Crimson Web Fiel": 130.00,
+    
     
 }
 
