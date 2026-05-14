@@ -402,13 +402,12 @@ def worker(grupo_skins, worker_id):
                 time.sleep(2)
                 continue
 
-        item_id = obtener_id_item(url)
-        precio_actual = buscar_precio(item_id, session, proxy)
+            item_id = obtener_id_item(url)
+            precio_actual = buscar_precio(item_id, session, proxy)
 
             with lock:
                 skins_revisadas_total += 1
 
-            # 🔴 IMPORTANTE: si falla, no duermas demasiado ni spamees logs
             if precio_actual is None:
                 time.sleep(2)
                 continue
@@ -420,7 +419,7 @@ def worker(grupo_skins, worker_id):
             ):
                 mensaje = (
                     f"🛒 Skin en oferta\n"
-                    f"{nombre}\n"
+                    f"{url}\n"
                     f"💵 {precio_actual:.2f} USD\n"
                     f"📉 Max {precio_max:.2f} USD"
                 )
@@ -428,7 +427,7 @@ def worker(grupo_skins, worker_id):
                 enviar_telegram(mensaje)
                 notificados[url] = precio_actual
 
-            time.sleep(random.uniform(4, 7))  # más estable que randint
+            time.sleep(random.uniform(4, 7))
 
         estado_app["ultimo_escaneo"] = datetime.now().isoformat()
 
