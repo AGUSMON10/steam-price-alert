@@ -233,17 +233,19 @@ USER_AGENTS = [
 def get_headers():
     return {
         "User-Agent": random.choice(USER_AGENTS),
-        "Accept-Language": "en-US,en;q=0.9"
+        "Accept-Language": "en-US,en;q=0.9",
+        "Accept": "application/json,text/javascript,*/*;q=0.1",
+        "Referer": "https://steamcommunity.com/market/"
     }
 
 def obtener_proxy():
     ahora = time.time()
 
-    # proxies realmente disponibles
     disponibles = [p for p, t in PROXY_STATUS.items() if t <= ahora]
 
+    print(f"[DEBUG] Proxies disponibles: {len(disponibles)}")
+
     if not disponibles:
-        # reset inteligente si TODOS están bloqueados (evita deadlock eterno)
         if len(PROXY_STATUS) == len(PROXIES):
             print("[WARN] Reset de cooldown global de proxies")
             for p in PROXY_STATUS:
@@ -307,28 +309,40 @@ def buscar_precio(nombre, session, proxy):
             proxies=proxies
         )
 
+        print(f"[DEBUG] Query Steam: {nombre}")
+        print(f"[DEBUG] Proxy usado: {proxy}")
+        print(f"[DEBUG] Status code: {r.status_code}")
+        print(f"[DEBUG] Content-Type: {r.headers.get('content-type')}")
+        print(f"[DEBUG] Response preview: {r.text[:200]}")
+
         if r.status_code != 200:
             if proxy:
                 PROXY_STATUS[proxy] = time.time() + PROXY_COOLDOWN
             return None
 
         try:
-            data = r.json().get("results", [])
-        except Exception:
+            data = r.json()
+        except Exception as e:
+            print("[DEBUG] JSON FAIL:", e)
+            print("[DEBUG] RAW:", r.text[:300])
             return None
 
+        # ✅ FIX REAL: usar results correctamente
+        results = data.get("results", [])
+
         precios = []
-        for item in data:
+        for item in results:
             if isinstance(item, dict) and item.get("sell_price"):
                 precios.append(item["sell_price"] / 100)
 
         return min(precios) if precios else None
 
-    except Exception:
+    except Exception as e:
+        print(f"[DEBUG] EXCEPTION: {e}")
         if proxy:
             PROXY_STATUS[proxy] = time.time() + PROXY_COOLDOWN
         return None
-
+        
 def enviar_telegram(mensaje):
     try:
         url = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendMessage"
@@ -347,17 +361,20 @@ def enviar_telegram(mensaje):
 def dividir_skins_en_grupos():
     lista = list(skins_a_vigilar.items())
 
-    # 🔥 SOLO tantos grupos como skins (no proxies)
-    cantidad_grupos = min(len(PROXIES), len(lista))
+    # 1 grupo por worker fijo (10 workers máximo recomendado)
+    num_workers = min(8, len(lista))
 
-    grupos = [[] for _ in range(cantidad_grupos)]
+    grupos = [[] for _ in range(num_workers)]
 
     for i, item in enumerate(lista):
-        grupos[i % cantidad_grupos].append(item)
+        grupos[i % num_workers].append(item)
 
-    return [g for g in grupos if g]  # elimina vacíos
+    return grupos
 
 def worker(grupo_skins, worker_id):
+    print(f"[DEBUG] Worker {worker_id} arrancó")
+    print(f"[DEBUG] Items recibidos: {len(grupo_skins)}")
+    
     session = requests.Session()
     global skins_revisadas_total
 
@@ -371,13 +388,13 @@ def worker(grupo_skins, worker_id):
             proxy = obtener_proxy()
             precio_actual = buscar_precio(nombre, session, proxy)
 
+            with lock:
+                skins_revisadas_total += 1
+
             # 🔴 IMPORTANTE: si falla, no duermas demasiado ni spamees logs
             if precio_actual is None:
                 time.sleep(2)
                 continue
-
-            with lock:
-                skins_revisadas_total += 1
 
             ultima_alerta = notificados.get(url)
 
@@ -419,13 +436,16 @@ if __name__ == "__main__":
 
     grupos = dividir_skins_en_grupos()
 
+    print("=== DEBUG SYSTEM ===")
+    print("Skins:", len(skins_a_vigilar))
+    print("Proxies:", len(PROXIES))
+    print("Grupos:", len(dividir_skins_en_grupos()))
+    print("====================")
+
     threads = []
 
-    for i in range(len(grupos)):
-        t = threading.Thread(
-            target=worker,
-            args=(grupos[i], i)
-        )
+    for i, grupo in enumerate(grupos):
+        t = threading.Thread(target=worker, args=(grupo, i))
         t.start()
         threads.append(t)
 
