@@ -169,7 +169,7 @@ lock = threading.Lock()
 
 # Cache temporal de precios
 price_cache = {}
-CACHE_TTL = 60  # segundos
+CACHE_TTL = 35  # segundos
 
 failed_counts = {}
 
@@ -420,7 +420,7 @@ def dividir_skins_en_grupos():
 
     lista = list(skins_a_vigilar.items())
 
-    num_workers = min(6, len(lista))
+    num_workers = min(5, len(lista))
 
     grupos = [[] for _ in range(num_workers)]
 
@@ -492,7 +492,7 @@ def worker(grupo_skins, worker_id):
 
                 notificados[skin_name] = precio_actual
 
-            time.sleep(random.uniform(4, 7))
+            time.sleep(random.uniform(5, 10))
 
         estado_app["ultimo_escaneo"] = datetime.now().isoformat()
 
