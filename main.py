@@ -302,7 +302,7 @@ def buscar_precio(market_hash_name, session, proxy):
     params = {
         "query": market_hash_name,
         "start": 0,
-        "count": 10,
+        "count": 20,
         "currency": 1,
         "language": "english",
         "norender": 1
@@ -330,40 +330,45 @@ def buscar_precio(market_hash_name, session, proxy):
             print("[DEBUG] Sin resultados")
             return None
 
-        query = market_hash_name.lower()
+        query = market_hash_name.lower().strip()
 
         best_price = None
         best_score = -1
         best_name = None
 
         for item in results:
-            name = item.get("name", "").lower()
+            name = item.get("name", "").lower().strip()
             price_raw = item.get("sell_price")
 
-            print(f"[DEBUG] ITEM: {item.get('name')} | PRICE RAW: {price_raw}")
+            # 🔥 FILTRO ANTI BASURA (cases / keys / etc)
+            if "case" in name and "knife" not in query and "glove" not in query:
+                continue
+
+            if "key" in name and "knife" in query:
+                continue
 
             if not price_raw:
                 continue
 
             price = price_raw / 100
 
-            # 🔥 MATCH ESTRICTO REAL
+            # 🔥 MATCH REAL
             score = 0
 
             if name == query:
-                score += 100  # match perfecto
+                score = 100
 
-            elif name.startswith(query):
-                score += 50
+            elif query in name and len(query) > 10:
+                score = 60
 
-            elif query in name:
-                score += 20
+            elif query.split("|")[0] in name:
+                score = 20
 
-            # bonus de consistencia (evita cases/randoms)
-            if "knife" in query and "knife" in name:
+            # bonus exact keywords CS2
+            if "stattrak" in query and "stattrak" in name:
                 score += 5
 
-            if "stattrak" in query and "stattrak" in name:
+            if "knife" in query and "knife" in name:
                 score += 5
 
             if score > best_score:
