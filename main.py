@@ -242,6 +242,7 @@ skins_a_vigilar = {
 notificados = {}
 ultimo_escaneo = None
 skins_revisadas_total = 0
+ciclo_numero = 0
 estado_app = {"activo": True, "errores": 0, "ultimo_escaneo": None}
 
 lock = threading.Lock()
@@ -521,7 +522,40 @@ def worker(grupo_skins, worker_id):
         estado_app["ultimo_escaneo"] = datetime.now().isoformat()
 
         if worker_id == 0:
-            print(f"[INFO] Skins revisadas ciclo: {skins_revisadas_total}")
+
+            global ciclo_numero
+
+            ciclo_numero += 1
+
+            duracion = round(time.time() - inicio_ciclo, 2)
+
+            ahora = time.time()
+
+            proxies_activos = len([
+                p for p, t in PROXY_STATUS.items()
+                if t <= ahora
+            ])
+
+            proxies_cooldown = len(PROXY_STATUS) - proxies_activos
+
+            print("\n================ RESUMEN CICLO ================")
+
+            print(f"[INFO] Ciclo número: {ciclo_numero}")
+
+            print(f"[INFO] Skins totales vigiladas: {len(skins_a_vigilar)}")
+
+            print(f"[INFO] Skins revisadas: {skins_revisadas_total}")
+
+            print(f"[INFO] Proxies activos: {proxies_activos}")
+
+            print(f"[INFO] Proxies cooldown: {proxies_cooldown}")
+            
+            print(f"[INFO] Cache size: {len(price_cache)}")
+
+            print(f"[INFO] Duración ciclo: {duracion} segundos")
+
+            print("================================================\n")
+
             skins_revisadas_total = 0
 
         time.sleep(random.uniform(20, 40))
