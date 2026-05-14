@@ -255,25 +255,32 @@ def buscar_precio(market_hash_name, session, proxy):
 
             score = 0
 
-            # MATCH EXACTO
-            if name == query:
-                score = 100
+            query_words = set(query.split())
+            name_words = set(name.split())
 
-            # MATCH PARCIAL CONTROLADO
-            elif query in name:
+            coincidencias = len(query_words & name_words)
 
-                query_parts = query.split("|")
-                name_parts = name.split("|")
+            score = coincidencias * 20
 
-                if len(query_parts) == len(name_parts):
-                    score = 60
-
-            # bonus
+            # bonus importantes
             if "knife" in query and "knife" in name:
-                score += 10
+                score += 20
 
             if "stattrak" in query and "stattrak" in name:
-                score += 10
+                score += 20
+
+            # bonus wear
+            wears = [
+                "factory",
+                "minimal",
+                "field",
+                "well",
+                "battle"
+            ]
+
+            for wear in wears:
+                if wear in query and wear in name:
+                    score += 15
 
             # castigo basura
             if "case" in name:
