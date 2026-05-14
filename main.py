@@ -6,7 +6,6 @@ import threading
 from flask import Flask, jsonify
 from datetime import datetime
 import builtins
-from urllib.parse import unquote
 
 # Lista de proxies (pegá los tuyos de Webshare)
 
@@ -283,26 +282,25 @@ def status():
         "notificaciones_enviadas": len(notificados)
     })
 
-def limpiar_nombre(url):
-    nombre = url.split("/730/")[-1]
-    nombre = unquote(nombre)  # 🔥 esto arregla %20 %E2%98%85 etc
-    nombre = nombre.replace("★", "").strip()
-    return nombre
-    
-def obtener_nombre_skin(url):
-    # toma el texto después de /730/
-    return url.split("/730/")[-1].replace("%20", " ").replace("%E2%98%85", "").strip()
+from urllib.parse import unquote
+
+def obtener_market_hash_name(url):
+    raw = url.split("/730/")[-1]
+    name = unquote(raw)
+
+    # Steam usa ★ como parte del nombre real en CS2 items
+    return name.strip()
 
 def obtener_id_item(url):
     return url.split("/730/")[-1].replace("★", "").strip()
     
-def buscar_precio(nombre, session, proxy):
-    print(f"\n[DEBUG] === BUSCANDO: {nombre} ===")
+def buscar_precio(market_hash_name, session, proxy):
+    print(f"\n[DEBUG] === BUSCANDO EXACTO: {market_hash_name} ===")
 
     url = "https://steamcommunity.com/market/search/render/"
 
     params = {
-        "query": nombre,
+        "query": market_hash_name,
         "start": 0,
         "count": 10,
         "currency": 1,
@@ -321,57 +319,59 @@ def buscar_precio(nombre, session, proxy):
             proxies=proxies
         )
 
-        print(f"[DEBUG] Status code: {r.status_code}")
-
         if r.status_code != 200:
+            print(f"[DEBUG] Status code: {r.status_code}")
             return None
 
         data = r.json()
         results = data.get("results", [])
 
         if not results:
+            print("[DEBUG] Sin resultados")
             return None
 
-        query = nombre.lower()
+        query = market_hash_name.lower()
 
         best_price = None
-        best_match_score = 0
+        best_score = -1
+        best_name = None
 
         for item in results:
-
-            item_name = item.get("name", "").lower()
+            name = item.get("name", "").lower()
             price_raw = item.get("sell_price")
 
-            print(f"[DEBUG] ITEM NAME: {item.get('name')}")
-            print(f"[DEBUG] ITEM PRICE RAW: {price_raw}")
+            print(f"[DEBUG] ITEM: {item.get('name')} | PRICE RAW: {price_raw}")
 
             if not price_raw:
                 continue
 
             price = price_raw / 100
 
-            # 🔥 SCORE DE COINCIDENCIA REAL (evita basura tipo cases)
+            # 🔥 MATCH ESTRICTO REAL
             score = 0
 
-            if query.replace("%20", " ") in item_name:
-                score += 3
+            if name == query:
+                score += 100  # match perfecto
 
-            if "knife" in query and "knife" in item_name:
-                score += 2
+            elif name.startswith(query):
+                score += 50
 
-            if "stattrak" in query and "stattrak" in item_name:
-                score += 2
+            elif query in name:
+                score += 20
 
-            if len(item_name) > 10:
-                score += 1
+            # bonus de consistencia (evita cases/randoms)
+            if "knife" in query and "knife" in name:
+                score += 5
 
-            # 🔥 elegimos el mejor match
-            if score > best_match_score:
-                best_match_score = score
+            if "stattrak" in query and "stattrak" in name:
+                score += 5
+
+            if score > best_score:
+                best_score = score
                 best_price = price
+                best_name = item.get("name")
 
-        if best_price:
-            print(f"[DEBUG] PRECIO FINAL SELECCIONADO: {best_price} USD (score {best_match_score})")
+        print(f"[DEBUG] MATCH FINAL: {best_name} | ${best_price} | score {best_score}")
 
         return best_price
 
@@ -409,9 +409,9 @@ def dividir_skins_en_grupos():
 
 def worker(grupo_skins, worker_id):
     print(f"[DEBUG] Worker {worker_id} arrancó")
-    print(f"[DEBUG] Items recibidos: {len(grupo_skins)}")
-    
+
     session = requests.Session()
+
     global skins_revisadas_total
 
     while estado_app["activo"]:
@@ -420,19 +420,18 @@ def worker(grupo_skins, worker_id):
         for url, precio_max in grupo_skins:
 
             proxy = obtener_proxy()
-
             if proxy is None:
                 time.sleep(2)
                 continue
 
-            nombre = limpiar_nombre(url)
-            precio_actual = buscar_precio(nombre, session, proxy)
+            market_hash_name = obtener_market_hash_name(url)
+
+            precio_actual = buscar_precio(market_hash_name, session, proxy)
 
             with lock:
                 skins_revisadas_total += 1
 
             if precio_actual is None:
-                time.sleep(2)
                 continue
 
             ultima_alerta = notificados.get(url)
@@ -440,30 +439,22 @@ def worker(grupo_skins, worker_id):
             if precio_actual <= precio_max and (
                 ultima_alerta is None or precio_actual < ultima_alerta
             ):
-                mensaje = (
+                enviar_telegram(
                     f"🛒 Skin en oferta\n"
                     f"{url}\n"
                     f"💵 {precio_actual:.2f} USD\n"
                     f"📉 Max {precio_max:.2f} USD"
                 )
 
-                enviar_telegram(mensaje)
                 notificados[url] = precio_actual
 
-            time.sleep(random.uniform(4, 7))
+            time.sleep(random.uniform(3, 6))
 
         estado_app["ultimo_escaneo"] = datetime.now().isoformat()
 
         if worker_id == 0:
-            with lock:
-                total = skins_revisadas_total
-                skins_revisadas_total = 0
-
-            duracion = round(time.time() - inicio_ciclo, 1)
-
-            print(f"[INFO] Skins revisadas (ciclo): {total}")
-            print(f"[INFO] Duración ciclo: {duracion}s")
-            print(f"[INFO] Notificados: {len(notificados)}")
+            print(f"[INFO] Skins revisadas ciclo: {skins_revisadas_total}")
+            skins_revisadas_total = 0
 
         time.sleep(random.uniform(20, 40))
             
