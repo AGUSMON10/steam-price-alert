@@ -291,6 +291,8 @@ def obtener_id_item(url):
     return url.split("/730/")[-1].replace("★", "").strip()
     
 def buscar_precio(nombre, session, proxy):
+    print(f"\n[DEBUG] === BUSCANDO: {nombre} ===")
+
     url = "https://steamcommunity.com/market/search/render/"
 
     params = {
@@ -313,6 +315,8 @@ def buscar_precio(nombre, session, proxy):
             proxies=proxies
         )
 
+        print(f"[DEBUG] Status code: {r.status_code}")
+
         if r.status_code != 200:
             return None
 
@@ -320,21 +324,39 @@ def buscar_precio(nombre, session, proxy):
         results = data.get("results", [])
 
         if not results:
+            print("[DEBUG] Sin resultados")
             return None
 
-        # 🔥 FILTRO MÁS PRECISO: coincidencia exacta del nombre
-        for item in results:
-            name = item.get("name", "").lower()
-            query = nombre.lower()
+        query = nombre.lower()
 
-            if query in name:
-                price = item.get("sell_price")
-                if price:
-                    return price / 100
+        for item in results:
+
+            name = item.get("name", "").lower()
+            price = item.get("sell_price")
+
+            print(f"[DEBUG] ITEM NAME: {item.get('name')}")
+            print(f"[DEBUG] ITEM PRICE RAW: {price}")
+
+            if not price:
+                continue
+
+            final_price = price / 100
+            print(f"[DEBUG] PRECIO SELECCIONADO: {final_price} USD")
+
+            # filtro básico para evitar basura
+            if query.split("%")[0] in name or name in query:
+                return final_price
+
+        # si no matchea bien, devuelve el primero válido igual
+        for item in results:
+            price = item.get("sell_price")
+            if price:
+                return price / 100
 
         return None
 
-    except Exception:
+    except Exception as e:
+        print(f"[DEBUG] ERROR: {e}")
         return None
         
 def enviar_telegram(mensaje):
