@@ -25,7 +25,7 @@ PROXIES = [
 
 PROXY_COOLDOWN = 900  # 15 min
 PROXY_STATUS = {p: 0 for p in PROXIES}
-
+PROXY_FAILS = {p: 0 for p in PROXIES}
 
 # Redefinir print global con flush automático
 original_print = print
@@ -141,6 +141,21 @@ skins_a_vigilar = {
     "★ StatTrak™ Nomad Knife | Damascus Steel Minimal": 200.00,
     "★ StatTrak™ Gut Knife | Blue Steel Minimal": 100.00,
     "★ Gut Knife | Autotronic Minimal": 149.00,
+    "★ StatTrak™ Gut Knife | Autotronic Fiel": 148.00,
+    "★ StatTrak™ Skeleton Knife | Urban Masked Minimal": 231.00,
+    "★ Paracord Knife | Stained Factory": 134.00,
+    "★ StatTrak™ Paracord Knife | Crimson Web Well": 142.00,
+    "★ Survival Knife | Crimson Web Minimal": 150.00,
+    "StatTrak™ AWP | Asiimov Battle": 165.00,
+    "StatTrak™ AWP | Man-o'-war Minimal": 160.00,
+    "StatTrak™ AWP | Neo-Noir Factory": 122.00,
+    "StatTrak™ AWP | Corticera Factory": 164.00,
+    "★ StatTrak™ Survival Knife | Damascus Steel Minimal": 106.00,
+    "M4A4 | Hellish Minimal": 140.00,
+    "★ Falchion Knife | Lore Well": 125.00,
+    "★ Falchion Knife | Blue Steel Well": 153.00,
+    "★ StatTrak™ Falchion Knife | Freehand Factory": 165.00,
+    "★ StatTrak™ Falchion Knife | Bright Water Factory": 145.00,
     
 }
 
@@ -263,7 +278,20 @@ def buscar_precio(market_hash_name, session, proxy):
         )
 
         if r.status_code != 200:
+
+            PROXY_FAILS[proxy] += 1
+
+            if PROXY_FAILS[proxy] >= 3:
+
+                PROXY_STATUS[proxy] = time.time() + PROXY_COOLDOWN
+
+                print(f"[PROXY COOLDOWN] {proxy}")
+
+                PROXY_FAILS[proxy] = 0
+
             return None
+
+        PROXY_FAILS[proxy] = 0
 
         data = r.json()
 
@@ -280,6 +308,8 @@ def buscar_precio(market_hash_name, session, proxy):
             name = normalizar(name_raw)
 
             price_raw = item.get("sell_price")
+
+            price_text = item.get("sell_price_text", "")
 
             if not price_raw:
                 continue
@@ -327,8 +357,15 @@ def buscar_precio(market_hash_name, session, proxy):
                 best_score = score
                 best_price = price
                 best_name = name_raw
+                best_market_price = price_text
 
-        print(f"[DEBUG] MATCH FINAL: {best_name} | ${best_price} | score {best_score}")
+        print(
+            f"[DEBUG] MATCH FINAL: "
+            f"{best_name} | "
+            f"${best_price} | "
+            f"market {best_market_price} | "
+            f"score {best_score}"
+        )
         
         if best_score == -1:
             failed_counts[market_hash_name] = failed_counts.get(market_hash_name, 0) + 1
@@ -351,6 +388,16 @@ def buscar_precio(market_hash_name, session, proxy):
     except Exception as e:
 
         print(f"[DEBUG] ERROR: {e}")
+
+        PROXY_FAILS[proxy] += 1
+
+        if PROXY_FAILS[proxy] >= 3:
+
+            PROXY_STATUS[proxy] = time.time() + PROXY_COOLDOWN
+
+            print(f"[PROXY COOLDOWN] {proxy}")
+
+            PROXY_FAILS[proxy] = 0
 
         return None
         
@@ -388,6 +435,14 @@ def worker(grupo_skins, worker_id):
     print(f"[DEBUG] Worker {worker_id} arrancó")
 
     session = requests.Session()
+
+    adapter = requests.adapters.HTTPAdapter(
+        pool_connections=20,
+        pool_maxsize=20
+    )
+
+    session.mount("http://", adapter)
+    session.mount("https://", adapter)
 
     global skins_revisadas_total
 
