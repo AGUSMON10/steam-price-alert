@@ -31,13 +31,16 @@ PROXY_STATUS = {p: 0 for p in PROXIES}
 original_print = print
 
 def normalizar(texto):
-    texto = texto.lower()
-    texto = unquote(texto)
-    texto = texto.replace("★", "")
-    texto = texto.replace("™", "")
-    texto = re.sub(r"\s+", " ", texto)
-    return texto.strip()
 
+    texto = texto.lower()
+
+    texto = texto.replace("★", "")
+
+    texto = texto.replace("™", "")
+
+    texto = re.sub(r"\s+", " ", texto)
+
+    return texto.strip()
 
 def es_item_valido(name):
     name = name.lower()
