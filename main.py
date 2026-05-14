@@ -286,6 +286,9 @@ def status():
 def obtener_nombre_skin(url):
     # toma el texto después de /730/
     return url.split("/730/")[-1].replace("%20", " ").replace("%E2%98%85", "").strip()
+
+def obtener_id_item(url):
+    return url.split("/730/")[-1].replace("★", "").strip()
     
 def buscar_precio(nombre, session, proxy):
     url = "https://steamcommunity.com/market/search/render/"
@@ -295,7 +298,8 @@ def buscar_precio(nombre, session, proxy):
         "start": 0,
         "count": 10,
         "currency": 1,
-        "language": "english"
+        "language": "english",
+        "norender": 1
     }
 
     proxies = {"http": proxy, "https": proxy} if proxy else None
@@ -330,12 +334,21 @@ def buscar_precio(nombre, session, proxy):
         # ✅ FIX REAL: usar results correctamente
         results = data.get("results", [])
 
-        precios = []
-        for item in results:
-            if isinstance(item, dict) and item.get("sell_price"):
-                precios.append(item["sell_price"] / 100)
+        if not results:
+            return None
 
-        return min(precios) if precios else None
+        # agarramos SOLO el primer resultado real (el más relevante)
+        price = None
+
+        for item in results:
+            if item.get("sell_price"):
+                price = item["sell_price"]
+                break
+
+        if not price:
+            return None
+
+        return price / 100
 
     except Exception as e:
         print(f"[DEBUG] EXCEPTION: {e}")
@@ -383,10 +396,14 @@ def worker(grupo_skins, worker_id):
 
         for url, precio_max in grupo_skins:
 
-            nombre = obtener_nombre_skin(url)
-
             proxy = obtener_proxy()
-            precio_actual = buscar_precio(nombre, session, proxy)
+
+            if proxy is None:
+                time.sleep(2)
+                continue
+
+        item_id = obtener_id_item(url)
+        precio_actual = buscar_precio(item_id, session, proxy)
 
             with lock:
                 skins_revisadas_total += 1
