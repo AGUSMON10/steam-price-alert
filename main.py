@@ -251,6 +251,8 @@ lock = threading.Lock()
 price_cache = {}
 CACHE_TTL = 60  # segundos
 
+failed_counts = {}
+
 # Headers realistas
 USER_AGENTS = [
     "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/121 Safari/537.36",
@@ -427,6 +429,12 @@ def buscar_precio(market_hash_name, session, proxy):
                 best_name = name_raw
 
         print(f"[DEBUG] MATCH FINAL: {best_name} | ${best_price} | score {best_score}")
+        
+        if best_score == -1:
+            failed_counts[market_hash_name] = failed_counts.get(market_hash_name, 0) + 1
+
+        elif best_score >= 100:
+            failed_counts[market_hash_name] = 0
 
         # =========================
         # GUARDAR CACHE
@@ -475,6 +483,7 @@ def dividir_skins_en_grupos():
     return grupos
 
 def worker(grupo_skins, worker_id):
+
     print(f"[DEBUG] Worker {worker_id} arrancó")
 
     session = requests.Session()
@@ -482,18 +491,28 @@ def worker(grupo_skins, worker_id):
     global skins_revisadas_total
 
     while estado_app["activo"]:
+
         inicio_ciclo = time.time()
 
         for url, precio_max in grupo_skins:
 
+            # saltar skins eliminadas dinámicamente
+            if url not in skins_a_vigilar:
+                continue
+
             proxy = obtener_proxy()
+
             if proxy is None:
                 time.sleep(2)
                 continue
 
             market_hash_name = obtener_market_hash_name(url)
 
-            precio_actual = buscar_precio(market_hash_name, session, proxy)
+            precio_actual = buscar_precio(
+                market_hash_name,
+                session,
+                proxy
+            )
 
             with lock:
                 skins_revisadas_total += 1
@@ -504,8 +523,10 @@ def worker(grupo_skins, worker_id):
             ultima_alerta = notificados.get(url)
 
             if precio_actual <= precio_max and (
-                ultima_alerta is None or precio_actual < ultima_alerta
+                ultima_alerta is None
+                or precio_actual < ultima_alerta
             ):
+
                 enviar_telegram(
                     f"🛒 Skin en oferta\n"
                     f"{url}\n"
@@ -525,7 +546,10 @@ def worker(grupo_skins, worker_id):
 
             ciclo_numero += 1
 
-            duracion = round(time.time() - inicio_ciclo, 2)
+            duracion = round(
+                time.time() - inicio_ciclo,
+                2
+            )
 
             ahora = time.time()
 
@@ -534,23 +558,84 @@ def worker(grupo_skins, worker_id):
                 if t <= ahora
             ])
 
-            proxies_cooldown = len(PROXY_STATUS) - proxies_activos
+            proxies_cooldown = (
+                len(PROXY_STATUS) - proxies_activos
+            )
 
             print("\n================ RESUMEN CICLO ================")
 
             print(f"[INFO] Ciclo número: {ciclo_numero}")
 
-            print(f"[INFO] Skins totales vigiladas: {len(skins_a_vigilar)}")
+            print(
+                f"[INFO] Skins totales vigiladas: "
+                f"{len(skins_a_vigilar)}"
+            )
 
-            print(f"[INFO] Skins revisadas: {skins_revisadas_total}")
+            print(
+                f"[INFO] Skins revisadas: "
+                f"{skins_revisadas_total}"
+            )
 
-            print(f"[INFO] Proxies activos: {proxies_activos}")
+            print(
+                f"[INFO] Proxies activos: "
+                f"{proxies_activos}"
+            )
 
-            print(f"[INFO] Proxies cooldown: {proxies_cooldown}")
-            
-            print(f"[INFO] Cache size: {len(price_cache)}")
+            print(
+                f"[INFO] Proxies cooldown: "
+                f"{proxies_cooldown}"
+            )
 
-            print(f"[INFO] Duración ciclo: {duracion} segundos")
+            print(
+                f"[INFO] Cache size: "
+                f"{len(price_cache)}"
+            )
+
+            print(
+                f"[INFO] Duración ciclo: "
+                f"{duracion} segundos"
+            )
+
+            skins_a_eliminar = []
+
+            for skin, fails in failed_counts.items():
+
+                # eliminar skins rotas
+                # Steam suele fallar a veces, por eso 30
+                if fails >= 30:
+
+                    print(
+                        "\n[INFO] Skin desactivada "
+                        "por demasiados fallos:"
+                    )
+
+                    print(skin)
+
+                    skins_a_eliminar.append(skin)
+
+            # eliminar skins problemáticas
+            for skin_name in skins_a_eliminar:
+
+                for url in list(skins_a_vigilar.keys()):
+
+                    if obtener_market_hash_name(url) == skin_name:
+
+                        del skins_a_vigilar[url]
+
+                        # limpiar contador
+                        failed_counts.pop(
+                            skin_name,
+                            None
+                        )
+
+                        print(
+                            f"[INFO] Eliminada del monitoreo: "
+                            f"{skin_name}"
+                        )
+
+                        break
+
+            print()
 
             print("================================================\n")
 
