@@ -26,6 +26,11 @@ PROXIES = [
 PROXY_COOLDOWN = 900  # 15 min
 PROXY_STATUS = {p: 0 for p in PROXIES}
 PROXY_FAILS = {p: 0 for p in PROXIES}
+PROXY_BANNED = {p: False for p in PROXIES}
+PROXY_LAST_CHECK = {p: 0 for p in PROXIES}
+PROXY_LATENCY = {p: 0 for p in PROXIES}
+
+PROXY_CHECK_INTERVAL = 14400  # 4 horas
 
 # Redefinir print global con flush automático
 original_print = print
@@ -151,7 +156,6 @@ skins_a_vigilar = {
     "StatTrak™ AWP | Neo-Noir Factory": 122.00,
     "StatTrak™ AWP | Corticera Factory": 164.00,
     "★ StatTrak™ Survival Knife | Damascus Steel Minimal": 106.00,
-    "M4A4 | Hellish Minimal": 140.00,
     "★ Falchion Knife | Lore Well": 125.00,
     "★ Falchion Knife | Blue Steel Well": 153.00,
     "★ StatTrak™ Falchion Knife | Freehand Factory": 165.00,
@@ -194,19 +198,160 @@ def get_headers():
 def obtener_proxy():
     ahora = time.time()
 
-    disponibles = [p for p, t in PROXY_STATUS.items() if t <= ahora]
+    disponibles = [
+
+        p for p, t in PROXY_STATUS.items()
+
+        if (
+            t <= ahora
+            and not PROXY_BANNED[p]
+        )
+    ]
 
     if not disponibles:
-        if len(PROXY_STATUS) == len(PROXIES):
-            print("[WARN] Reset de cooldown global de proxies")
-            for p in PROXY_STATUS:
-                PROXY_STATUS[p] = 0
+
+        cooldown_activos = [
+            p for p, t in PROXY_STATUS.items()
+            if t > ahora
+        ]
+
+        proxies_baneados = [
+            p for p, b in PROXY_BANNED.items()
+            if b
+        ]
+
+        print(
+            f"[WARN] Sin proxies disponibles | "
+            f"Cooldown: {len(cooldown_activos)} | "
+            f"Baneados: {len(proxies_baneados)}"
+        )
+
+        # TODOS cooldown
+        if len(cooldown_activos) == len(PROXIES):
+
+            print("[WARN] Reset cooldown global")
+
+            with lock:
+
+                for p in PROXY_STATUS:
+                    PROXY_STATUS[p] = 0
+
             return random.choice(PROXIES)
 
-        print("[WARN] Todos los proxies en cooldown")
+        # TODOS baneados
+        if len(proxies_baneados) == len(PROXIES):
+
+            print("[WARN] Reset banned global")
+
+            with lock:
+
+                for p in PROXY_BANNED:
+                    PROXY_BANNED[p] = False
+
+            return random.choice(PROXIES)
+
         return None
 
     return random.choice(disponibles)
+
+def verificar_proxy(proxy):
+
+    print(f"[PROXY CHECK] Verificando {proxy}")
+
+    proxies = {
+        "http": proxy,
+        "https": proxy
+    }
+
+    test_url = (
+        "https://steamcommunity.com/market/search/render/"
+        "?query=awp"
+        "&start=0"
+        "&count=1"
+        "&search_descriptions=0"
+        "&sort_column=popular"
+        "&sort_dir=desc"
+        "&appid=730"
+        "&norender=1"
+    )
+
+    try:
+
+        inicio = time.time()
+
+        r = requests.get(
+            test_url,
+            headers=get_headers(),
+            timeout=(5, 8),
+            proxies=proxies
+        )
+
+        latency = round(time.time() - inicio, 2)
+
+        with lock:
+            PROXY_LATENCY[proxy] = latency
+
+        if r.status_code != 200:
+
+            print(f"[PROXY BAD STATUS] {proxy} -> {r.status_code}")
+
+            with lock:
+                PROXY_BANNED[proxy] = True
+
+            ip_check = requests.get(
+                "https://api.ipify.org",
+                proxies=proxies,
+                timeout=(4, 6)
+            )
+
+            print(f"[PROXY IP] {proxy} -> {ip_check.text}")
+
+            return False
+
+        content_type = r.headers.get("Content-Type", "")
+
+        if "application/json" not in content_type:
+
+            print(f"[PROXY INVALID CONTENT] {proxy}")
+
+            with lock:
+                PROXY_BANNED[proxy] = True
+
+            return False
+
+        data = r.json()
+
+        if "results" not in data:
+
+            print(f"[PROXY INVALID JSON] {proxy}")
+
+            with lock:
+                PROXY_BANNED[proxy] = True
+
+            return False
+
+        if latency > 5:
+
+            print(f"[PROXY LENTO] {proxy} ({latency}s)")
+
+        print(f"[PROXY OK] {proxy} ({latency}s)")
+
+        with lock:
+
+            PROXY_BANNED[proxy] = False
+
+            PROXY_LAST_CHECK[proxy] = time.time()
+
+        return True
+
+    except Exception as e:
+
+        print(f"[PROXY ERROR] {proxy} -> {e}")
+
+        with lock:
+            PROXY_BANNED[proxy] = True
+
+        return False
 
 # Crear app Flask para UptimeRobot
 app = Flask(__name__)
@@ -240,9 +385,11 @@ def buscar_precio(market_hash_name, session, proxy):
     # =========================
     # CACHE
     # =========================
-    if market_hash_name in price_cache:
+    with lock:
 
-        cache_data = price_cache[market_hash_name]
+        cache_data = price_cache.get(market_hash_name)
+
+    if cache_data:
 
         if ahora - cache_data["timestamp"] < CACHE_TTL:
 
@@ -250,7 +397,7 @@ def buscar_precio(market_hash_name, session, proxy):
 
             return cache_data["price"]
 
-    print(f"\n[DEBUG] === BUSCANDO EXACTO: {market_hash_name} ===")
+        print(f"\n[DEBUG] === BUSCANDO EXACTO: {market_hash_name} ===")
 
     url = "https://steamcommunity.com/market/search/render/"
 
@@ -273,25 +420,30 @@ def buscar_precio(market_hash_name, session, proxy):
             url,
             params=params,
             headers=get_headers(),
-            timeout=10,
+            timeout=(5, 8),
             proxies=proxies
         )
 
         if r.status_code != 200:
 
-            PROXY_FAILS[proxy] += 1
+            with lock:
 
-            if PROXY_FAILS[proxy] >= 3:
+                PROXY_FAILS[proxy] += 1
 
-                PROXY_STATUS[proxy] = time.time() + PROXY_COOLDOWN
+                if PROXY_FAILS[proxy] >= 3:
 
-                print(f"[PROXY COOLDOWN] {proxy}")
+                    PROXY_STATUS[proxy] = (
+                        time.time() + PROXY_COOLDOWN
+                    )
 
-                PROXY_FAILS[proxy] = 0
+                    print(f"[PROXY COOLDOWN] {proxy}")
+
+                    PROXY_FAILS[proxy] = 0
 
             return None
 
-        PROXY_FAILS[proxy] = 0
+        with lock:
+            PROXY_FAILS[proxy] = 0
 
         data = r.json()
 
@@ -370,7 +522,7 @@ def buscar_precio(market_hash_name, session, proxy):
         if best_score == -1:
             failed_counts[market_hash_name] = failed_counts.get(market_hash_name, 0) + 1
 
-        elif best_score >= 100:
+        elif best_score >= 60:
             failed_counts[market_hash_name] = 0
 
         # =========================
@@ -378,10 +530,12 @@ def buscar_precio(market_hash_name, session, proxy):
         # =========================
         if best_price is not None:
 
-            price_cache[market_hash_name] = {
-                "price": best_price,
-                "timestamp": ahora
-            }
+            with lock:
+
+                price_cache[market_hash_name] = {
+                    "price": best_price,
+                    "timestamp": ahora
+                }
 
         return best_price
 
@@ -389,15 +543,19 @@ def buscar_precio(market_hash_name, session, proxy):
 
         print(f"[DEBUG] ERROR: {e}")
 
-        PROXY_FAILS[proxy] += 1
+        with lock:
 
-        if PROXY_FAILS[proxy] >= 3:
+            PROXY_FAILS[proxy] += 1
 
-            PROXY_STATUS[proxy] = time.time() + PROXY_COOLDOWN
+            if PROXY_FAILS[proxy] >= 3:
 
-            print(f"[PROXY COOLDOWN] {proxy}")
+                PROXY_STATUS[proxy] = (
+                    time.time() + PROXY_COOLDOWN
+                )
 
-            PROXY_FAILS[proxy] = 0
+                print(f"[PROXY COOLDOWN] {proxy}")
+
+                PROXY_FAILS[proxy] = 0
 
         return None
         
@@ -492,7 +650,7 @@ def worker(grupo_skins, worker_id):
 
                 notificados[skin_name] = precio_actual
 
-            time.sleep(random.uniform(5, 10))
+            time.sleep(random.uniform(3, 6))
 
         estado_app["ultimo_escaneo"] = datetime.now().isoformat()
 
@@ -556,6 +714,26 @@ def worker(grupo_skins, worker_id):
             skins_revisadas_total = 0
 
         time.sleep(random.uniform(20, 40))
+
+def monitor_proxies():
+
+    while True:
+
+        print("\n[PROXY MONITOR] Iniciando chequeo global...\n")
+
+        for proxy in PROXIES:
+
+            ultimo = PROXY_LAST_CHECK.get(proxy, 0)
+
+            if time.time() - ultimo >= PROXY_CHECK_INTERVAL:
+
+                verificar_proxy(proxy)
+
+                time.sleep(3)
+
+        print("\n[PROXY MONITOR] Fin chequeo global\n")
+
+        time.sleep(300)
             
 # 🔁 Ejecutar el servidor Flask en hilo separado
 def iniciar_servidor():
@@ -580,6 +758,10 @@ if __name__ == "__main__":
 
     servidor_thread = threading.Thread(target=iniciar_servidor)
     servidor_thread.start()
+
+    proxy_thread = threading.Thread(target=monitor_proxies)
+    proxy_thread.daemon = True
+    proxy_thread.start()
 
     for t in threads:
         t.join()
