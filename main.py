@@ -294,7 +294,6 @@ def buscar_precio(market_hash_name, session, proxy):
             proxies=proxies
         )
 
-
         if r.status_code == 429:
 
             print(f"[RATE LIMIT] {proxy}")
@@ -304,6 +303,8 @@ def buscar_precio(market_hash_name, session, proxy):
                 PROXY_STATUS[proxy] = (
                     time.time() + PROXY_COOLDOWN
                 )
+
+                PROXY_FAILS[proxy] = 0
 
             return None
 
