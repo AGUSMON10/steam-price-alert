@@ -253,10 +253,14 @@ def obtener_proxy():
 
         return None
 
-    return min(
+    proxy_ordenados = sorted(
         disponibles,
         key=lambda p: PROXY_LATENCY.get(p, 999)
     )
+
+    top_proxies = proxy_ordenados[:3]
+
+    return random.choice(top_proxies)
 
 def verificar_proxy(proxy):
 
@@ -582,7 +586,7 @@ def dividir_skins_en_grupos():
 
     lista = list(skins_a_vigilar.items())
 
-    num_workers = min(5, len(lista))
+    num_workers = min(4, len(lista))
 
     grupos = [[] for _ in range(num_workers)]
 
@@ -654,7 +658,7 @@ def worker(grupo_skins, worker_id):
 
                 notificados[skin_name] = precio_actual
 
-            time.sleep(random.uniform(3, 6))
+            time.sleep(random.uniform(4, 8))
 
         estado_app["ultimo_escaneo"] = datetime.now().isoformat()
 
