@@ -160,6 +160,7 @@ skins_a_vigilar = {
     "★ Falchion Knife | Blue Steel Well": 153.00,
     "★ StatTrak™ Falchion Knife | Freehand Factory": 165.00,
     "★ StatTrak™ Falchion Knife | Bright Water Factory": 145.00,
+    "★ Nomad Knife | Blue Steel Well": 171.00,
     
 }
 
@@ -252,7 +253,10 @@ def obtener_proxy():
 
         return None
 
-    return random.choice(disponibles)
+    return min(
+        disponibles,
+        key=lambda p: PROXY_LATENCY.get(p, 999)
+    )
 
 def verificar_proxy(proxy):
 
@@ -669,7 +673,15 @@ def worker(grupo_skins, worker_id):
                 if t <= ahora
             ])
 
-            proxies_cooldown = len(PROXY_STATUS) - proxies_activos
+            proxies_cooldown = len([
+                p for p, t in PROXY_STATUS.items()
+                if t > ahora
+            ])
+
+proxies_banned = len([
+    p for p, b in PROXY_BANNED.items()
+    if b
+])
 
             print("\n================ RESUMEN CICLO ================")
 
