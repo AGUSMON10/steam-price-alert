@@ -678,10 +678,10 @@ def worker(grupo_skins, worker_id):
                 if t > ahora
             ])
 
-proxies_banned = len([
-    p for p, b in PROXY_BANNED.items()
-    if b
-])
+            proxies_banned = len([
+                p for p, b in PROXY_BANNED.items()
+                if b
+            ])
 
             print("\n================ RESUMEN CICLO ================")
 
