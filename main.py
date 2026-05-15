@@ -169,7 +169,7 @@ lock = threading.Lock()
 
 # Cache temporal de precios
 price_cache = {}
-CACHE_TTL = 35  # segundos
+CACHE_TTL = 180  # segundos
 
 failed_counts = {}
 
@@ -601,7 +601,7 @@ def worker(grupo_skins, worker_id):
 
             skins_revisadas_total = 0
 
-        time.sleep(random.uniform(20, 40))
+        time.sleep(random.uniform(25, 45))
 
             
 # 🔁 Ejecutar el servidor Flask en hilo separado
