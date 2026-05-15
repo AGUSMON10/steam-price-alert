@@ -26,7 +26,6 @@ PROXIES = [
 PROXY_COOLDOWN = 900  # 15 min
 PROXY_STATUS = {p: 0 for p in PROXIES}
 PROXY_FAILS = {p: 0 for p in PROXIES}
-PROXY_IPS = {}
 
 # Redefinir print global con flush automático
 original_print = print
@@ -192,32 +191,6 @@ def get_headers():
         "Referer": "https://steamcommunity.com/market/"
     }
 
-def verificar_ip_proxy(proxy):
-
-    try:
-
-        r = requests.get(
-            "https://api.ipify.org?format=json",
-            proxies={
-                "http": proxy,
-                "https": proxy
-            },
-            timeout=10
-        )
-
-        if r.status_code != 200:
-            return None
-
-        data = r.json()
-
-        return data.get("ip")
-
-    except Exception as e:
-
-        print(f"[ERROR] No se pudo verificar IP proxy: {e}")
-
-        return None
-    
 def obtener_proxy():
     ahora = time.time()
 
@@ -474,31 +447,10 @@ def worker(grupo_skins, worker_id):
     global skins_revisadas_total
 
     while estado_app["activo"]:
-        
-        if worker_id == 0:
-        
-            # verificar cambios de IP
-            for proxy in PROXIES:
 
-            ip_actual = verificar_ip_proxy(proxy)
+        inicio_ciclo = time.time()
 
-            ip_guardada = PROXY_IPS.get(proxy)
-
-            if ip_actual and ip_guardada != ip_actual:
-
-                print("\n[INFO] Proxy cambió IP")
-
-                print(f"Proxy: {proxy}")
-
-                print(f"Vieja IP: {ip_guardada}")
-
-                print(f"Nueva IP: {ip_actual}\n")
-
-                PROXY_IPS[proxy] = ip_actual
-
-    inicio_ciclo = time.time()
-
-    for skin_name, precio_max in grupo_skins:
+        for skin_name, precio_max in grupo_skins:
 
             proxy = obtener_proxy()
 
@@ -572,18 +524,6 @@ def worker(grupo_skins, worker_id):
             print(f"[INFO] Proxies activos: {proxies_activos}")
 
             print(f"[INFO] Proxies cooldown: {proxies_cooldown}")
-            # limpiar cache vencido
-            ahora_cache = time.time()
-
-            price_cache_limpiar = []
-
-            for k, v in price_cache.items():
-
-                if ahora_cache - v["timestamp"] > CACHE_TTL * 3:
-                    price_cache_limpiar.append(k)
-
-            for k in price_cache_limpiar:
-                del price_cache[k]
 
             print(f"[INFO] Cache size: {len(price_cache)}")
 
@@ -622,17 +562,6 @@ def iniciar_servidor():
     app.run(host="0.0.0.0", port=8080, threaded=True, use_reloader=False)
 
 if __name__ == "__main__":
-    print("\n=== VERIFICANDO IPS DE PROXIES ===")
-
-    for proxy in PROXIES:
-
-        ip = verificar_ip_proxy(proxy)
-
-        PROXY_IPS[proxy] = ip
-
-        print(f"[PROXY IP] {proxy} -> {ip}")
-
-    print("==================================\n")
 
     grupos = dividir_skins_en_grupos()
 
