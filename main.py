@@ -167,7 +167,6 @@ ciclo_numero = 0
 estado_app = {"activo": True, "errores": 0, "ultimo_escaneo": None}
 
 lock = threading.Lock()
-cache_lock = threading.Lock()
 
 # Cache temporal de precios
 price_cache = {}
@@ -203,7 +202,7 @@ def verificar_ip_proxy(proxy):
                 "http": proxy,
                 "https": proxy
             },
-            timeout=7
+            timeout=10
         )
 
         if r.status_code != 200:
@@ -218,20 +217,21 @@ def verificar_ip_proxy(proxy):
         print(f"[ERROR] No se pudo verificar IP proxy: {e}")
 
         return None
-
+    
 def obtener_proxy():
     ahora = time.time()
 
     disponibles = [p for p, t in PROXY_STATUS.items() if t <= ahora]
 
     if not disponibles:
+        if len(PROXY_STATUS) == len(PROXIES):
+            print("[WARN] Reset de cooldown global de proxies")
+            for p in PROXY_STATUS:
+                PROXY_STATUS[p] = 0
+            return random.choice(PROXIES)
 
-        print("[WARN] Reset de cooldown global de proxies")
-
-        for p in PROXY_STATUS:
-            PROXY_STATUS[p] = 0
-
-        return random.choice(PROXIES)
+        print("[WARN] Todos los proxies en cooldown")
+        return None
 
     return random.choice(disponibles)
 
@@ -267,17 +267,15 @@ def buscar_precio(market_hash_name, session, proxy):
     # =========================
     # CACHE
     # =========================
-    with cache_lock:
+    if market_hash_name in price_cache:
 
-        if market_hash_name in price_cache:
+        cache_data = price_cache[market_hash_name]
 
-            cache_data = price_cache[market_hash_name]
+        if ahora - cache_data["timestamp"] < CACHE_TTL:
 
-            if ahora - cache_data["timestamp"] < CACHE_TTL:
+            print(f"[CACHE HIT] {market_hash_name}")
 
-                print(f"[CACHE HIT] {market_hash_name}")
-
-                return cache_data["price"]
+            return cache_data["price"]
 
     print(f"\n[DEBUG] === BUSCANDO EXACTO: {market_hash_name} ===")
 
@@ -302,7 +300,7 @@ def buscar_precio(market_hash_name, session, proxy):
             url,
             params=params,
             headers=get_headers(),
-            timeout=7,
+            timeout=10,
             proxies=proxies
         )
 
@@ -364,33 +362,8 @@ def buscar_precio(market_hash_name, session, proxy):
 
             if "stattrak" in query and "stattrak" in name:
                 score += 20
-                
-            for knife in knife_types:
-
-                if knife in query:
-
-                    if knife in name:
-                        score += 40
-                    else:
-                        score -= 60
 
             # bonus wear
-            knife_types = [
-                "falchion",
-                "bowie",
-                "ursus",
-                "nomad",
-                "paracord",
-                "survival",
-                "flip",
-                "gut",
-                "kukri",
-                "huntsman",
-                "skeleton",
-                "classic",
-                "shadow",
-                "daggers"
-            ]
             wears = [
                 "factory",
                 "minimal",
@@ -432,12 +405,10 @@ def buscar_precio(market_hash_name, session, proxy):
         # =========================
         if best_price is not None:
 
-            with cache_lock:
-
-                price_cache[market_hash_name] = {
-                    "price": best_price,
-                    "timestamp": ahora
-                }
+            price_cache[market_hash_name] = {
+                "price": best_price,
+                "timestamp": ahora
+            }
 
         return best_price
 
@@ -461,7 +432,7 @@ def enviar_telegram(mensaje):
     try:
         url = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendMessage"
         data = {"chat_id": TELEGRAM_CHAT_ID, "text": mensaje}
-        response = requests.post(url, data=data, timeout=10)
+        response = requests.post(url, data=data, timeout=15)
         if response.status_code == 200:
             print("[INFO] Mensaje enviado a Telegram exitosamente")
         else:
@@ -493,45 +464,41 @@ def worker(grupo_skins, worker_id):
     session = requests.Session()
 
     adapter = requests.adapters.HTTPAdapter(
-        pool_connections=50,
-        pool_maxsize=50,
-        max_retries=0
+        pool_connections=20,
+        pool_maxsize=20
     )
 
     session.mount("http://", adapter)
     session.mount("https://", adapter)
 
     global skins_revisadas_total
-    ultimo_check_proxy_ips = 0
 
     while estado_app["activo"]:
         
-        if worker_id == 0 and time.time() - ultimo_check_proxy_ips > 10800:
-            
+        if worker_id == 0:
+        
             # verificar cambios de IP
             for proxy in PROXIES:
 
-                ip_actual = verificar_ip_proxy(proxy)
+            ip_actual = verificar_ip_proxy(proxy)
 
-                ip_guardada = PROXY_IPS.get(proxy)
+            ip_guardada = PROXY_IPS.get(proxy)
 
-                if ip_actual and ip_guardada != ip_actual:
+            if ip_actual and ip_guardada != ip_actual:
 
-                    print("\n[INFO] Proxy cambió IP")
+                print("\n[INFO] Proxy cambió IP")
 
-                    print(f"Proxy: {proxy}")
+                print(f"Proxy: {proxy}")
 
-                    print(f"Vieja IP: {ip_guardada}")
+                print(f"Vieja IP: {ip_guardada}")
 
-                    print(f"Nueva IP: {ip_actual}\n")
+                print(f"Nueva IP: {ip_actual}\n")
 
-                    PROXY_IPS[proxy] = ip_actual
-                    
-            ultimo_check_proxy_ips = time.time()
+                PROXY_IPS[proxy] = ip_actual
 
-        inicio_ciclo = time.time()
+    inicio_ciclo = time.time()
 
-        for skin_name, precio_max in grupo_skins:
+    for skin_name, precio_max in grupo_skins:
 
             proxy = obtener_proxy()
 
@@ -610,18 +577,13 @@ def worker(grupo_skins, worker_id):
 
             price_cache_limpiar = []
 
-            with cache_lock:
-
-                for k, v in list(price_cache.items()):
+            for k, v in price_cache.items():
 
                 if ahora_cache - v["timestamp"] > CACHE_TTL * 3:
                     price_cache_limpiar.append(k)
 
-            with cache_lock:
-
-                for k in price_cache_limpiar:
-
-                    del price_cache[k]
+            for k in price_cache_limpiar:
+                del price_cache[k]
 
             print(f"[INFO] Cache size: {len(price_cache)}")
 
@@ -660,7 +622,6 @@ def iniciar_servidor():
     app.run(host="0.0.0.0", port=8080, threaded=True, use_reloader=False)
 
 if __name__ == "__main__":
-    
     print("\n=== VERIFICANDO IPS DE PROXIES ===")
 
     for proxy in PROXIES:
@@ -684,18 +645,11 @@ if __name__ == "__main__":
     threads = []
 
     for i, grupo in enumerate(grupos):
-        t = threading.Thread(
-        target=worker,
-        args=(grupo, i),
-        daemon=True
-    )
+        t = threading.Thread(target=worker, args=(grupo, i))
         t.start()
         threads.append(t)
 
-    servidor_thread = threading.Thread(
-        target=iniciar_servidor,
-        daemon=True
-    )
+    servidor_thread = threading.Thread(target=iniciar_servidor)
     servidor_thread.start()
 
     for t in threads:
