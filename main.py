@@ -173,6 +173,23 @@ CACHE_TTL = 180  # segundos
 
 failed_counts = {}
 
+# Una session independiente por proxy
+SESSIONS = {}
+
+for proxy in PROXIES:
+
+    s = requests.Session()
+
+    adapter = requests.adapters.HTTPAdapter(
+        pool_connections=20,
+        pool_maxsize=20
+    )
+
+    s.mount("http://", adapter)
+    s.mount("https://", adapter)
+
+    SESSIONS[proxy] = s
+
 # Headers realistas
 USER_AGENTS = [
     "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/121 Safari/537.36",
@@ -188,7 +205,8 @@ def get_headers():
         "User-Agent": random.choice(USER_AGENTS),
         "Accept-Language": "en-US,en;q=0.9",
         "Accept": "application/json,text/javascript,*/*;q=0.1",
-        "Referer": "https://steamcommunity.com/market/"
+        "Referer": "https://steamcommunity.com/market/",
+        "Connection": "keep-alive"
     }
 
 def obtener_proxy():
@@ -265,7 +283,10 @@ def buscar_precio(market_hash_name, session, proxy):
 
             print(f"[CACHE HIT] {market_hash_name}")
 
-            return cache_data["price"]
+            return {
+                "price": cache_data["price"],
+                "name": cache_data["name"]
+            }
 
         print(f"\n[DEBUG] === BUSCANDO EXACTO: {market_hash_name} ===")
 
@@ -303,6 +324,8 @@ def buscar_precio(market_hash_name, session, proxy):
                 PROXY_STATUS[proxy] = (
                     time.time() + PROXY_COOLDOWN
                 )
+                
+                SESSIONS[proxy] = requests.Session()
 
                 PROXY_FAILS[proxy] = 0
 
@@ -419,10 +442,14 @@ def buscar_precio(market_hash_name, session, proxy):
 
                 price_cache[market_hash_name] = {
                     "price": best_price,
+                    "name": best_name,
                     "timestamp": ahora
                 }
 
-        return best_price
+        return {
+            "price": best_price,
+            "name": best_name
+        }
 
     except Exception as e:
 
@@ -477,16 +504,6 @@ def worker(grupo_skins, worker_id):
 
     print(f"[DEBUG] Worker {worker_id} arrancó")
 
-    session = requests.Session()
-
-    adapter = requests.adapters.HTTPAdapter(
-        pool_connections=20,
-        pool_maxsize=20
-    )
-
-    session.mount("http://", adapter)
-    session.mount("https://", adapter)
-
     global skins_revisadas_total
 
     while estado_app["activo"]:
@@ -496,12 +513,14 @@ def worker(grupo_skins, worker_id):
         for skin_name, precio_max in grupo_skins:
 
             proxy = obtener_proxy()
-
+            
             if proxy is None:
                 time.sleep(2)
                 continue
 
-            precio_actual = buscar_precio(
+            session = SESSIONS[proxy]
+
+            resultado = buscar_precio(
                 skin_name,
                 session,
                 proxy
@@ -510,8 +529,11 @@ def worker(grupo_skins, worker_id):
             with lock:
                 skins_revisadas_total += 1
 
-            if precio_actual is None:
+            if resultado is None:
                 continue
+
+            precio_actual = resultado["price"]
+            nombre_real = resultado["name"]
 
             ultima_alerta = notificados.get(skin_name)
 
@@ -521,8 +543,8 @@ def worker(grupo_skins, worker_id):
             ):
 
                 steam_url = (
-                    "https://steamcommunity.com/market/listings/730/"
-                    + requests.utils.quote(skin_name)
+                    "steam://openurl/https://steamcommunity.com/market/listings/730/"
+                    + requests.utils.quote(nombre_real, safe='')
                 )
 
                 enviar_telegram(
