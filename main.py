@@ -86,19 +86,19 @@ if not TELEGRAM_BOT_TOKEN or not TELEGRAM_CHAT_ID:
 skins_a_vigilar = {
     "Knife falchion ★ StatTrak™ | Autotronic minimal": 182.00,
     "StatTrak™ Huntsman Knife | Damascus Steel Factory": 215.00,
-    "★ StatTrak™ Falchion Knife | Stained (Minimal Wear)": 150.00,
-    "★ Falchion Knife | Crimson Web (Field Tested)": 150.00,
+    "★ StatTrak™ Falchion Knife | Stained Minimal": 150.00,
+    "★ Falchion Knife | Crimson Web Field": 150.00,
     "StatTrak™ Falchion Knife | Crimson Web Field": 211.00,
-    "★ StatTrak™ Bowie Knife | Autotronic (Minimal Wear)": 170.00,
+    "★ StatTrak™ Bowie Knife | Autotronic Minimal": 170.00,
     "stattrak Paracord Knife | Blue Steel Minimal": 150.00,
-    "★ StatTrak™ Falchion Knife | Lore (Minimal Wear)": 199.00,
-    "★ Classic Knife | Blue Steel (Minimal Wear)": 174.00,
-    "★ Bowie Knife | Blue Steel (Minimal Wear)": 165.00,
+    "★ StatTrak™ Falchion Knife | Lore Minimal": 199.00,
+    "★ Classic Knife | Blue Steel Minimal": 174.00,
+    "★ Bowie Knife | Blue Steel Minimal": 165.00,
     "StatTrak™ Falchion Knife | Black Laminate Factory": 200.00,
-    "★ Kukri Knife | Night Stripe (Factory New)": 154.00,
-    "★ StatTrak™ Skeleton Knife | Scorched (Field Tested)": 194.00,
-    "★ Falchion Knife | Ultraviolet (Minimal Wear)": 150.00,
-    "★ Specialist Gloves | Crimson Web (Battle-Scarred)": 150.00,
+    "★ Kukri Knife | Night Stripe Factory": 154.00,
+    "★ StatTrak™ Skeleton Knife | Scorched Field": 194.00,
+    "★ Falchion Knife | Ultraviolet Minimal": 150.00,
+    "★ Specialist Gloves | Crimson Web Battle": 150.00,
     "★ StatTrak™ Nomad Knife | Ultraviolet Field": 165.00,
     "★ StatTrak™ Bowie Knife | Ultraviolet Field": 112.00,
     "★ StatTrak™ Bowie Knife | Lore Well": 134.00,
@@ -156,6 +156,11 @@ skins_a_vigilar = {
     "★ StatTrak™ Falchion Knife | Freehand Factory": 165.00,
     "★ StatTrak™ Falchion Knife | Bright Water Factory": 145.00,
     "★ Nomad Knife | Blue Steel Well": 171.00,
+    "stattrak falchion Knife | Black Laminate fiel": 95.00,
+    "Falchion Knife | Stained fiel": 95.00,
+    "StatTrak Falchion Knife | Damascus Steel fiel": 140.00,
+    "StatTrak Falchion Knife | Freehand factory": 140.00,
+    "StatTrak Falchion Knife | Damascus Steel factory": 180.00,
     
 }
 
@@ -557,7 +562,7 @@ def worker(grupo_skins, worker_id):
 
                 notificados[skin_name] = precio_actual
 
-            time.sleep(random.uniform(4, 8))
+            time.sleep(random.uniform(4, 7))
 
         estado_app["ultimo_escaneo"] = datetime.now().isoformat()
 
