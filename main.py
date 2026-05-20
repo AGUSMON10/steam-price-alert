@@ -395,6 +395,36 @@ def buscar_precio(market_hash_name, session, proxy):
 
                 name = normalizar(name_raw)
 
+                # =========================
+                # FILTRO ESTRICTO TIPO KNIFE
+                # =========================
+
+                tipos_knife = [
+                    "falchion",
+                    "bowie",
+                    "ursus",
+                    "kukri",
+                    "nomad",
+                    "survival",
+                    "paracord",
+                    "skeleton",
+                    "flip",
+                    "gut",
+                    "huntsman",
+                    "classic",
+                    "shadow daggers"
+                ]
+
+                tipo_query = None
+
+                for t in tipos_knife:
+                    if t in query:
+                        tipo_query = t
+                        break
+
+                if tipo_query and tipo_query not in name:
+                    continue
+                
                 price_raw = item.get("sell_price")
 
                 price_text = item.get("sell_price_text", "")
