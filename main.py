@@ -39,16 +39,6 @@ def normalizar(texto):
     texto = texto.replace("™", "")
 
     texto = re.sub(r"\s+", " ", texto)
-    
-    texto = texto.replace("-", " ")
-    
-    texto = texto.replace("|", " ")
-
-    texto = texto.replace("field-tested", "field")
-    texto = texto.replace("minimal wear", "minimal")
-    texto = texto.replace("well-worn", "well")
-    texto = texto.replace("battle-scarred", "battle")
-    texto = texto.replace("factory new", "factory")
 
     return texto.strip()
 
@@ -118,40 +108,40 @@ skins_a_vigilar = {
     "★ StatTrak™ Paracord Knife | Damascus Steel factory": 133.00,
     "★ StatTrak™ Paracord Knife | Ultraviolet minimal": 145.00,
     "★ StatTrak™ Paracord Knife | Crimson Web minimal": 210.00,
-    "★ StatTrak™ Kukri Knife | Crimson Web Field": 130.00,
+    "★ StatTrak™ Kukri Knife | Crimson Web Fiel": 130.00,
     "★ StatTrak™ Kukri Knife | Blue Steel Minimal": 155.00,
     "★ StatTrak™ Huntsman Knife | Freehand Minimal": 120.00,
     "★ Huntsman Knife | Ultraviolet Minimal": 131.00,
-    "★ StatTrak™ Huntsman Knife | Blue Steel Field": 182.00,
+    "★ StatTrak™ Huntsman Knife | Blue Steel Fiel": 182.00,
     "★ Shadow Daggers | Marble Fade Minimal": 150.00,
     "★ StatTrak™ Shadow Daggers | Tiger Tooth Minimal": 145.00,
     "★ StatTrak™ Shadow Daggers | Tiger Tooth Factory": 151.00,
     "★ Classic Knife | Crimson Web Minimal": 231.00,
-    "★ Flip Knife | Ultraviolet Field": 152.00,
-    "★ StatTrak™ Flip Knife | Ultraviolet Field": 170.00,
+    "★ Flip Knife | Ultraviolet Fiel": 152.00,
+    "★ StatTrak™ Flip Knife | Ultraviolet Fiel": 170.00,
     "★ Nomad Knife | Stained Minimal": 161.00,
     "★ StatTrak™ Nomad Knife | Damascus Steel Factory": 221.00,
-    "★ StatTrak™ Survival Knife | Blue Steel Field": 106.00,
-    "★ StatTrak™ Survival Knife | Crimson Web Field": 149.00,
+    "★ StatTrak™ Survival Knife | Blue Steel Fiel": 106.00,
+    "★ StatTrak™ Survival Knife | Crimson Web Fiel": 149.00,
     "★ StatTrak™ Survival Knife | Crimson Web Well": 149.00,
     "★ Survival Knife | Blue Steel Factory": 149.00,
     "★ StatTrak™ Survival Knife | Crimson Web Minimal": 174.00,
     "★ StatTrak™ Flip Knife | Ultraviolet Well": 160.00,
-    "★ Flip Knife | Lore Field": 200.00,
-    "★ StatTrak™ Falchion Knife | Lore Field": 150.00,
+    "★ Flip Knife | Lore Fiel": 200.00,
+    "★ StatTrak™ Falchion Knife | Lore Fiel": 150.00,
     "StatTrak™ Paracord Knife | Ultraviolet Well": 100.00,
-    "StatTrak™ Paracord Knife | Blue Steel Field": 135.00,
-    "StatTrak™ Bowie Knife | Lore Field": 138.00,
+    "StatTrak™ Paracord Knife | Blue Steel Fiel": 135.00,
+    "StatTrak™ Bowie Knife | Lore Fiel": 138.00,
     "Bowie Knife | Ultraviolet Minimal": 113.00,
     "Ursus Knife | Blue Steel Minimal": 142.00,
-    "StatTrak™ Ursus Knife | Ultraviolet Field": 142.00,
+    "StatTrak™ Ursus Knife | Ultraviolet Fiel": 142.00,
     "StatTrak™ Ursus Knife | Blue Steel Minimal": 149.00,
-    "StatTrak™ Ursus Knife | Crimson Web Field": 215.00,
+    "StatTrak™ Ursus Knife | Crimson Web Fiel": 215.00,
     "StatTrak™ Ursus Knife | Ultraviolet Minimal": 160.00,
     "StatTrak™ Nomad Knife | Damascus Steel Minimal": 200.00,
     "StatTrak™ Gut Knife | Blue Steel Minimal": 100.00,
     "Gut Knife | Autotronic Minimal": 149.00,
-    "StatTrak™ Gut Knife | Autotronic Field": 148.00,
+    "StatTrak™ Gut Knife | Autotronic Fiel": 148.00,
     "StatTrak™ Skeleton Knife | Urban Masked Minimal": 231.00,
     "Paracord Knife | Stained Factory": 134.00,
     "StatTrak™ Paracord Knife | Crimson Web Well": 142.00,
@@ -164,9 +154,9 @@ skins_a_vigilar = {
     "StatTrak Falchion Knife | Freehand Factory": 165.00,
     "StatTrak™ Falchion Knife | Bright Water Factory": 145.00,
     "Nomad Knife | Blue Steel Well": 171.00,
-    "stattrak falchion Knife | Black Laminate field": 95.00,
-    "Falchion Knife | Stained field": 95.00,
-    "StatTrak Falchion Knife | Damascus Steel field": 140.00,
+    "stattrak falchion Knife | Black Laminate fiel": 95.00,
+    "Falchion Knife | Stained fiel": 95.00,
+    "StatTrak Falchion Knife | Damascus Steel fiel": 140.00,
     "StatTrak Falchion Knife | Freehand factory": 140.00,
     "StatTrak Falchion Knife | Damascus Steel factory": 180.00,
     
@@ -185,36 +175,23 @@ price_cache = {}
 CACHE_TTL = 180  # segundos
 
 failed_counts = {}
-skins_desactivadas = set()
 
-# =========================
-# SESSION FACTORY
-# =========================
+# Una session independiente por proxy
+SESSIONS = {}
 
-def crear_session():
+for proxy in PROXIES:
 
     s = requests.Session()
 
     adapter = requests.adapters.HTTPAdapter(
         pool_connections=20,
-        pool_maxsize=20,
-        max_retries=0
+        pool_maxsize=20
     )
 
     s.mount("http://", adapter)
     s.mount("https://", adapter)
 
-    return s
-
-# =========================
-# SESSIONS POR PROXY
-# =========================
-
-SESSIONS = {}
-
-for proxy in PROXIES:
-
-    SESSIONS[proxy] = crear_session()
+    SESSIONS[proxy] = s
 
 # Headers realistas
 USER_AGENTS = [
@@ -314,7 +291,7 @@ def buscar_precio(market_hash_name, session, proxy):
                 "name": cache_data["name"]
             }
 
-    print(f"\n[DEBUG] === BUSCANDO EXACTO: {market_hash_name} ===")
+        print(f"\n[DEBUG] === BUSCANDO EXACTO: {market_hash_name} ===")
 
     url = "https://steamcommunity.com/market/search/render/"
 
@@ -323,7 +300,7 @@ def buscar_precio(market_hash_name, session, proxy):
     params = {
         "query": query,
         "start": 0,
-        "count": 15,
+        "count": 30,
         "currency": 1,
         "language": "english",
         "norender": 1
@@ -331,236 +308,33 @@ def buscar_precio(market_hash_name, session, proxy):
 
     proxies = {"http": proxy, "https": proxy} if proxy else None
 
-    for intento in range(2):
+    try:
 
-        try:
+        r = session.get(
+            url,
+            params=params,
+            headers=get_headers(),
+            timeout=(5, 8),
+            proxies=proxies
+        )
 
-            r = session.get(
-                url,
-                params=params,
-                headers=get_headers(),
-                timeout=(4, 6),
-                proxies=proxies
-            )
+        if r.status_code == 429:
 
-            if r.status_code == 429:
-
-                print(f"[RATE LIMIT] {proxy}")
-
-                with lock:
-
-                    PROXY_STATUS[proxy] = (
-                        time.time() + PROXY_COOLDOWN
-                    )
-
-                    SESSIONS[proxy] = crear_session()
-
-                    PROXY_FAILS[proxy] = 0
-
-                return None
-
-            if r.status_code != 200:
-
-                with lock:
-
-                    PROXY_FAILS[proxy] += 1
-
-                    if PROXY_FAILS[proxy] >= 3:
-
-                        PROXY_STATUS[proxy] = (
-                            time.time() + PROXY_COOLDOWN
-                        )
-
-                        print(f"[PROXY COOLDOWN] {proxy}")
-
-                        PROXY_FAILS[proxy] = 0
-
-                return None
+            print(f"[RATE LIMIT] {proxy}")
 
             with lock:
+
+                PROXY_STATUS[proxy] = (
+                    time.time() + PROXY_COOLDOWN
+                )
+                
+                SESSIONS[proxy] = requests.Session()
+
                 PROXY_FAILS[proxy] = 0
 
-            data = r.json()
+            return None
 
-            results = data.get("results", [])
-
-            best_price = None
-            best_score = -1
-            best_name = None
-            best_market_price = None
-
-            for item in results:
-
-                name_raw = item.get("name", "")
-
-                name = normalizar(name_raw)
-
-                # =========================
-                # FILTRO ESTRICTO TIPO KNIFE
-                # =========================
-
-                tipos_knife = [
-                    "falchion",
-                    "bowie",
-                    "ursus",
-                    "kukri",
-                    "nomad",
-                    "survival",
-                    "paracord",
-                    "skeleton",
-                    "flip",
-                    "gut",
-                    "huntsman",
-                    "classic",
-                    "shadow daggers"
-                ]
-
-                tipo_query = None
-
-                for t in tipos_knife:
-                    if t in query:
-                        tipo_query = t
-                        break
-
-                if tipo_query and tipo_query not in name:
-                    continue
-                
-                price_raw = item.get("sell_price")
-
-                price_text = item.get("sell_price_text", "")
-
-                if not price_raw:
-                    continue
-
-                # filtro basura
-                if not es_item_valido(name):
-                    continue
-
-                price = price_raw / 100
-
-                score = 0
-
-                query_words = set(re.findall(r'\w+', query))
-                name_words = set(re.findall(r'\w+', name))
-
-                coincidencias = len(query_words & name_words)
-
-                score = coincidencias * 20
-
-                # bonus importantes
-                if "knife" in query and "knife" in name:
-                    score += 20
-
-                if "stattrak" in query and "stattrak" in name:
-                    score += 20
-
-                # bonus wear
-                wears = [
-                    "factory",
-                    "minimal",
-                    "field",
-                    "well",
-                    "battle"
-                ]
-
-                for wear in wears:
-                    if wear in query and wear in name:
-                        score += 15
-
-                # =========================
-                # VALIDAR FINISH / SKIN
-                # =========================
-
-                finishes = [
-                    "lore",
-                    "crimson web",
-                    "blue steel",
-                    "damascus steel",
-                    "autotronic",
-                    "ultraviolet",
-                    "freehand",
-                    "black laminate",
-                    "bright water",
-                    "stained",
-                    "scorched",
-                    "night stripe",
-                    "marble fade",
-                    "tiger tooth",
-                    "urban masked",
-                    "asiimov",
-                    "corticera"
-                ]
-
-                for finish in finishes:
-
-                    if finish in query:
-
-                        if finish in name:
-                            score += 40
-                        else:
-                            score -= 80
-
-                # castigo basura
-                if "case" in name:
-                    score -= 999
-
-                if score > best_score:
-                    best_score = score
-                    best_price = price
-                    best_name = name_raw
-                    best_market_price = price_text
-
-            print(
-                f"[DEBUG] MATCH FINAL: "
-                f"{best_name} | "
-                f"${best_price} | "
-                f"market {best_market_price} | "
-                f"score {best_score}"
-            )
-        
-            if best_score == -1:
-                failed_counts[market_hash_name] = failed_counts.get(market_hash_name, 0) + 1
-
-            elif best_score >= 60:
-                failed_counts[market_hash_name] = 0
-
-            # =========================
-            # GUARDAR CACHE
-            # =========================
-            if best_price is not None:
-
-                with lock:
-
-                    price_cache[market_hash_name] = {
-                        "price": best_price,
-                        "name": best_name,
-                        "timestamp": ahora
-                    }
-
-            return {
-                "price": best_price,
-                "name": best_name
-            }
-        
-        except requests.exceptions.Timeout:
-
-            print(f"[TIMEOUT] Reintentando {market_hash_name}")
-
-            time.sleep(1)
-
-            continue
-
-        except requests.exceptions.ConnectionError:
-
-            print(f"[CONNECTION ERROR] Reintentando {market_hash_name}")
-
-            time.sleep(1)
-
-            continue    
-
-        except Exception as e:
-
-            print(f"[DEBUG] ERROR: {e}")
+        if r.status_code != 200:
 
             with lock:
 
@@ -577,6 +351,128 @@ def buscar_precio(market_hash_name, session, proxy):
                     PROXY_FAILS[proxy] = 0
 
             return None
+
+
+        with lock:
+            PROXY_FAILS[proxy] = 0
+
+        data = r.json()
+
+        results = data.get("results", [])
+
+        best_price = None
+        best_score = -1
+        best_name = None
+
+        for item in results:
+
+            name_raw = item.get("name", "")
+
+            name = normalizar(name_raw)
+
+            price_raw = item.get("sell_price")
+
+            price_text = item.get("sell_price_text", "")
+
+            if not price_raw:
+                continue
+
+            # filtro basura
+            if not es_item_valido(name):
+                continue
+
+            price = price_raw / 100
+
+            score = 0
+
+            query_words = set(query.split())
+            name_words = set(name.split())
+
+            coincidencias = len(query_words & name_words)
+
+            score = coincidencias * 20
+
+            # bonus importantes
+            if "knife" in query and "knife" in name:
+                score += 20
+
+            if "stattrak" in query and "stattrak" in name:
+                score += 20
+
+            # bonus wear
+            wears = [
+                "factory",
+                "minimal",
+                "field",
+                "well",
+                "battle"
+            ]
+
+            for wear in wears:
+                if wear in query and wear in name:
+                    score += 15
+
+            # castigo basura
+            if "case" in name:
+                score -= 999
+
+            if score > best_score:
+                best_score = score
+                best_price = price
+                best_name = name_raw
+                best_market_price = price_text
+
+        print(
+            f"[DEBUG] MATCH FINAL: "
+            f"{best_name} | "
+            f"${best_price} | "
+            f"market {best_market_price} | "
+            f"score {best_score}"
+        )
+        
+        if best_score == -1:
+            failed_counts[market_hash_name] = failed_counts.get(market_hash_name, 0) + 1
+
+        elif best_score >= 60:
+            failed_counts[market_hash_name] = 0
+
+        # =========================
+        # GUARDAR CACHE
+        # =========================
+        if best_price is not None:
+
+            with lock:
+
+                price_cache[market_hash_name] = {
+                    "price": best_price,
+                    "name": best_name,
+                    "timestamp": ahora
+                }
+
+        return {
+            "price": best_price,
+            "name": best_name
+        }
+
+    except Exception as e:
+
+        print(f"[DEBUG] ERROR: {e}")
+
+        with lock:
+
+            PROXY_FAILS[proxy] += 1
+
+            if PROXY_FAILS[proxy] >= 3:
+
+                PROXY_STATUS[proxy] = (
+                    time.time() + PROXY_COOLDOWN
+                )
+
+                print(f"[PROXY COOLDOWN] {proxy}")
+
+                PROXY_FAILS[proxy] = 0
+
+        return None
         
 def enviar_telegram(mensaje):
     try:
@@ -618,9 +514,6 @@ def worker(grupo_skins, worker_id):
         inicio_ciclo = time.time()
 
         for skin_name, precio_max in grupo_skins:
-            
-            if skin_name in skins_desactivadas:
-                continue
 
             proxy = obtener_proxy()
             
@@ -645,29 +538,11 @@ def worker(grupo_skins, worker_id):
             precio_actual = resultado["price"]
             nombre_real = resultado["name"]
 
-            if precio_actual is None:
-                continue
-                
-            if not nombre_real:
-                continue
+            ultima_alerta = notificados.get(skin_name)
 
-            alerta_data = notificados.get(skin_name)
-
-            ultima_alerta = None
-            ultimo_timestamp = 0
-
-            if alerta_data:
-
-                ultima_alerta = alerta_data["precio"]
-                ultimo_timestamp = alerta_data["timestamp"]
-
-            if (
-                precio_actual <= precio_max
-                and (
-                    ultima_alerta is None
-                    or precio_actual < ultima_alerta
-                )
-                and time.time() - ultimo_timestamp > 300
+            if precio_actual <= precio_max and (
+                ultima_alerta is None
+                or precio_actual < ultima_alerta
             ):
 
                 steam_url = (
@@ -683,12 +558,9 @@ def worker(grupo_skins, worker_id):
                     f"📉 Max {precio_max:.2f} USD"
                 )
 
-                notificados[skin_name] = {
-                    "precio": precio_actual,
-                    "timestamp": time.time()
-                }
+                notificados[skin_name] = precio_actual
 
-            time.sleep(random.uniform(1.5, 3))
+            time.sleep(random.uniform(4, 7))
 
         estado_app["ultimo_escaneo"] = datetime.now().isoformat()
 
@@ -725,18 +597,6 @@ def worker(grupo_skins, worker_id):
             print(f"[INFO] Proxies cooldown: {proxies_cooldown}")
 
             print(f"[INFO] Cache size: {len(price_cache)}")
-            # limpiar cache vieja
-            ahora_cache = time.time()
-
-            with lock:
-
-                cache_keys = list(price_cache.keys())
-
-                for k in cache_keys:
-
-                    if ahora_cache - price_cache[k]["timestamp"] > CACHE_TTL:
-
-                        del price_cache[k]
 
             print(f"[INFO] Duración ciclo: {duracion} segundos")
 
@@ -753,13 +613,10 @@ def worker(grupo_skins, worker_id):
 
             # eliminar skins problemáticas
             for skin_name in skins_a_eliminar:
-                
-                if skin_name in skins_desactivadas:
-                    continue
 
                 if skin_name in skins_a_vigilar:
 
-                    skins_desactivadas.add(skin_name)
+                    del skins_a_vigilar[skin_name]
 
                     print(f"[INFO] Eliminada del monitoreo: {skin_name}")
 
@@ -789,18 +646,11 @@ if __name__ == "__main__":
     threads = []
 
     for i, grupo in enumerate(grupos):
-        t = threading.Thread(
-            target=worker,
-            args=(grupo, i),
-            daemon=True
-        )
+        t = threading.Thread(target=worker, args=(grupo, i))
         t.start()
         threads.append(t)
 
-    servidor_thread = threading.Thread(
-        target=iniciar_servidor,
-        daemon=True
-    )
+    servidor_thread = threading.Thread(target=iniciar_servidor)
     servidor_thread.start()
 
     for t in threads:
