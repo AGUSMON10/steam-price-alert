@@ -467,6 +467,39 @@ def buscar_precio(market_hash_name, session, proxy):
                     if wear in query and wear in name:
                         score += 15
 
+                # =========================
+                # VALIDAR FINISH / SKIN
+                # =========================
+
+                finishes = [
+                    "lore",
+                    "crimson web",
+                    "blue steel",
+                    "damascus steel",
+                    "autotronic",
+                    "ultraviolet",
+                    "freehand",
+                    "black laminate",
+                    "bright water",
+                    "stained",
+                    "scorched",
+                    "night stripe",
+                    "marble fade",
+                    "tiger tooth",
+                    "urban masked",
+                    "asiimov",
+                    "corticera"
+                ]
+
+                for finish in finishes:
+
+                    if finish in query:
+
+                        if finish in name:
+                            score += 40
+                        else:
+                            score -= 80
+
                 # castigo basura
                 if "case" in name:
                     score -= 999
