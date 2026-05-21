@@ -108,40 +108,40 @@ skins_a_vigilar = {
     "★ StatTrak™ Paracord Knife | Damascus Steel factory": 133.00,
     "★ StatTrak™ Paracord Knife | Ultraviolet minimal": 145.00,
     "★ StatTrak™ Paracord Knife | Crimson Web minimal": 210.00,
-    "★ StatTrak™ Kukri Knife | Crimson Web Fiel": 130.00,
+    "★ StatTrak™ Kukri Knife | Crimson Web Field": 130.00,
     "★ StatTrak™ Kukri Knife | Blue Steel Minimal": 155.00,
     "★ StatTrak™ Huntsman Knife | Freehand Minimal": 120.00,
     "★ Huntsman Knife | Ultraviolet Minimal": 131.00,
-    "★ StatTrak™ Huntsman Knife | Blue Steel Fiel": 182.00,
+    "★ StatTrak™ Huntsman Knife | Blue Steel Field": 182.00,
     "★ Shadow Daggers | Marble Fade Minimal": 150.00,
     "★ StatTrak™ Shadow Daggers | Tiger Tooth Minimal": 145.00,
     "★ StatTrak™ Shadow Daggers | Tiger Tooth Factory": 151.00,
     "★ Classic Knife | Crimson Web Minimal": 231.00,
-    "★ Flip Knife | Ultraviolet Fiel": 152.00,
-    "★ StatTrak™ Flip Knife | Ultraviolet Fiel": 170.00,
+    "★ Flip Knife | Ultraviolet Field": 152.00,
+    "★ StatTrak™ Flip Knife | Ultraviolet Field": 170.00,
     "★ Nomad Knife | Stained Minimal": 161.00,
     "★ StatTrak™ Nomad Knife | Damascus Steel Factory": 221.00,
-    "★ StatTrak™ Survival Knife | Blue Steel Fiel": 106.00,
-    "★ StatTrak™ Survival Knife | Crimson Web Fiel": 149.00,
+    "★ StatTrak™ Survival Knife | Blue Steel Field": 106.00,
+    "★ StatTrak™ Survival Knife | Crimson Web Field": 149.00,
     "★ StatTrak™ Survival Knife | Crimson Web Well": 149.00,
     "★ Survival Knife | Blue Steel Factory": 149.00,
     "★ StatTrak™ Survival Knife | Crimson Web Minimal": 174.00,
     "★ StatTrak™ Flip Knife | Ultraviolet Well": 160.00,
-    "★ Flip Knife | Lore Fiel": 200.00,
-    "★ StatTrak™ Falchion Knife | Lore Fiel": 150.00,
+    "★ Flip Knife | Lore Field": 200.00,
+    "★ StatTrak™ Falchion Knife | Lore Field": 150.00,
     "StatTrak™ Paracord Knife | Ultraviolet Well": 100.00,
-    "StatTrak™ Paracord Knife | Blue Steel Fiel": 135.00,
-    "StatTrak™ Bowie Knife | Lore Fiel": 138.00,
+    "StatTrak™ Paracord Knife | Blue Steel Field": 135.00,
+    "StatTrak™ Bowie Knife | Lore Field": 138.00,
     "Bowie Knife | Ultraviolet Minimal": 113.00,
     "Ursus Knife | Blue Steel Minimal": 142.00,
-    "StatTrak™ Ursus Knife | Ultraviolet Fiel": 142.00,
+    "StatTrak™ Ursus Knife | Ultraviolet Field": 142.00,
     "StatTrak™ Ursus Knife | Blue Steel Minimal": 149.00,
-    "StatTrak™ Ursus Knife | Crimson Web Fiel": 215.00,
+    "StatTrak™ Ursus Knife | Crimson Web Field": 215.00,
     "StatTrak™ Ursus Knife | Ultraviolet Minimal": 160.00,
     "StatTrak™ Nomad Knife | Damascus Steel Minimal": 200.00,
     "StatTrak™ Gut Knife | Blue Steel Minimal": 100.00,
     "Gut Knife | Autotronic Minimal": 149.00,
-    "StatTrak™ Gut Knife | Autotronic Fiel": 148.00,
+    "StatTrak™ Gut Knife | Autotronic Field": 148.00,
     "StatTrak™ Skeleton Knife | Urban Masked Minimal": 231.00,
     "Paracord Knife | Stained Factory": 134.00,
     "StatTrak™ Paracord Knife | Crimson Web Well": 142.00,
@@ -151,12 +151,11 @@ skins_a_vigilar = {
     "StatTrak™ Survival Knife | Damascus Steel Minimal": 106.00,
     "Falchion Knife | Lore Well": 125.00,
     "Falchion Knife | Blue Steel Well": 153.00,
-    "StatTrak Falchion Knife | Freehand Factory": 165.00,
     "StatTrak™ Falchion Knife | Bright Water Factory": 145.00,
     "Nomad Knife | Blue Steel Well": 171.00,
-    "stattrak falchion Knife | Black Laminate fiel": 95.00,
-    "Falchion Knife | Stained fiel": 95.00,
-    "StatTrak Falchion Knife | Damascus Steel fiel": 140.00,
+    "stattrak falchion Knife | Black Laminate field": 95.00,
+    "Falchion Knife | Stained field": 95.00,
+    "StatTrak Falchion Knife | Damascus Steel field": 140.00,
     "StatTrak Falchion Knife | Freehand factory": 140.00,
     "StatTrak Falchion Knife | Damascus Steel factory": 180.00,
     
@@ -176,10 +175,8 @@ CACHE_TTL = 180  # segundos
 
 failed_counts = {}
 
-# Una session independiente por proxy
-SESSIONS = {}
-
-for proxy in PROXIES:
+# Crear sessions optimizadas
+def crear_session():
 
     s = requests.Session()
 
@@ -191,7 +188,14 @@ for proxy in PROXIES:
     s.mount("http://", adapter)
     s.mount("https://", adapter)
 
-    SESSIONS[proxy] = s
+    return s
+
+# Una session independiente por proxy
+SESSIONS = {}
+
+for proxy in PROXIES:
+
+    SESSIONS[proxy] = crear_session()
 
 # Headers realistas
 USER_AGENTS = [
@@ -291,7 +295,7 @@ def buscar_precio(market_hash_name, session, proxy):
                 "name": cache_data["name"]
             }
 
-        print(f"\n[DEBUG] === BUSCANDO EXACTO: {market_hash_name} ===")
+    print(f"\n[DEBUG] === BUSCANDO EXACTO: {market_hash_name} ===")
 
     url = "https://steamcommunity.com/market/search/render/"
 
@@ -328,7 +332,7 @@ def buscar_precio(market_hash_name, session, proxy):
                     time.time() + PROXY_COOLDOWN
                 )
                 
-                SESSIONS[proxy] = requests.Session()
+                SESSIONS[proxy] = crear_session()
 
                 PROXY_FAILS[proxy] = 0
 
@@ -363,6 +367,7 @@ def buscar_precio(market_hash_name, session, proxy):
         best_price = None
         best_score = -1
         best_name = None
+        best_market_price = "N/A"
 
         for item in results:
 
@@ -560,7 +565,7 @@ def worker(grupo_skins, worker_id):
 
                 notificados[skin_name] = precio_actual
 
-            time.sleep(random.uniform(4, 7))
+            time.sleep(random.uniform(3, 6))
 
         estado_app["ultimo_escaneo"] = datetime.now().isoformat()
 
@@ -626,7 +631,7 @@ def worker(grupo_skins, worker_id):
 
             skins_revisadas_total = 0
 
-        time.sleep(random.uniform(25, 45))
+        time.sleep(random.uniform(20, 40))
 
             
 # 🔁 Ejecutar el servidor Flask en hilo separado
