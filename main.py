@@ -171,9 +171,29 @@ lock = threading.Lock()
 
 # Cache temporal de precios
 price_cache = {}
-CACHE_TTL = 180  # segundos
+CACHE_TTL = 70  # segundos
 
 failed_counts = {}
+
+def limpiar_cache():
+
+    ahora = time.time()
+
+    with lock:
+
+        keys_a_borrar = []
+
+        for k, v in price_cache.items():
+
+            if ahora - v["timestamp"] > CACHE_TTL * 3:
+
+                keys_a_borrar.append(k)
+
+        for k in keys_a_borrar:
+
+            del price_cache[k]
+
+    print(f"[CACHE CLEAN] Eliminadas {len(keys_a_borrar)} entradas")
 
 # Crear sessions optimizadas
 def crear_session():
@@ -318,7 +338,7 @@ def buscar_precio(market_hash_name, session, proxy):
             url,
             params=params,
             headers=get_headers(),
-            timeout=(5, 8),
+            timeout=(8, 12),
             proxies=proxies
         )
 
@@ -344,7 +364,7 @@ def buscar_precio(market_hash_name, session, proxy):
 
                 PROXY_FAILS[proxy] += 1
 
-                if PROXY_FAILS[proxy] >= 3:
+                if PROXY_FAILS[proxy] >= 5:
 
                     PROXY_STATUS[proxy] = (
                         time.time() + PROXY_COOLDOWN
@@ -467,7 +487,7 @@ def buscar_precio(market_hash_name, session, proxy):
 
             PROXY_FAILS[proxy] += 1
 
-            if PROXY_FAILS[proxy] >= 3:
+            if PROXY_FAILS[proxy] >= 5:
 
                 PROXY_STATUS[proxy] = (
                     time.time() + PROXY_COOLDOWN
@@ -520,25 +540,44 @@ def worker(grupo_skins, worker_id):
 
         for skin_name, precio_max in grupo_skins:
 
-            proxy = obtener_proxy()
-            
-            if proxy is None:
-                time.sleep(2)
-                continue
+            resultado = None
 
-            session = SESSIONS[proxy]
+            for intento in range(2):
 
-            resultado = buscar_precio(
-                skin_name,
-                session,
-                proxy
-            )
+                proxy = obtener_proxy()
 
-            with lock:
-                skins_revisadas_total += 1
+                if proxy is None:
+
+                    time.sleep(2)
+
+                    continue
+
+                with lock:
+                    session = SESSIONS[proxy]
+
+                resultado = buscar_precio(
+                    skin_name,
+                    session,
+                    proxy
+                )
+
+                if resultado is not None:
+
+                    break
+
+                print(
+                    f"[RETRY] "
+                    f"{skin_name} | "
+                    f"Intento {intento + 1}"
+                )
+
+                time.sleep(random.uniform(1, 2))
 
             if resultado is None:
                 continue
+
+            with lock:
+                skins_revisadas_total += 1
 
             precio_actual = resultado["price"]
             nombre_real = resultado["name"]
@@ -603,13 +642,15 @@ def worker(grupo_skins, worker_id):
 
             print(f"[INFO] Cache size: {len(price_cache)}")
 
+            limpiar_cache()
+
             print(f"[INFO] Duración ciclo: {duracion} segundos")
 
             skins_a_eliminar = []
 
             for skin, fails in failed_counts.items():
 
-                if fails >= 20:
+                if fails >= 50:
 
                     print("\n[INFO] Skin desactivada por demasiados fallos:")
                     print(skin)
@@ -631,9 +672,8 @@ def worker(grupo_skins, worker_id):
 
             skins_revisadas_total = 0
 
-        time.sleep(random.uniform(20, 40))
+        time.sleep(random.uniform(15, 35))
 
-            
 # 🔁 Ejecutar el servidor Flask en hilo separado
 def iniciar_servidor():
     app.run(host="0.0.0.0", port=8080, threaded=True, use_reloader=False)
