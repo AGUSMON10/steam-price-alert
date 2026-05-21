@@ -171,7 +171,7 @@ lock = threading.Lock()
 
 # Cache temporal de precios
 price_cache = {}
-CACHE_TTL = 70  # segundos
+CACHE_TTL = 100  # segundos
 
 failed_counts = {}
 
