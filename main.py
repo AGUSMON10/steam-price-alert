@@ -84,81 +84,15 @@ if not TELEGRAM_BOT_TOKEN or not TELEGRAM_CHAT_ID:
 
 # Lista de ítems con URL y precio máximo aceptado
 skins_a_vigilar = {
-    "Knife falchion ★ StatTrak™ | Autotronic minimal": 182.00,
-    "StatTrak™ Huntsman Knife | Damascus Steel Factory": 215.00,
-    "★ StatTrak™ Falchion Knife | Stained Minimal": 150.00,
-    "★ Falchion Knife | Crimson Web Field": 150.00,
-    "StatTrak™ Falchion Knife | Crimson Web Field": 211.00,
-    "★ StatTrak™ Bowie Knife | Autotronic Minimal": 170.00,
-    "stattrak Paracord Knife | Blue Steel Minimal": 150.00,
-    "★ StatTrak™ Falchion Knife | Lore Minimal": 199.00,
-    "★ Classic Knife | Blue Steel Minimal": 174.00,
-    "★ Bowie Knife | Blue Steel Minimal": 165.00,
-    "StatTrak™ Falchion Knife | Black Laminate Factory": 200.00,
-    "★ Kukri Knife | Night Stripe Factory": 154.00,
-    "★ StatTrak™ Skeleton Knife | Scorched Field": 194.00,
-    "★ Falchion Knife | Ultraviolet Minimal": 150.00,
-    "★ Specialist Gloves | Crimson Web Battle": 150.00,
-    "★ StatTrak™ Nomad Knife | Ultraviolet Field": 165.00,
-    "★ StatTrak™ Bowie Knife | Ultraviolet Field": 112.00,
-    "★ StatTrak™ Bowie Knife | Lore Well": 134.00,
-    "★ StatTrak™ Bowie Knife | Autotronic Well": 134.00,
-    "★ StatTrak™ Bowie Knife | Damascus Steel minimal": 147.00,
-    "★ StatTrak™ Bowie Knife | Lore minimal": 175.00,
-    "★ StatTrak™ Paracord Knife | Damascus Steel factory": 133.00,
-    "★ StatTrak™ Paracord Knife | Ultraviolet minimal": 145.00,
-    "★ StatTrak™ Paracord Knife | Crimson Web minimal": 210.00,
-    "★ StatTrak™ Kukri Knife | Crimson Web Field": 130.00,
-    "★ StatTrak™ Kukri Knife | Blue Steel Minimal": 155.00,
-    "★ StatTrak™ Huntsman Knife | Freehand Minimal": 120.00,
-    "★ Huntsman Knife | Ultraviolet Minimal": 131.00,
-    "★ StatTrak™ Huntsman Knife | Blue Steel Field": 182.00,
-    "★ Shadow Daggers | Marble Fade Minimal": 150.00,
-    "★ StatTrak™ Shadow Daggers | Tiger Tooth Minimal": 145.00,
-    "★ StatTrak™ Shadow Daggers | Tiger Tooth Factory": 151.00,
-    "★ Classic Knife | Crimson Web Minimal": 231.00,
-    "★ Flip Knife | Ultraviolet Field": 152.00,
-    "★ StatTrak™ Flip Knife | Ultraviolet Field": 170.00,
-    "★ Nomad Knife | Stained Minimal": 161.00,
-    "★ StatTrak™ Nomad Knife | Damascus Steel Factory": 221.00,
-    "★ StatTrak™ Survival Knife | Blue Steel Field": 106.00,
-    "★ StatTrak™ Survival Knife | Crimson Web Field": 149.00,
-    "★ StatTrak™ Survival Knife | Crimson Web Well": 149.00,
-    "★ Survival Knife | Blue Steel Factory": 149.00,
-    "★ StatTrak™ Survival Knife | Crimson Web Minimal": 174.00,
-    "★ StatTrak™ Flip Knife | Ultraviolet Well": 160.00,
-    "★ Flip Knife | Lore Field": 200.00,
-    "★ StatTrak™ Falchion Knife | Lore Field": 150.00,
-    "StatTrak™ Paracord Knife | Ultraviolet Well": 100.00,
-    "StatTrak™ Paracord Knife | Blue Steel Field": 135.00,
-    "StatTrak™ Bowie Knife | Lore Field": 138.00,
-    "Bowie Knife | Ultraviolet Minimal": 113.00,
-    "Ursus Knife | Blue Steel Minimal": 142.00,
-    "StatTrak™ Ursus Knife | Ultraviolet Field": 142.00,
-    "StatTrak™ Ursus Knife | Blue Steel Minimal": 149.00,
-    "StatTrak™ Ursus Knife | Crimson Web Field": 215.00,
-    "StatTrak™ Ursus Knife | Ultraviolet Minimal": 160.00,
-    "StatTrak™ Nomad Knife | Damascus Steel Minimal": 200.00,
-    "StatTrak™ Gut Knife | Blue Steel Minimal": 100.00,
-    "Gut Knife | Autotronic Minimal": 149.00,
-    "StatTrak™ Gut Knife | Autotronic Field": 148.00,
-    "StatTrak™ Skeleton Knife | Urban Masked Minimal": 231.00,
-    "Paracord Knife | Stained Factory": 134.00,
-    "StatTrak™ Paracord Knife | Crimson Web Well": 142.00,
-    "Survival Knife | Crimson Web Minimal": 150.00,
-    "StatTrak AWP | Asiimov Battle": 165.00,
-    "StatTrak AWP | Corticera Factory": 164.00,
-    "StatTrak™ Survival Knife | Damascus Steel Minimal": 106.00,
-    "Falchion Knife | Lore Well": 125.00,
-    "Falchion Knife | Blue Steel Well": 153.00,
-    "StatTrak™ Falchion Knife | Bright Water Factory": 145.00,
-    "Nomad Knife | Blue Steel Well": 171.00,
-    "stattrak falchion Knife | Black Laminate field": 95.00,
-    "Falchion Knife | Stained field": 95.00,
-    "StatTrak Falchion Knife | Damascus Steel field": 140.00,
-    "StatTrak Falchion Knife | Freehand factory": 140.00,
-    "StatTrak Falchion Knife | Damascus Steel factory": 180.00,
-    
+    "Falchion Knife | Lore (Well-Worn)": {
+        "max_price": 125.00,
+        "item_nameid": 176241017
+    },
+
+    "Falchion Knife | Stained (Field-Tested)": {
+        "max_price": 95.00,
+        "item_nameid": 176238685
+    }
 }
 
 notificados = {}
@@ -226,7 +160,6 @@ USER_AGENTS = [
     "Mozilla/5.0 (Macintosh; Intel Mac OS X 13_0) AppleWebKit/605.1.15 Version/17.0 Safari/605.1.15"
 ]
 
-
 def get_headers():
     return {
         "User-Agent": random.choice(USER_AGENTS),
@@ -292,41 +225,17 @@ def status():
         "items_vigilados": len(skins_a_vigilar),
         "notificaciones_enviadas": len(notificados)
     })
-    
-def buscar_precio(market_hash_name, session, proxy):
 
-    ahora = time.time()
+def buscar_precio(item_nameid, session, proxy):
 
-    # =========================
-    # CACHE
-    # =========================
-    with lock:
-
-        cache_data = price_cache.get(market_hash_name)
-
-    if cache_data:
-
-        if ahora - cache_data["timestamp"] < CACHE_TTL:
-
-            print(f"[CACHE HIT] {market_hash_name}")
-
-            return {
-                "price": cache_data["price"],
-                "name": cache_data["name"]
-            }
-
-    print(f"\n[DEBUG] === BUSCANDO EXACTO: {market_hash_name} ===")
-
-    url = "https://steamcommunity.com/market/search/render/"
-
-    query = normalizar(market_hash_name)
+    url = "https://steamcommunity.com/market/itemordershistogram"
 
     params = {
-        "query": query,
-        "start": 0,
-        "count": 30,
-        "currency": 1,
+        "country": "US",
         "language": "english",
+        "currency": 1,
+        "item_nameid": item_nameid,
+        "two_factor": 0,
         "norender": 1
     }
 
@@ -347,155 +256,43 @@ def buscar_precio(market_hash_name, session, proxy):
             print(f"[RATE LIMIT] {proxy}")
 
             with lock:
-
                 PROXY_STATUS[proxy] = (
                     time.time() + PROXY_COOLDOWN
                 )
-                
-                SESSIONS[proxy] = crear_session()
-
-                PROXY_FAILS[proxy] = 0
 
             return None
 
         if r.status_code != 200:
 
-            with lock:
-
-                PROXY_FAILS[proxy] += 1
-
-                if PROXY_FAILS[proxy] >= 5:
-
-                    PROXY_STATUS[proxy] = (
-                        time.time() + PROXY_COOLDOWN
-                    )
-
-                    print(f"[PROXY COOLDOWN] {proxy}")
-
-                    PROXY_FAILS[proxy] = 0
+            print(f"[ERROR] Status code: {r.status_code}")
 
             return None
 
-
-        with lock:
-            PROXY_FAILS[proxy] = 0
-
         data = r.json()
 
-        results = data.get("results", [])
+        if not data.get("success"):
 
-        best_price = None
-        best_score = -1
-        best_name = None
-        best_market_price = "N/A"
+            print("[ERROR] Steam devolvió success = false")
 
-        for item in results:
+            return None
 
-            name_raw = item.get("name", "")
+        lowest_sell = data.get("lowest_sell_order")
 
-            name = normalizar(name_raw)
+        if not lowest_sell:
 
-            price_raw = item.get("sell_price")
+            print("[ERROR] No hay lowest_sell_order")
 
-            price_text = item.get("sell_price_text", "")
+            return None
 
-            if not price_raw:
-                continue
-
-            # filtro basura
-            if not es_item_valido(name):
-                continue
-
-            price = price_raw / 100
-
-            score = 0
-
-            query_words = set(query.split())
-            name_words = set(name.split())
-
-            coincidencias = len(query_words & name_words)
-
-            score = coincidencias * 20
-
-            # bonus importantes
-            if "knife" in query and "knife" in name:
-                score += 20
-
-            if "stattrak" in query and "stattrak" in name:
-                score += 20
-
-            # bonus wear
-            wears = [
-                "factory",
-                "minimal",
-                "field",
-                "well",
-                "battle"
-            ]
-
-            for wear in wears:
-                if wear in query and wear in name:
-                    score += 15
-
-            # castigo basura
-            if "case" in name:
-                score -= 999
-
-            if score > best_score:
-                best_score = score
-                best_price = price
-                best_name = name_raw
-                best_market_price = price_text
-
-        print(
-            f"[DEBUG] MATCH FINAL: "
-            f"{best_name} | "
-            f"${best_price} | "
-            f"market {best_market_price} | "
-            f"score {best_score}"
-        )
-        
-        if best_score == -1:
-            failed_counts[market_hash_name] = failed_counts.get(market_hash_name, 0) + 1
-
-        elif best_score >= 60:
-            failed_counts[market_hash_name] = 0
-
-        # =========================
-        # GUARDAR CACHE
-        # =========================
-        if best_price is not None:
-
-            with lock:
-
-                price_cache[market_hash_name] = {
-                    "price": best_price,
-                    "name": best_name,
-                    "timestamp": ahora
-                }
+        price = int(lowest_sell) / 100
 
         return {
-            "price": best_price,
-            "name": best_name
+            "price": price
         }
 
     except Exception as e:
 
-        print(f"[DEBUG] ERROR: {e}")
-
-        with lock:
-
-            PROXY_FAILS[proxy] += 1
-
-            if PROXY_FAILS[proxy] >= 5:
-
-                PROXY_STATUS[proxy] = (
-                    time.time() + PROXY_COOLDOWN
-                )
-
-                print(f"[PROXY COOLDOWN] {proxy}")
-
-                PROXY_FAILS[proxy] = 0
+        print(f"[ERROR] {e}")
 
         return None
         
@@ -538,7 +335,9 @@ def worker(grupo_skins, worker_id):
 
         inicio_ciclo = time.time()
 
-        for skin_name, precio_max in grupo_skins:
+        for skin_name, skin_data in grupo_skins:
+
+            precio_max = skin_data["max_price"]
 
             resultado = None
 
@@ -556,7 +355,7 @@ def worker(grupo_skins, worker_id):
                     session = SESSIONS[proxy]
 
                 resultado = buscar_precio(
-                    skin_name,
+                    skin_data["item_nameid"],
                     session,
                     proxy
                 )
@@ -580,7 +379,6 @@ def worker(grupo_skins, worker_id):
                 skins_revisadas_total += 1
 
             precio_actual = resultado["price"]
-            nombre_real = resultado["name"]
 
             ultima_alerta = notificados.get(skin_name)
 
@@ -591,7 +389,7 @@ def worker(grupo_skins, worker_id):
 
                 steam_url = (
                     "steam://openurl/https://steamcommunity.com/market/listings/730/"
-                    + requests.utils.quote(nombre_real, safe='')
+                    + requests.utils.quote(skin_name, safe='')
                 )
 
                 enviar_telegram(
