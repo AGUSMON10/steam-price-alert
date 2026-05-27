@@ -128,7 +128,7 @@ skins_a_vigilar = {
     "★ StatTrak™ Survival Knife | Crimson Web Minimal": 176.00,
     "★ StatTrak™ Flip Knife | Ultraviolet Well": 160.00,
     "★ Flip Knife | Lore Field": 200.00,
-    "★ StatTrak™ Falchion Knife | Lore Field": 150.00,
+    "StatTrak Bowie Knife | Black Laminate Factory": 190.00,
     "StatTrak™ Paracord Knife | Ultraviolet Well": 100.00,
     "StatTrak™ Paracord Knife | Blue Steel Field": 135.00,
     "StatTrak™ Bowie Knife | Lore Field": 138.00,
