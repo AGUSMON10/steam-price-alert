@@ -85,11 +85,10 @@ if not TELEGRAM_BOT_TOKEN or not TELEGRAM_CHAT_ID:
 # Lista de ítems con URL y precio máximo aceptado
 skins_a_vigilar = {
     "Knife falchion ★ StatTrak™ | Autotronic minimal": 182.00,
-    "StatTrak™ Huntsman Knife | Damascus Steel Factory": 205.00,
-    "★ StatTrak™ Falchion Knife | Stained Minimal": 140.00,
-    "★ Falchion Knife | Crimson Web Field": 150.00,
-    "StatTrak™ Falchion Knife | Crimson Web Field": 211.00,
-    "★ StatTrak™ Bowie Knife | Autotronic Minimal": 170.00,
+    "StatTrak™ Huntsman Knife | Damascus Steel Factory": 190.00,
+    "★ StatTrak™ Falchion Knife | Stained Minimal": 125.00,
+    "StatTrak™ Falchion Knife | Crimson Web Field": 180.00,
+    "★ StatTrak™ Bowie Knife | Autotronic Minimal": 160.00,
     "stattrak Paracord Knife | Blue Steel Minimal": 150.00,
     "★ StatTrak™ Falchion Knife | Lore Minimal": 190.00,
     "★ Classic Knife | Blue Steel Minimal": 174.00,
