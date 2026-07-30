@@ -696,22 +696,22 @@ def probar_proxies():
         try:
 
             r = requests.get(
-                "https://httpbin.org/ip",
+                "https://steamcommunity.com",
                 proxies={
                     "http": proxy,
                     "https": proxy
                 },
+                headers=get_headers(),
                 timeout=10
             )
 
-            print(f"[OK] {proxy}")
-            print(f"Status: {r.status_code}")
-            print(f"Respuesta: {r.text}")
+            print(proxy)
+            print("Status:", r.status_code)
             print()
 
         except Exception as e:
 
-            print(f"[ERROR] {proxy}")
+            print(proxy)
             print(type(e).__name__, e)
             print()
 
