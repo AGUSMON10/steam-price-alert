@@ -348,14 +348,6 @@ def buscar_precio(market_hash_name, session, proxy):
 
     try:
 
-
-        session.get(
-            "https://steamcommunity.com/market/",
-            headers=get_headers(),
-            proxies=proxies,
-            timeout=(5, 8)
-        )
-
         r = session.get(
             url,
             params=params,
@@ -654,7 +646,7 @@ def worker(grupo_skins, worker_id):
 
                 notificados[skin_name] = precio_actual
 
-            time.sleep(random.uniform(3, 6))
+            time.sleep(random.uniform(8, 13))
 
         estado_app["ultimo_escaneo"] = datetime.now().isoformat()
 
