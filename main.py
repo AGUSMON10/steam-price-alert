@@ -26,6 +26,7 @@ PROXIES = [
 PROXY_COOLDOWN = 600  # 10 min
 PROXY_STATUS = {p: 0 for p in PROXIES}
 PROXY_FAILS = {p: 0 for p in PROXIES}
+PROXY_IN_USE = {p: False for p in PROXIES}
 
 # Redefinir print global con flush automático
 original_print = print
@@ -229,41 +230,57 @@ def get_headers():
         "Sec-Fetch-Dest": "empty",
     }
 
-def obtener_proxy():
+def obtener_proxy(worker_id, proxy_actual=None):
 
     ahora = time.time()
 
-    disponibles = [
-        p for p, t in PROXY_STATUS.items()
-        if t <= ahora
-    ]
+    with lock:
 
-    if not disponibles:
+        # Proxy fijo del worker
+        proxy_fijo = PROXIES[worker_id % len(PROXIES)]
 
-        cooldown_activos = [
-            p for p, t in PROXY_STATUS.items()
-            if t > ahora
+        # Si el proxy fijo está disponible, usar siempre ese
+        if (
+            PROXY_STATUS[proxy_fijo] <= ahora
+            and not PROXY_IN_USE[proxy_fijo]
+        ):
+            PROXY_IN_USE[proxy_fijo] = True
+            return proxy_fijo
+
+        # Si ya tenía otro proxy y sigue disponible, seguir usándolo
+        if (
+            proxy_actual
+            and PROXY_STATUS[proxy_actual] <= ahora
+            and PROXY_IN_USE[proxy_actual]
+        ):
+            return proxy_actual
+
+        # Liberar el anterior
+        if proxy_actual:
+            PROXY_IN_USE[proxy_actual] = False
+
+        disponibles = [
+            p for p in PROXIES
+            if (
+                PROXY_STATUS[p] <= ahora
+                and not PROXY_IN_USE[p]
+            )
         ]
 
-        print(
-            f"[WARN] Sin proxies disponibles | "
-            f"Cooldown: {len(cooldown_activos)}"
-        )
-
-        # reset global si TODOS están en cooldown
-        if len(cooldown_activos) == len(PROXIES):
-
-            print("[WARN] Todos los proxies en cooldown")
-
+        if not disponibles:
+            print("[WARN] No hay proxies libres")
             return None
 
-        return None
+        proxy = random.choice(disponibles)
 
-    proxy = random.choice(disponibles)
+        PROXY_IN_USE[proxy] = True
 
-    print(f"[PROXY ASIGNADO] {threading.current_thread().name} -> {proxy}")
+        print(
+            f"[PROXY NUEVO] "
+            f"{threading.current_thread().name} -> {proxy}"
+        )
 
-    return proxy
+        return proxy
 
 # Crear app Flask para UptimeRobot
 app = Flask(__name__)
@@ -327,7 +344,7 @@ def buscar_precio(market_hash_name, session, proxy):
         "norender": 1
     }
 
-    proxies = None
+    proxies = {"http": proxy, "https": proxy} if proxy else None
 
     try:
 
@@ -363,6 +380,7 @@ def buscar_precio(market_hash_name, session, proxy):
             with lock:
 
                 PROXY_STATUS[proxy] = time.time() + PROXY_COOLDOWN
+                PROXY_IN_USE[proxy] = False
                 SESSIONS[proxy] = crear_session()
                 PROXY_FAILS[proxy] = 0
 
@@ -387,6 +405,8 @@ def buscar_precio(market_hash_name, session, proxy):
                     PROXY_STATUS[proxy] = (
                         time.time() + PROXY_COOLDOWN
                     )
+
+                    PROXY_IN_USE[proxy] = False
 
                     print(f"[PROXY COOLDOWN] {proxy}")
 
@@ -557,6 +577,8 @@ def dividir_skins_en_grupos():
 def worker(grupo_skins, worker_id):
 
     print(f"[DEBUG] Worker {worker_id} arrancó")
+    
+    proxy_actual = None
 
     global skins_revisadas_total
 
@@ -570,7 +592,9 @@ def worker(grupo_skins, worker_id):
 
             for intento in range(2):
 
-                proxy = obtener_proxy()
+                proxy_actual = obtener_proxy(worker_id, proxy_actual)
+
+                proxy = proxy_actual
 
                 if proxy is None:
 
