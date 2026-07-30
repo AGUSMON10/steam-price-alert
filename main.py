@@ -221,7 +221,12 @@ def get_headers():
         "Accept-Language": "en-US,en;q=0.9",
         "Accept": "application/json,text/javascript,*/*;q=0.1",
         "Referer": "https://steamcommunity.com/market/",
-        "Connection": "keep-alive"
+        "Connection": "keep-alive",
+        "Cache-Control": "no-cache",
+        "Pragma": "no-cache",
+        "Sec-Fetch-Site": "same-origin",
+        "Sec-Fetch-Mode": "cors",
+        "Sec-Fetch-Dest": "empty",
     }
 
 def obtener_proxy():
@@ -318,9 +323,17 @@ def buscar_precio(market_hash_name, session, proxy):
         "norender": 1
     }
 
-    proxies = {"http": proxy, "https": proxy} if proxy else None
+    proxies = None
 
     try:
+
+
+        session.get(
+            "https://steamcommunity.com/market/",
+            headers=get_headers(),
+            proxies=proxies,
+            timeout=(5, 8)
+        )
 
         r = session.get(
             url,
