@@ -330,23 +330,36 @@ def buscar_precio(market_hash_name, session, proxy):
             proxies=proxies
         )
 
+        print(f"[HTTP] {proxy} -> {r.status_code}")
+
         if r.status_code == 429:
 
-            print(f"[RATE LIMIT] {proxy}")
+            print("=" * 70)
+            print("[RATE LIMIT]")
+            print("Proxy:", proxy)
+            print("URL:", r.url)
+            print("Status:", r.status_code)
+            print("Headers:")
+            print(dict(r.headers))
+            print("=" * 70)
 
             with lock:
 
-                PROXY_STATUS[proxy] = (
-                    time.time() + PROXY_COOLDOWN
-                )
-                
+                PROXY_STATUS[proxy] = time.time() + PROXY_COOLDOWN
                 SESSIONS[proxy] = crear_session()
-
                 PROXY_FAILS[proxy] = 0
 
             return None
 
         if r.status_code != 200:
+            print("=" * 70)
+            print("[HTTP ERROR]")
+            print("Proxy:", proxy)
+            print("Status:", r.status_code)
+            print("URL:", r.url)
+            print("Body:")
+            print(r.text[:500])
+            print("=" * 70)
 
             with lock:
 
@@ -469,7 +482,15 @@ def buscar_precio(market_hash_name, session, proxy):
 
     except Exception as e:
 
-        print(f"[DEBUG] ERROR: {e}")
+        import traceback
+
+        print("=" * 70)
+        print("[EXCEPTION]")
+        print("Proxy:", proxy)
+        print("Tipo:", type(e).__name__)
+        print("Mensaje:", str(e))
+        traceback.print_exc()
+        print("=" * 70)
 
         with lock:
 
@@ -666,7 +687,39 @@ def worker(grupo_skins, worker_id):
 def iniciar_servidor():
     app.run(host="0.0.0.0", port=8080, threaded=True, use_reloader=False)
 
+def probar_proxies():
+
+    print("\n========== TEST PROXIES ==========\n")
+
+    for proxy in PROXIES:
+
+        try:
+
+            r = requests.get(
+                "https://httpbin.org/ip",
+                proxies={
+                    "http": proxy,
+                    "https": proxy
+                },
+                timeout=10
+            )
+
+            print(f"[OK] {proxy}")
+            print(f"Status: {r.status_code}")
+            print(f"Respuesta: {r.text}")
+            print()
+
+        except Exception as e:
+
+            print(f"[ERROR] {proxy}")
+            print(type(e).__name__, e)
+            print()
+
+    print("=================================\n")
+
 if __name__ == "__main__":
+
+    probar_proxies()
 
     grupos = dividir_skins_en_grupos()
 
