@@ -259,7 +259,11 @@ def obtener_proxy():
 
         return None
 
-    return random.choice(disponibles)
+    proxy = random.choice(disponibles)
+
+    print(f"[PROXY ASIGNADO] {threading.current_thread().name} -> {proxy}")
+
+    return proxy
 
 # Crear app Flask para UptimeRobot
 app = Flask(__name__)
@@ -745,7 +749,11 @@ if __name__ == "__main__":
     threads = []
 
     for i, grupo in enumerate(grupos):
-        t = threading.Thread(target=worker, args=(grupo, i))
+        t = threading.Thread(
+            target=worker,
+            args=(grupo, i),
+            name=f"Worker-{i}"
+        )
         t.start()
         threads.append(t)
 
