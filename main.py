@@ -11,16 +11,16 @@ import builtins
 # Lista de proxies (pegá los tuyos de Webshare)
 
 PROXIES = [
-    "http://olrliwpe:v769pjjmxnb1@136.0.167.151:7154",
-    "http://olrliwpe:v769pjjmxnb1@46.202.3.10:7276",
-    "http://olrliwpe:v769pjjmxnb1@192.46.203.98:6064",
-    "http://olrliwpe:v769pjjmxnb1@136.0.170.101:6104",
-    "http://olrliwpe:v769pjjmxnb1@82.29.143.14:7728",
-    "http://olrliwpe:v769pjjmxnb1@136.0.170.36:6039",
-    "http://olrliwpe:v769pjjmxnb1@31.98.8.228:5906",
-    "http://olrliwpe:v769pjjmxnb1@150.241.111.94:6598",
-    "http://olrliwpe:v769pjjmxnb1@9.142.8.27:5684",
-    "http://olrliwpe:v769pjjmxnb1@103.130.178.157:5821"
+    "http://olrliwpe:v769pjjmxnb1@130.180.232.130:8568",
+    "http://olrliwpe:v769pjjmxnb1@96.62.181.13:7225",
+    "http://olrliwpe:v769pjjmxnb1@82.29.239.219:5367",
+    "http://olrliwpe:v769pjjmxnb1@87.86.24.154:5805",
+    "http://olrliwpe:v769pjjmxnb1@31.98.15.224:5401",
+    "http://olrliwpe:v769pjjmxnb1@209.166.2.202:7863",
+    "http://olrliwpe:v769pjjmxnb1@45.58.228.57:5729",
+    "http://olrliwpe:v769pjjmxnb1@5.59.251.216:6255",
+    "http://olrliwpe:v769pjjmxnb1@9.142.218.36:6700",
+    "http://olrliwpe:v769pjjmxnb1@9.142.195.37:6205"
 ]
 
 PROXY_COOLDOWN = 600  # 10 min
