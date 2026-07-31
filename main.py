@@ -94,58 +94,6 @@ skins_a_vigilar = {
     "Classic Knife | Blue Steel Minimal": 169.00,
     "Bowie Knife | Blue Steel Minimal": 160.00,
     "StatTrak Falchion Knife | Black Laminate Factory": 175.00,
-    "Kukri Knife | Night Stripe Factory": 140.00,
-    "StatTrak Skeleton Knife | Scorched Field": 174.00,
-    "Falchion Knife | Ultraviolet Minimal": 150.00,
-    "StatTrak Nomad Knife | Ultraviolet Field": 150.00,
-    "StatTrak Bowie Knife | Lore Well": 125.00,
-    "StatTrak Bowie Knife | Autotronic Well": 130.00,
-    "StatTrak Bowie Knife | Damascus Steel minimal": 130.00,
-    "StatTrak Bowie Knife | Lore minimal": 175.00,
-    "StatTrak Paracord Knife | Damascus Steel factory": 109.00,
-    "StatTrak Paracord Knife | Ultraviolet minimal": 150.00,
-    "StatTrak Paracord Knife | Crimson Web minimal": 196.00,
-    "StatTrak Kukri Knife | Crimson Web Field": 130.00,
-    "StatTrak Kukri Knife | Blue Steel Minimal": 130.00,
-    "Huntsman Knife | Ultraviolet Minimal": 132.00,
-    "StatTrak Huntsman Knife | Blue Steel Field": 182.00,
-    "Shadow Daggers | Marble Fade Minimal": 150.00,
-    "StatTrak Shadow Daggers | Tiger Tooth Minimal": 138.00,
-    "StatTrak Shadow Daggers | Tiger Tooth Factory": 115.00,
-    "Classic Knife | Crimson Web Minimal": 231.00,
-    "StatTrak Flip Knife | Ultraviolet Field": 165.00,
-    "Nomad Knife | Stained Minimal": 161.00,
-    "StatTrak Nomad Knife | Damascus Steel Factory": 215.00,
-    "StatTrak Survival Knife | Crimson Web Field": 149.00,
-    "StatTrak Survival Knife | Crimson Web Well": 120.00,
-    "Survival Knife | Blue Steel Factory": 155.00,
-    "StatTrak Survival Knife | Crimson Web Minimal": 176.00,
-    "StatTrak Flip Knife | Ultraviolet Well": 160.00,
-    "Flip Knife | Lore Field": 200.00,
-    "StatTrak Bowie Knife | Black Laminate Factory": 170.00,
-    "StatTrak Paracord Knife | Blue Steel Field": 125.00,
-    "StatTrak Bowie Knife | Lore Field": 130.00,
-    "Bowie Knife | Ultraviolet Minimal": 110.00,
-    "Ursus Knife | Blue Steel Minimal": 135.00,
-    "StatTrak Ursus Knife | Ultraviolet Field": 120.00,
-    "StatTrak Ursus Knife | Blue Steel Minimal": 149.00,
-    "StatTrak Ursus Knife | Crimson Web Field": 205.00,
-    "StatTrak Ursus Knife | Ultraviolet Minimal": 150.00,
-    "StatTrak Nomad Knife | Damascus Steel Minimal": 185.00,
-    "Gut Knife | Autotronic Minimal": 149.00,
-    "StatTrak Gut Knife | Autotronic Field": 135.00,
-    "StatTrak Skeleton Knife | Urban Masked Minimal": 210.00,
-    "Paracord Knife | Stained Factory": 134.00,
-    "StatTrak Paracord Knife | Crimson Web Well": 135.00,
-    "Survival Knife | Crimson Web Minimal": 150.00,
-    "StatTrak AWP | Asiimov Battle": 165.00,
-    "StatTrak AWP | Corticera Factory": 164.00,
-    "Falchion Knife | Blue Steel Well": 154.00,
-    "StatTrak Falchion Knife | Bright Water Factory": 125.00,
-    "Nomad Knife | Blue Steel Well": 171.00,
-    "StatTrak Falchion Knife | Damascus Steel field": 140.00,
-    "StatTrak Falchion Knife | Freehand factory": 150.00,
-    "StatTrak Falchion Knife | Damascus Steel factory": 170.00,
     
 }
 
@@ -506,7 +454,7 @@ def dividir_skins_en_grupos():
 
     lista = list(skins_a_vigilar.items())
 
-    num_workers = min(4, len(lista))
+    num_workers = 1
 
     grupos = [[] for _ in range(num_workers)]
 
