@@ -351,53 +351,70 @@ def buscar_precio(market_hash_name, session, proxy):
         html = r.text
 
         # =========================
-        # EXTRAER ITEM_NAMEID
+        # DEBUG ESTRUCTURA STEAM
         # =========================
 
-        patrones_item_nameid = [
-            r"Market_LoadOrderSpread\(\s*(\d+)\s*\)",
-            r"item_nameid\s*[=:]\s*[\"']?(\d+)",
-            r"item_nameid[\"']?\s*,\s*[\"']?(\d+)"
+        print("[DEBUG] Analizando estructura HTML...")
+
+        terminos_debug = [
+            "Market_LoadOrderSpread",
+            "item_nameid",
+            "itemid",
+            "itemNameId",
+            "item_name_id",
+            "g_rgAssets",
+            "Market_LoadOrder",
+            "orderSpread",
+            "listingid",
+            "listing_id"
         ]
 
-        item_nameid = None
+        for termino in terminos_debug:
 
-        for patron in patrones_item_nameid:
+            cantidad = html.lower().count(termino.lower())
 
-            match = re.search(
-                patron,
-                html,
-                re.IGNORECASE
+            print(
+                f"[DEBUG] '{termino}' -> {cantidad}"
             )
 
-            if match:
 
-                item_nameid = match.group(1)
+        # =========================
+        # MOSTRAR CONTEXTO
+        # =========================
 
-                print(
-                    f"[ITEM_NAMEID] "
-                    f"{market_hash_name} -> "
-                    f"{item_nameid}"
+        terminos_contexto = [
+            "Market_LoadOrderSpread",
+            "item_nameid",
+            "itemid",
+            "itemNameId",
+            "g_rgAssets"
+        ]
+
+        for termino in terminos_contexto:
+
+            posicion = html.lower().find(
+                termino.lower()
+            )
+
+            if posicion != -1:
+
+                inicio = max(0, posicion - 300)
+                fin = min(
+                    len(html),
+                    posicion + 500
                 )
 
-                break
+                fragmento = html[inicio:fin]
 
-        if not item_nameid:
+                print(
+                    f"[DEBUG] ===== CONTEXTO: {termino} ====="
+                )
 
-            print(
-                f"[ITEM_NAMEID] NO ENCONTRADO: "
-                f"{market_hash_name}"
-            )
+                print(fragmento)
 
-        else:
-
-            print(
-                f"[ITEM_NAMEID] OK: "
-                f"{market_hash_name} -> "
-                f"{item_nameid}"
-            )
-
-        return None
+                print(
+                    f"[DEBUG] ===== FIN CONTEXTO ====="
+                )
 
         print("[DEBUG] Buscando patrones de precio...")
 
