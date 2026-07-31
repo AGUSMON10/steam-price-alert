@@ -345,8 +345,6 @@ def buscar_precio(market_hash_name, session, proxy):
                         time.time() + PROXY_COOLDOWN
                     )
 
-                    PROXY_IN_USE[proxy] = False
-
                     print(f"[PROXY COOLDOWN] {proxy}")
 
                     PROXY_FAILS[proxy] = 0
@@ -472,8 +470,6 @@ def buscar_precio(market_hash_name, session, proxy):
 
             PROXY_FAILS[proxy] += 1
 
-            if PROXY_FAILS[proxy] >= 5:
-
                 PROXY_STATUS[proxy] = (
                     time.time() + PROXY_COOLDOWN
                 )
@@ -503,7 +499,8 @@ def dividir_skins_en_grupos():
 
     lista = list(skins_a_vigilar.items())
 
-    num_workers = min(len(PROXIES), len(lista))
+    # Solo 4 workers trabajando al mismo tiempo
+    num_workers = min(4, len(PROXIES), len(lista))
 
     grupos = [[] for _ in range(num_workers)]
 
@@ -587,8 +584,18 @@ def worker(grupo_skins, worker_id):
                     f"No se pudo revisar: {skin_name}"
                 )
 
-                # Espera antes de continuar
-                time.sleep(random.uniform(5, 10))
+                # Si el proxy recibió 429, dejamos terminar el ciclo
+                if PROXY_STATUS[proxy] > time.time():
+
+                    print(
+                        f"[WORKER {worker_id}] "
+                        f"Proxy en cooldown. "
+                        f"Terminando ciclo."
+                    )
+
+                    break
+
+                time.sleep(random.uniform(8, 12))
 
                 continue
 
@@ -637,7 +644,7 @@ def worker(grupo_skins, worker_id):
             # DELAY ENTRE SKINS
             # =================================================
 
-            time.sleep(random.uniform(8, 14))
+            time.sleep(random.uniform(15, 25))
 
         # =====================================================
         # FIN DEL CICLO
@@ -701,8 +708,6 @@ def probar_proxies():
     print("=================================\n")
 
 if __name__ == "__main__":
-
-    probar_proxies()
 
     grupos = dividir_skins_en_grupos()
 
