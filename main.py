@@ -87,13 +87,6 @@ skins_a_vigilar = {
     "Knife falchion ★ StatTrak™ | Autotronic minimal": 165.00,
     "StatTrak Huntsman Knife | Damascus Steel Factory": 170.00,
     "StatTrak Falchion Knife | Stained Minimal": 125.00,
-    "StatTrak Falchion Knife | Crimson Web Field": 180.00,
-    "StatTrak Bowie Knife | Autotronic Minimal": 145.00,
-    "stattrak Paracord Knife | Blue Steel Minimal": 150.00,
-    "StatTrak Falchion Knife | Lore Minimal": 190.00,
-    "Classic Knife | Blue Steel Minimal": 169.00,
-    "Bowie Knife | Blue Steel Minimal": 160.00,
-    "StatTrak Falchion Knife | Black Laminate Factory": 175.00,
     
 }
 
@@ -349,6 +342,10 @@ def buscar_precio(market_hash_name, session, proxy):
         # =========================
 
         html = r.text
+
+        print("\n========== HTML INICIO ==========")
+        print(html[:5000])
+        print("========== HTML FIN ==========\n")
 
         # =========================
         # DEBUG ESTRUCTURA STEAM
