@@ -87,14 +87,12 @@ skins_a_vigilar = {
     "Knife falchion ★ StatTrak™ | Autotronic minimal": 165.00,
     "StatTrak Huntsman Knife | Damascus Steel Factory": 170.00,
     "StatTrak Falchion Knife | Stained Minimal": 125.00,
-    
 }
 
-# Item Name ID de cada skin en Steam
 ITEM_NAME_IDS = {
     "Knife falchion ★ StatTrak™ | Autotronic minimal": 176263237,
     "StatTrak Huntsman Knife | Damascus Steel Factory": 175885007,
-    "StatTrak Falchion Knife | Stained Minimal": 49698684,
+    "StatTrak Falchion Knife | Stained Minimal": 49698684
 }
 
 notificados = {}
@@ -302,15 +300,19 @@ def buscar_precio(market_hash_name, session, proxy):
         "country": "US",
         "language": "english",
         "currency": 1,
-        "item_nameid": item_nameid,
+        "item_nameid": str(item_nameid),
         "two_factor": 0,
         "norender": 1
     }
 
     try:
 
+        # =========================
+        # HISTOGRAMA
+        # =========================
+
         r = session.get(
-            "https://steamcommunity.com/market/itemordershistogram/",
+            "https://steamcommunity.com/market/itemordershistogram",
             params=params,
             headers=get_headers(),
             timeout=(8, 15),
@@ -363,6 +365,15 @@ def buscar_precio(market_hash_name, session, proxy):
                 f"{proxy} -> {r.status_code}"
             )
 
+            print(
+                f"[DEBUG URL] {r.url}"
+            )
+
+            print(
+                f"[DEBUG RESPONSE] "
+                f"{r.text[:500]}"
+            )
+
             with lock:
                 PROXY_FAILS[proxy] += 1
 
@@ -390,19 +401,27 @@ def buscar_precio(market_hash_name, session, proxy):
             return None
 
         # =========================
-        # DEBUG BASICO
+        # DEBUG
         # =========================
 
         print(
-            f"[HISTOGRAM] success="
-            f"{data.get('success')}"
+            f"[HISTOGRAM] "
+            f"success={data.get('success')}"
         )
+
+        # =========================
+        # STEAM SUCCESS FALSE
+        # =========================
 
         if not data.get("success"):
 
             print(
                 f"[HISTOGRAM] Steam respondió "
                 f"success=False"
+            )
+
+            print(
+                f"[DEBUG DATA] {data}"
             )
 
             return {
@@ -413,11 +432,6 @@ def buscar_precio(market_hash_name, session, proxy):
         # =========================
         # SELL ORDERS
         # =========================
-
-        sell_orders = data.get(
-            "sell_order_graph",
-            []
-        )
 
         sell_orders = data.get(
             "sell_order_graph",
@@ -438,7 +452,7 @@ def buscar_precio(market_hash_name, session, proxy):
             }
 
         # =========================
-        # PRECIO MÁS BAJO
+        # PRECIO SELL MÁS BAJO
         # =========================
 
         precios = []
