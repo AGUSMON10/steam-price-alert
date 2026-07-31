@@ -350,6 +350,55 @@ def buscar_precio(market_hash_name, session, proxy):
 
         html = r.text
 
+        # =========================
+        # EXTRAER ITEM_NAMEID
+        # =========================
+
+        patrones_item_nameid = [
+            r"Market_LoadOrderSpread\(\s*(\d+)\s*\)",
+            r"item_nameid\s*[=:]\s*[\"']?(\d+)",
+            r"item_nameid[\"']?\s*,\s*[\"']?(\d+)"
+        ]
+
+        item_nameid = None
+
+        for patron in patrones_item_nameid:
+
+            match = re.search(
+                patron,
+                html,
+                re.IGNORECASE
+            )
+
+            if match:
+
+                item_nameid = match.group(1)
+
+                print(
+                    f"[ITEM_NAMEID] "
+                    f"{market_hash_name} -> "
+                    f"{item_nameid}"
+                )
+
+                break
+
+        if not item_nameid:
+
+            print(
+                f"[ITEM_NAMEID] NO ENCONTRADO: "
+                f"{market_hash_name}"
+            )
+
+        else:
+
+            print(
+                f"[ITEM_NAMEID] OK: "
+                f"{market_hash_name} -> "
+                f"{item_nameid}"
+            )
+
+        return None
+
         print("[DEBUG] Buscando patrones de precio...")
 
         for patron in [
