@@ -350,6 +350,28 @@ def buscar_precio(market_hash_name, session, proxy):
 
         html = r.text
 
+        print("[DEBUG] Buscando patrones de precio...")
+
+        for patron in [
+            "market_listing_price",
+            "market_listing_price_with_fee",
+            "normal_price",
+            "listing",
+            "sell_price",
+            "price"
+        ]:
+
+            cantidad = html.lower().count(patron.lower())
+
+            print(
+                f"[DEBUG] '{patron}' -> {cantidad}"
+            )
+
+        with open("/tmp/steam_debug.html", "w", encoding="utf-8") as f:
+            f.write(html)
+
+        print("[DEBUG] HTML guardado en /tmp/steam_debug.html")
+
         print(
             f"[MARKET] "
             f"{market_hash_name} | "
@@ -549,7 +571,6 @@ def worker(grupo_skins, worker_id):
                 )
 
                 if resultado is not None and resultado["price"] is not None:
-
                     break
 
                 print(
@@ -561,11 +582,11 @@ def worker(grupo_skins, worker_id):
                 # Espera antes del siguiente intento
                 time.sleep(random.uniform(5, 10))
 
-            if resultado is None:
-                continue
-
             with lock:
                 skins_revisadas_total += 1
+
+            if resultado is None or resultado["price"] is None:
+                continue
 
             precio_actual = resultado["price"]
             nombre_real = resultado["name"]
