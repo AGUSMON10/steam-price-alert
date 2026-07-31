@@ -87,12 +87,26 @@ skins_a_vigilar = {
     "Knife falchion ★ StatTrak™ | Autotronic minimal": 165.00,
     "StatTrak Huntsman Knife | Damascus Steel Factory": 170.00,
     "StatTrak Falchion Knife | Stained Minimal": 125.00,
+    "StatTrak Falchion Knife | Crimson Web Field": 180.00,
+    "StatTrak Bowie Knife | Autotronic Minimal": 145.00,
+    "stattrak Paracord Knife | Blue Steel Minimal": 150.00,
+    "StatTrak Falchion Knife | Lore Minimal": 190.00,
+    "Classic Knife | Blue Steel Minimal": 169.00,
+    "Bowie Knife | Blue Steel Minimal": 160.00,
+    "StatTrak Falchion Knife | Black Laminate Factory": 175.00,
 }
 
 ITEM_NAME_IDS = {
     "Knife falchion ★ StatTrak™ | Autotronic minimal": 176263237,
     "StatTrak Huntsman Knife | Damascus Steel Factory": 175885007,
-    "StatTrak Falchion Knife | Stained Minimal": 49698684
+    "StatTrak Falchion Knife | Stained Minimal": 49698684,
+    "StatTrak Falchion Knife | Crimson Web Field": 49612097,
+    "StatTrak Bowie Knife | Autotronic Minimal": 176263307,
+    "stattrak Paracord Knife | Blue Steel Minimal": 176097689,
+    "StatTrak Falchion Knife | Lore Minimal": 176263373,
+    "Classic Knife | Blue Steel Minimal": 176091953,
+    "Bowie Knife | Blue Steel Minimal": 139673208,
+    "StatTrak Falchion Knife | Black Laminate Factory": 176283223,
 }
 
 notificados = {}
@@ -105,7 +119,7 @@ lock = threading.Lock()
 
 # Cache temporal de precios
 price_cache = {}
-CACHE_TTL = 150  # segundos
+CACHE_TTL = 70  # segundos
 
 failed_counts = {}
 
