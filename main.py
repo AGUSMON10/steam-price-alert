@@ -302,18 +302,6 @@ def buscar_precio(market_hash_name, session, proxy):
             "name": market_hash_name
         }
 
-    print(
-        f"\n[DEBUG] === ITEM ORDERS HISTOGRAM ==="
-    )
-
-    print(
-        f"[ITEM] {market_hash_name}"
-    )
-
-    print(
-        f"[ITEM NAME ID] {item_nameid}"
-    )
-
     # =========================
     # PROXY
     # =========================
@@ -360,11 +348,6 @@ def buscar_precio(market_hash_name, session, proxy):
         with lock:
             stats["tiempo_consultas"] += duracion_request
 
-        print(
-            f"[HTTP HISTOGRAM] "
-            f"{proxy} -> {r.status_code}"
-        )
-
         # =========================
         # RATE LIMIT
         # =========================
@@ -386,12 +369,7 @@ def buscar_precio(market_hash_name, session, proxy):
 
                 fails = PROXY_FAILS[proxy]
 
-            print(
-                f"[RATE LIMIT HISTOGRAM] "
-                f"{proxy} | "
-                f"Cooldown: {cooldown}s | "
-                f"Fallo #{fails}"
-            )
+            print(f"[WARN] Steam limitó una consulta. Reintentando...")
 
             return None
 
@@ -580,47 +558,6 @@ def buscar_precio(market_hash_name, session, proxy):
         return {
             "price": precio,
             "buy_price": buy_price,
-            "name": market_hash_name
-        }
-
-        # =========================
-        # RESULTADO
-        # =========================
-
-        if buy_price is not None:
-
-            print(
-                f"[PRICE] "
-                f"{market_hash_name} -> "
-                f"SELL ${precio:.2f} | "
-                f"BUY ${buy_price:.2f}"
-            )
-
-        else:
-
-            print(
-                f"[PRICE] "
-                f"{market_hash_name} -> "
-                f"SELL ${precio:.2f}"
-            )
-
-        # =========================
-        # CACHE
-        # =========================
-
-        with lock:
-
-            price_cache[market_hash_name] = {
-                "price": precio,
-                "name": market_hash_name,
-                "timestamp": time.time()
-            }
-
-            PROXY_FAILS[proxy] = 0
-            PROXY_STATUS[proxy] = 0
-
-        return {
-            "price": precio,
             "name": market_hash_name
         }
 
@@ -898,5 +835,4 @@ if __name__ == "__main__":
 
     for t in threads:
         t.join()
-
     servidor_thread.join()
