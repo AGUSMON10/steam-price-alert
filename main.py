@@ -94,6 +94,12 @@ skins_a_vigilar = {
     "Classic Knife | Blue Steel Minimal": 169.00,
     "Bowie Knife | Blue Steel Minimal": 160.00,
     "StatTrak Falchion Knife | Black Laminate Factory": 175.00,
+    "Kukri Knife | Night Stripe Factory": 140.00,
+    "StatTrak Skeleton Knife | Scorched Field": 174.00,
+    "Falchion Knife | Ultraviolet Minimal": 150.00,
+    "StatTrak Nomad Knife | Ultraviolet Field": 150.00,
+    "StatTrak Bowie Knife | Lore Well": 125.00,
+    "StatTrak Bowie Knife | Autotronic Well": 130.00,
 }
 
 ITEM_NAME_IDS = {
@@ -107,6 +113,12 @@ ITEM_NAME_IDS = {
     "Classic Knife | Blue Steel Minimal": 176091953,
     "Bowie Knife | Blue Steel Minimal": 139673208,
     "StatTrak Falchion Knife | Black Laminate Factory": 176283223,
+    "Kukri Knife | Night Stripe Factory": 176420350,
+    "StatTrak Skeleton Knife | Scorched Field": 176097569,
+    "Falchion Knife | Ultraviolet Minimal": 175880741,
+    "StatTrak Nomad Knife | Ultraviolet Field": 176506919,
+    "StatTrak Bowie Knife | Lore Well": 176263539,
+    "StatTrak Bowie Knife | Autotronic Well": 176270413,
 }
 
 notificados = {}
