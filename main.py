@@ -251,15 +251,21 @@ def buscar_precio(market_hash_name, session, proxy):
                 "name": cache_data["name"]
             }
 
-    print(f"\n[DEBUG] === PRICEOVERVIEW: {market_hash_name} ===")
+    print(f"\n[DEBUG] === MARKET LISTINGS: {market_hash_name} ===")
 
-    url = "https://steamcommunity.com/market/priceoverview/"
+    # =========================
+    # URL DEL MARKET
+    # =========================
 
-    params = {
-        "appid": 730,
-        "currency": 1,
-        "market_hash_name": market_hash_name
-    }
+    encoded_name = requests.utils.quote(
+        market_hash_name,
+        safe=""
+    )
+
+    url = (
+        "https://steamcommunity.com/market/listings/730/"
+        + encoded_name
+    )
 
     proxies = {
         "http": proxy,
@@ -270,48 +276,37 @@ def buscar_precio(market_hash_name, session, proxy):
 
         r = session.get(
             url,
-            params=params,
             headers=get_headers(),
-            timeout=(8, 12),
+            timeout=(8, 15),
             proxies=proxies
         )
 
-        print(f"[HTTP] {proxy} -> {r.status_code}")
+        print(
+            f"[HTTP MARKET] "
+            f"{proxy} -> {r.status_code}"
+        )
 
         # =========================
-        # RATE LIMIT 429
+        # RATE LIMIT
         # =========================
 
         if r.status_code == 429:
 
-            retry_after = r.headers.get("Retry-After")
-
-            try:
-                retry_after = int(retry_after)
-            except (TypeError, ValueError):
-                retry_after = None
-
-            # Si Steam indica cuánto esperar, usamos ese valor.
-            # Si no, usamos un cooldown progresivo.
             with lock:
 
                 PROXY_FAILS[proxy] += 1
 
-                if retry_after is not None:
+                cooldown = min(
+                    30 * (2 ** (PROXY_FAILS[proxy] - 1)),
+                    600
+                )
 
-                    cooldown = min(retry_after, 600)
-
-                else:
-
-                    cooldown = min(
-                        30 * (2 ** (PROXY_FAILS[proxy] - 1)),
-                        600
-                    )
-
-                PROXY_STATUS[proxy] = time.time() + cooldown
+                PROXY_STATUS[proxy] = (
+                    time.time() + cooldown
+                )
 
             print(
-                f"[RATE LIMIT PRICEOVERVIEW] "
+                f"[RATE LIMIT MARKET] "
                 f"{proxy} | "
                 f"Cooldown: {cooldown}s | "
                 f"Fallo #{PROXY_FAILS[proxy]}"
@@ -326,7 +321,7 @@ def buscar_precio(market_hash_name, session, proxy):
         if r.status_code != 200:
 
             print(
-                f"[HTTP ERROR] "
+                f"[HTTP ERROR MARKET] "
                 f"{proxy} -> {r.status_code}"
             )
 
@@ -342,8 +337,7 @@ def buscar_precio(market_hash_name, session, proxy):
 
                     print(
                         f"[PROXY COOLDOWN] "
-                        f"{proxy} | "
-                        f"Motivo: demasiados errores HTTP"
+                        f"{proxy}"
                     )
 
                     PROXY_FAILS[proxy] = 0
@@ -351,76 +345,96 @@ def buscar_precio(market_hash_name, session, proxy):
             return None
 
         # =========================
-        # JSON
+        # COMPROBAR HTML
         # =========================
 
-        data = r.json()
+        html = r.text
 
         print(
-            f"[PRICEOVERVIEW] "
+            f"[MARKET] "
+            f"{market_hash_name} | "
+            f"HTML: {len(html)} caracteres"
+        )
+
+        # =========================
+        # BUSCAR PRECIOS
+        # =========================
+
+        precios = []
+
+        # Formato típico de precios del Market
+        patrones = [
+            r'class="market_listing_price[^"]*"[^>]*>\s*([^<]+)',
+            r'class="market_listing_price_with_fee[^"]*"[^>]*>\s*([^<]+)',
+            r'class="normal_price[^"]*"[^>]*>\s*([^<]+)',
+        ]
+
+        for patron in patrones:
+
+            encontrados = re.findall(
+                patron,
+                html,
+                re.IGNORECASE
+            )
+
+            for precio_texto in encontrados:
+
+                precio_texto = (
+                    precio_texto
+                    .replace("$", "")
+                    .replace("USD", "")
+                    .replace(",", "")
+                    .strip()
+                )
+
+                match = re.search(
+                    r'(\d+(?:\.\d+)?)',
+                    precio_texto
+                )
+
+                if match:
+
+                    try:
+
+                        precio = float(match.group(1))
+
+                        if precio > 0:
+                            precios.append(precio)
+
+                    except ValueError:
+                        pass
+
+        # =========================
+        # SIN PRECIOS
+        # =========================
+
+        if not precios:
+
+            print(
+                f"[MARKET] No encontré precios para "
+                f"{market_hash_name}"
+            )
+
+            return {
+                "price": None,
+                "name": market_hash_name
+            }
+
+        # =========================
+        # PRECIO MÁS BAJO
+        # =========================
+
+        precio = min(precios)
+
+        print(
+            f"[PRICE MARKET] "
             f"{market_hash_name} -> "
-            f"{data}"
+            f"${precio:.2f} "
+            f"| Listings detectados: {len(precios)}"
         )
 
         # =========================
-        # STEAM SUCCESS
-        # =========================
-
-        if not data.get("success"):
-
-            print(
-                f"[STEAM] Sin datos para: "
-                f"{market_hash_name}"
-            )
-
-            return {
-                "price": None,
-                "name": market_hash_name
-            }
-
-        lowest_price = data.get("lowest_price")
-
-        if not lowest_price:
-
-            print(
-                f"[STEAM] Sin lowest_price: "
-                f"{market_hash_name}"
-            )
-
-            return {
-                "price": None,
-                "name": market_hash_name
-            }
-
-        # =========================
-        # CONVERTIR PRECIO
-        # =========================
-
-        precio_texto = (
-            lowest_price
-            .replace("$", "")
-            .replace(",", "")
-            .strip()
-        )
-
-        try:
-
-            precio = float(precio_texto)
-
-        except ValueError:
-
-            print(
-                f"[ERROR] No pude convertir "
-                f"precio: {lowest_price}"
-            )
-
-            return {
-                "price": None,
-                "name": market_hash_name
-            }
-
-        # =========================
-        # GUARDAR CACHE
+        # CACHE
         # =========================
 
         with lock:
@@ -434,12 +448,6 @@ def buscar_precio(market_hash_name, session, proxy):
             PROXY_FAILS[proxy] = 0
             PROXY_STATUS[proxy] = 0
 
-        print(
-            f"[PRICE] "
-            f"{market_hash_name} -> "
-            f"${precio:.2f}"
-        )
-
         return {
             "price": precio,
             "name": market_hash_name
@@ -448,7 +456,7 @@ def buscar_precio(market_hash_name, session, proxy):
     except Exception as e:
 
         print(
-            f"[DEBUG] ERROR PRICEOVERVIEW: "
+            f"[DEBUG] ERROR MARKET: "
             f"{type(e).__name__}: {e}"
         )
 
