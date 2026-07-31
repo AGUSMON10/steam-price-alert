@@ -465,10 +465,6 @@ def buscar_precio(market_hash_name, session, proxy):
                 f"success=False"
             )
 
-            print(
-                f"[DEBUG DATA] {data}"
-            )
-
             return {
                 "price": None,
                 "name": market_hash_name
@@ -477,9 +473,6 @@ def buscar_precio(market_hash_name, session, proxy):
         with lock:
             stats["requests_exitosas"] += 1
 
-        print(
-            f"[DEBUG DATA] {data}"
-        )
 
                 # =========================
         # PRECIOS DIRECTOS DE STEAM
