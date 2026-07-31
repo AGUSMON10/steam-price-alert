@@ -244,7 +244,21 @@ def buscar_precio(market_hash_name, session, proxy):
                 "name": cache_data["name"]
             }
 
-    print(f"\n[DEBUG] === MARKET SEARCH: {market_hash_name} ===")
+    print(f"\n[DEBUG] === MARKET LISTINGS: {market_hash_name} ===")
+
+    # =========================
+    # URL DEL MARKET
+    # =========================
+
+    encoded_name = requests.utils.quote(
+        market_hash_name,
+        safe=""
+    )
+
+    url = (
+        "https://steamcommunity.com/market/listings/730/"
+        + encoded_name
+    )
 
     proxies = {
         "http": proxy,
@@ -253,27 +267,15 @@ def buscar_precio(market_hash_name, session, proxy):
 
     try:
 
-        params = {
-            "query": market_hash_name,
-            "start": 0,
-            "count": 10,
-            "search_descriptions": 0,
-            "sort_column": "price",
-            "sort_dir": "asc",
-            "appid": 730,
-            "norender": 1
-        }
-
         r = session.get(
-            "https://steamcommunity.com/market/search/render/",
-            params=params,
+            url,
             headers=get_headers(),
             timeout=(8, 15),
             proxies=proxies
         )
 
         print(
-            f"[HTTP SEARCH] "
+            f"[HTTP MARKET] "
             f"{proxy} -> {r.status_code}"
         )
 
@@ -297,7 +299,7 @@ def buscar_precio(market_hash_name, session, proxy):
                 )
 
             print(
-                f"[RATE LIMIT SEARCH] "
+                f"[RATE LIMIT MARKET] "
                 f"{proxy} | "
                 f"Cooldown: {cooldown}s | "
                 f"Fallo #{PROXY_FAILS[proxy]}"
@@ -306,13 +308,13 @@ def buscar_precio(market_hash_name, session, proxy):
             return None
 
         # =========================
-        # OTROS ERRORES
+        # OTROS ERRORES HTTP
         # =========================
 
         if r.status_code != 200:
 
             print(
-                f"[HTTP ERROR SEARCH] "
+                f"[HTTP ERROR MARKET] "
                 f"{proxy} -> {r.status_code}"
             )
 
@@ -323,185 +325,127 @@ def buscar_precio(market_hash_name, session, proxy):
             return None
 
         # =========================
-        # JSON
+        # HTML
         # =========================
 
-        try:
-
-            data = r.json()
-
-        except Exception as e:
-
-            print(
-                f"[ERROR] Steam no devolvió JSON: {e}"
-            )
-
-            print(
-                f"[DEBUG] Respuesta: "
-                f"{r.text[:500]}"
-            )
-
-            return None
+        html = r.text
 
         print(
-            f"[SEARCH] "
-            f"success={data.get('success')} | "
-            f"total={data.get('total_count')} | "
-            f"pagesize={data.get('pagesize')}"
+            f"[MARKET] "
+            f"{market_hash_name} | "
+            f"HTML: {len(html)} caracteres"
         )
 
-        if not data.get("success"):
+        # ==================================================
+        # DEBUG: BUSCAR CONTEXTO DE "price"
+        # ==================================================
 
-            print(
-                f"[SEARCH] Steam respondió success=False"
-            )
+        print("\n========== PRICE CONTEXT ==========")
 
-            return {
-                "price": None,
-                "name": market_hash_name
-            }
-
-        results_html = data.get("results_html", "")
-
-        if not results_html:
-
-            print(
-                f"[SEARCH] No hay resultados para "
-                f"{market_hash_name}"
-            )
-
-            return {
-                "price": None,
-                "name": market_hash_name
-            }
-
-        print(
-            f"[SEARCH] HTML resultados: "
-            f"{len(results_html)} caracteres"
-        )
-
-        # =========================
-        # DEBUG
-        # =========================
-
-        print(
-            f"[DEBUG] price occurrences: "
-            f"{results_html.lower().count('price')}"
-        )
-
-        print(
-            f"[DEBUG] listing occurrences: "
-            f"{results_html.lower().count('listing')}"
-        )
-
-        # =========================
-        # BUSCAR PRECIOS
-        # =========================
-
-        precios = []
-
-        patrones = [
-
-            r'class="market_listing_price[^"]*"[^>]*>\s*([^<]+)',
-
-            r'class="market_listing_price_with_fee[^"]*"[^>]*>\s*([^<]+)',
-
-            r'class="normal_price[^"]*"[^>]*>\s*([^<]+)',
-
-        ]
-
-        for patron in patrones:
-
-            encontrados = re.findall(
-                patron,
-                results_html,
+        encontrados_price = list(
+            re.finditer(
+                r"price",
+                html,
                 re.IGNORECASE
             )
-
-            for precio_texto in encontrados:
-
-                precio_texto = (
-                    precio_texto
-                    .replace("$", "")
-                    .replace("USD", "")
-                    .replace(",", "")
-                    .strip()
-                )
-
-                match = re.search(
-                    r'(\d+(?:\.\d+)?)',
-                    precio_texto
-                )
-
-                if match:
-
-                    try:
-
-                        precio = float(
-                            match.group(1)
-                        )
-
-                        if precio > 0:
-
-                            precios.append(precio)
-
-                    except ValueError:
-
-                        pass
-
-        # =========================
-        # SIN PRECIOS
-        # =========================
-
-        if not precios:
-
-            print(
-                f"[SEARCH] No encontré precios "
-                f"para {market_hash_name}"
-            )
-
-            return {
-                "price": None,
-                "name": market_hash_name
-            }
-
-        # =========================
-        # PRECIO MÁS BAJO
-        # =========================
-
-        precio = min(precios)
-
-        print(
-            f"[PRICE SEARCH] "
-            f"{market_hash_name} -> "
-            f"${precio:.2f} "
-            f"| Precios detectados: {len(precios)}"
         )
 
+        print(
+            f"[DEBUG] Apariciones de 'price': "
+            f"{len(encontrados_price)}"
+        )
+
+        for i, match in enumerate(encontrados_price):
+
+            inicio = max(
+                0,
+                match.start() - 500
+            )
+
+            fin = min(
+                len(html),
+                match.end() + 1000
+            )
+
+            contexto = html[inicio:fin]
+
+            print(
+                f"\n[PRICE {i + 1}/{len(encontrados_price)}]"
+            )
+
+            print(contexto)
+
+            print(
+                "\n-----------------------------------"
+            )
+
+        print(
+            "\n========== END PRICE CONTEXT ==========\n"
+        )
+
+        # ==================================================
+        # DEBUG: ESTRUCTURA
+        # ==================================================
+
+        print("[DEBUG] Analizando estructura HTML...")
+
+        patrones_debug = [
+            "Market_LoadOrderSpread",
+            "item_nameid",
+            "itemid",
+            "itemNameId",
+            "item_name_id",
+            "g_rgAssets",
+            "Market_LoadOrder",
+            "orderSpread",
+            "listingid",
+            "listing_id"
+        ]
+
+        for patron in patrones_debug:
+
+            cantidad = html.lower().count(
+                patron.lower()
+            )
+
+            print(
+                f"[DEBUG] '{patron}' -> {cantidad}"
+            )
+
         # =========================
-        # CACHE
+        # GUARDAR HTML
         # =========================
 
-        with lock:
+        with open(
+            "/tmp/steam_debug.html",
+            "w",
+            encoding="utf-8"
+        ) as f:
 
-            price_cache[market_hash_name] = {
-                "price": precio,
-                "name": market_hash_name,
-                "timestamp": time.time()
-            }
+            f.write(html)
 
-            PROXY_FAILS[proxy] = 0
-            PROXY_STATUS[proxy] = 0
+        print(
+            "[DEBUG] HTML guardado en "
+            "/tmp/steam_debug.html"
+        )
+
+        # ==================================================
+        # POR AHORA NO EXTRAEMOS PRECIOS
+        # ==================================================
+
+        print(
+            "[DEBUG] Finalizando prueba de estructura HTML"
+        )
 
         return {
-            "price": precio,
+            "price": None,
             "name": market_hash_name
         }
 
     except Exception as e:
 
         print(
-            f"[DEBUG] ERROR SEARCH: "
+            f"[DEBUG] ERROR MARKET: "
             f"{type(e).__name__}: {e}"
         )
 
