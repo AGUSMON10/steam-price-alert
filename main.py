@@ -436,11 +436,6 @@ def buscar_precio(market_hash_name, session, proxy):
         # DEBUG
         # =========================
 
-        print(
-            f"[HISTOGRAM] "
-            f"success={data.get('success')}"
-        )
-
         # =========================
         # STEAM SUCCESS FALSE
         # =========================
@@ -778,11 +773,6 @@ def worker(grupo_skins, worker_id):
                     f"{promedio:.2f}s"
                 )
 
-                print(
-                    f"[INFO] Tiempo promedio/request: "
-                    f"{promedio:.2f}s"
-                )
-
             limpiar_cache()
 
             print("================================================\n")
@@ -807,9 +797,6 @@ def worker(grupo_skins, worker_id):
 
                     print(f"[INFO] Eliminada del monitoreo: {skin_name}")
 
-            print()
-
-            print("================================================\n")
 
             skins_revisadas_total = 0
 
