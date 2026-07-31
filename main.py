@@ -90,6 +90,13 @@ skins_a_vigilar = {
     
 }
 
+# Item Name ID de cada skin en Steam
+ITEM_NAME_IDS = {
+    "Knife falchion ★ StatTrak™ | Autotronic minimal": 176263237,
+    "StatTrak Huntsman Knife | Damascus Steel Factory": 175885007,
+    "StatTrak Falchion Knife | Stained Minimal": 49698684,
+}
+
 notificados = {}
 ultimo_escaneo = None
 skins_revisadas_total = 0
@@ -100,7 +107,7 @@ lock = threading.Lock()
 
 # Cache temporal de precios
 price_cache = {}
-CACHE_TTL = 300  # segundos
+CACHE_TTL = 150  # segundos
 
 failed_counts = {}
 
@@ -237,45 +244,81 @@ def buscar_precio(market_hash_name, session, proxy):
 
         if ahora - cache_data["timestamp"] < CACHE_TTL:
 
-            print(f"[CACHE HIT] {market_hash_name}")
+            print(
+                f"[CACHE HIT] "
+                f"{market_hash_name} -> "
+                f"${cache_data['price']:.2f}"
+            )
 
             return {
                 "price": cache_data["price"],
                 "name": cache_data["name"]
             }
 
-    print(f"\n[DEBUG] === MARKET LISTINGS: {market_hash_name} ===")
-
     # =========================
-    # URL DEL MARKET
+    # ITEM NAME ID
     # =========================
 
-    encoded_name = requests.utils.quote(
-        market_hash_name,
-        safe=""
+    item_nameid = ITEM_NAME_IDS.get(market_hash_name)
+
+    if not item_nameid:
+
+        print(
+            f"[ERROR] No tengo item_nameid para "
+            f"{market_hash_name}"
+        )
+
+        return {
+            "price": None,
+            "name": market_hash_name
+        }
+
+    print(
+        f"\n[DEBUG] === ITEM ORDERS HISTOGRAM ==="
     )
 
-    url = (
-        "https://steamcommunity.com/market/listings/730/"
-        + encoded_name
+    print(
+        f"[ITEM] {market_hash_name}"
     )
+
+    print(
+        f"[ITEM NAME ID] {item_nameid}"
+    )
+
+    # =========================
+    # PROXY
+    # =========================
 
     proxies = {
         "http": proxy,
         "https": proxy
     } if proxy else None
 
+    # =========================
+    # PARAMETROS STEAM
+    # =========================
+
+    params = {
+        "country": "US",
+        "language": "english",
+        "currency": 1,
+        "item_nameid": item_nameid,
+        "two_factor": 0,
+        "norender": 1
+    }
+
     try:
 
         r = session.get(
-            url,
+            "https://steamcommunity.com/market/itemordershistogram/",
+            params=params,
             headers=get_headers(),
             timeout=(8, 15),
             proxies=proxies
         )
 
         print(
-            f"[HTTP MARKET] "
+            f"[HTTP HISTOGRAM] "
             f"{proxy} -> {r.status_code}"
         )
 
@@ -298,11 +341,13 @@ def buscar_precio(market_hash_name, session, proxy):
                     time.time() + cooldown
                 )
 
+                fails = PROXY_FAILS[proxy]
+
             print(
-                f"[RATE LIMIT MARKET] "
+                f"[RATE LIMIT HISTOGRAM] "
                 f"{proxy} | "
                 f"Cooldown: {cooldown}s | "
-                f"Fallo #{PROXY_FAILS[proxy]}"
+                f"Fallo #{fails}"
             )
 
             return None
@@ -314,138 +359,202 @@ def buscar_precio(market_hash_name, session, proxy):
         if r.status_code != 200:
 
             print(
-                f"[HTTP ERROR MARKET] "
+                f"[HTTP ERROR HISTOGRAM] "
                 f"{proxy} -> {r.status_code}"
             )
 
             with lock:
-
                 PROXY_FAILS[proxy] += 1
 
             return None
 
         # =========================
-        # HTML
+        # JSON
         # =========================
 
-        html = r.text
+        try:
 
-        print(
-            f"[MARKET] "
-            f"{market_hash_name} | "
-            f"HTML: {len(html)} caracteres"
-        )
+            data = r.json()
 
-        # ==================================================
-        # DEBUG: BUSCAR CONTEXTO DE "price"
-        # ==================================================
-
-        print("\n========== PRICE CONTEXT ==========")
-
-        encontrados_price = list(
-            re.finditer(
-                r"price",
-                html,
-                re.IGNORECASE
-            )
-        )
-
-        print(
-            f"[DEBUG] Apariciones de 'price': "
-            f"{len(encontrados_price)}"
-        )
-
-        for i, match in enumerate(encontrados_price):
-
-            inicio = max(
-                0,
-                match.start() - 500
-            )
-
-            fin = min(
-                len(html),
-                match.end() + 1000
-            )
-
-            contexto = html[inicio:fin]
+        except Exception as e:
 
             print(
-                f"\n[PRICE {i + 1}/{len(encontrados_price)}]"
-            )
-
-            print(contexto)
-
-            print(
-                "\n-----------------------------------"
-            )
-
-        print(
-            "\n========== END PRICE CONTEXT ==========\n"
-        )
-
-        # ==================================================
-        # DEBUG: ESTRUCTURA
-        # ==================================================
-
-        print("[DEBUG] Analizando estructura HTML...")
-
-        patrones_debug = [
-            "Market_LoadOrderSpread",
-            "item_nameid",
-            "itemid",
-            "itemNameId",
-            "item_name_id",
-            "g_rgAssets",
-            "Market_LoadOrder",
-            "orderSpread",
-            "listingid",
-            "listing_id"
-        ]
-
-        for patron in patrones_debug:
-
-            cantidad = html.lower().count(
-                patron.lower()
+                f"[ERROR] Steam no devolvió JSON: {e}"
             )
 
             print(
-                f"[DEBUG] '{patron}' -> {cantidad}"
+                f"[DEBUG] Respuesta: "
+                f"{r.text[:500]}"
+            )
+
+            return None
+
+        # =========================
+        # DEBUG BASICO
+        # =========================
+
+        print(
+            f"[HISTOGRAM] success="
+            f"{data.get('success')}"
+        )
+
+        if not data.get("success"):
+
+            print(
+                f"[HISTOGRAM] Steam respondió "
+                f"success=False"
+            )
+
+            return {
+                "price": None,
+                "name": market_hash_name
+            }
+
+        # =========================
+        # SELL ORDERS
+        # =========================
+
+        sell_orders = data.get(
+            "sell_order_graph",
+            []
+        )
+
+        sell_orders = data.get(
+            "sell_order_graph",
+            []
+        )
+
+        if not sell_orders:
+
+            print(
+                f"[HISTOGRAM] "
+                f"No hay sell orders para "
+                f"{market_hash_name}"
+            )
+
+            return {
+                "price": None,
+                "name": market_hash_name
+            }
+
+        # =========================
+        # PRECIO MÁS BAJO
+        # =========================
+
+        precios = []
+
+        for orden in sell_orders:
+
+            try:
+
+                precio = float(orden[0])
+
+                if precio > 0:
+                    precios.append(precio)
+
+            except (
+                ValueError,
+                TypeError,
+                IndexError
+            ):
+
+                continue
+
+        if not precios:
+
+            print(
+                f"[HISTOGRAM] "
+                f"No pude interpretar los precios de "
+                f"{market_hash_name}"
+            )
+
+            return {
+                "price": None,
+                "name": market_hash_name
+            }
+
+        precio = min(precios)
+
+        # =========================
+        # BUY ORDERS
+        # =========================
+
+        buy_orders = data.get(
+            "buy_order_graph",
+            []
+        )
+
+        buy_price = None
+
+        if buy_orders:
+
+            buy_precios = []
+
+            for orden in buy_orders:
+
+                try:
+
+                    p = float(orden[0])
+
+                    if p > 0:
+                        buy_precios.append(p)
+
+                except (
+                    ValueError,
+                    TypeError,
+                    IndexError
+                ):
+
+                    continue
+
+            if buy_precios:
+                buy_price = max(buy_precios)
+
+        # =========================
+        # RESULTADO
+        # =========================
+
+        if buy_price is not None:
+
+            print(
+                f"[PRICE] "
+                f"{market_hash_name} -> "
+                f"SELL ${precio:.2f} | "
+                f"BUY ${buy_price:.2f}"
+            )
+
+        else:
+
+            print(
+                f"[PRICE] "
+                f"{market_hash_name} -> "
+                f"SELL ${precio:.2f}"
             )
 
         # =========================
-        # GUARDAR HTML
+        # CACHE
         # =========================
 
-        with open(
-            "/tmp/steam_debug.html",
-            "w",
-            encoding="utf-8"
-        ) as f:
+        with lock:
 
-            f.write(html)
+            price_cache[market_hash_name] = {
+                "price": precio,
+                "name": market_hash_name,
+                "timestamp": time.time()
+            }
 
-        print(
-            "[DEBUG] HTML guardado en "
-            "/tmp/steam_debug.html"
-        )
-
-        # ==================================================
-        # POR AHORA NO EXTRAEMOS PRECIOS
-        # ==================================================
-
-        print(
-            "[DEBUG] Finalizando prueba de estructura HTML"
-        )
+            PROXY_FAILS[proxy] = 0
+            PROXY_STATUS[proxy] = 0
 
         return {
-            "price": None,
+            "price": precio,
             "name": market_hash_name
         }
 
     except Exception as e:
 
         print(
-            f"[DEBUG] ERROR MARKET: "
+            f"[ERROR HISTOGRAM] "
             f"{type(e).__name__}: {e}"
         )
 
