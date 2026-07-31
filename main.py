@@ -470,6 +470,8 @@ def buscar_precio(market_hash_name, session, proxy):
 
             PROXY_FAILS[proxy] += 1
 
+            if PROXY_FAILS[proxy] >= 5:
+
                 PROXY_STATUS[proxy] = (
                     time.time() + PROXY_COOLDOWN
                 )
