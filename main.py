@@ -476,14 +476,9 @@ def buscar_precio(market_hash_name, session, proxy):
         with lock:
             stats["requests_exitosas"] += 1
 
-            print(
-                f"[DEBUG DATA] {data}"
-            )
-
-            return {
-                "price": None,
-                "name": market_hash_name
-            }
+        print(
+            f"[DEBUG DATA] {data}"
+        )
 
         # =========================
         # SELL ORDERS
