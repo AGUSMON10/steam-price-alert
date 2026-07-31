@@ -280,6 +280,7 @@ def buscar_precio(market_hash_name, session, proxy):
 
             return {
                 "price": cache_data["price"],
+                "buy_price": cache_data.get("buy_price"),
                 "name": cache_data["name"]
             }
 
@@ -480,100 +481,114 @@ def buscar_precio(market_hash_name, session, proxy):
             f"[DEBUG DATA] {data}"
         )
 
-        # =========================
-        # SELL ORDERS
-        # =========================
-
-        sell_orders = data.get(
-            "sell_order_graph",
-            []
-        )
-
-        if not sell_orders:
-
-            print(
-                f"[HISTOGRAM] "
-                f"No hay sell orders para "
-                f"{market_hash_name}"
-            )
-
-            return {
-                "price": None,
-                "name": market_hash_name
-            }
-
-        # =========================
-        # PRECIO SELL MÁS BAJO
+                # =========================
+        # PRECIOS DIRECTOS DE STEAM
         # =========================
 
-        precios = []
+        sell_price_raw = data.get("sell_order_price")
+        buy_price_raw = data.get("buy_order_price")
 
-        for orden in sell_orders:
-
-            try:
-
-                precio = float(orden[0])
-
-                if precio > 0:
-                    precios.append(precio)
-
-            except (
-                ValueError,
-                TypeError,
-                IndexError
-            ):
-
-                continue
-
-        if not precios:
-
-            print(
-                f"[HISTOGRAM] "
-                f"No pude interpretar los precios de "
-                f"{market_hash_name}"
-            )
-
-            return {
-                "price": None,
-                "name": market_hash_name
-            }
-
-        precio = min(precios)
-
-        # =========================
-        # BUY ORDERS
-        # =========================
-
-        buy_orders = data.get(
-            "buy_order_graph",
-            []
-        )
-
+        precio = None
         buy_price = None
 
-        if buy_orders:
+        # SELL
+        if sell_price_raw:
 
-            buy_precios = []
+            try:
+                sell_clean = re.sub(
+                    r"[^0-9.]",
+                    "",
+                    sell_price_raw
+                )
 
-            for orden in buy_orders:
+                precio = float(sell_clean)
 
-                try:
+            except (ValueError, TypeError):
 
-                    p = float(orden[0])
+                print(
+                    f"[ERROR] No pude interpretar "
+                    f"sell_order_price: {sell_price_raw}"
+                )
 
-                    if p > 0:
-                        buy_precios.append(p)
+        # BUY
+        if buy_price_raw:
 
-                except (
-                    ValueError,
-                    TypeError,
-                    IndexError
-                ):
+            try:
+                buy_clean = re.sub(
+                    r"[^0-9.]",
+                    "",
+                    buy_price_raw
+                )
 
-                    continue
+                buy_price = float(buy_clean)
 
-            if buy_precios:
-                buy_price = max(buy_precios)
+            except (ValueError, TypeError):
+
+                print(
+                    f"[ERROR] No pude interpretar "
+                    f"buy_order_price: {buy_price_raw}"
+                )
+
+        # =========================
+        # VALIDAR SELL
+        # =========================
+
+        if precio is None or precio <= 0:
+
+            print(
+                f"[HISTOGRAM] "
+                f"No se encontró SELL válido para "
+                f"{market_hash_name}"
+            )
+
+            return {
+                "price": None,
+                "buy_price": buy_price,
+                "name": market_hash_name
+            }
+
+        # =========================
+        # LOG
+        # =========================
+
+        if buy_price is not None:
+
+            print(
+                f"[PRICE] "
+                f"{market_hash_name} -> "
+                f"SELL ${precio:.2f} | "
+                f"BUY ${buy_price:.2f}"
+            )
+
+        else:
+
+            print(
+                f"[PRICE] "
+                f"{market_hash_name} -> "
+                f"SELL ${precio:.2f}"
+            )
+
+        # =========================
+        # CACHE
+        # =========================
+
+        with lock:
+
+            price_cache[market_hash_name] = {
+                "price": precio,
+                "buy_price": buy_price,
+                "name": market_hash_name,
+                "timestamp": time.time()
+            }
+
+            PROXY_FAILS[proxy] = 0
+            PROXY_STATUS[proxy] = 0
+
+        return {
+            "price": precio,
+            "buy_price": buy_price,
+            "name": market_hash_name
+        }
 
         # =========================
         # RESULTADO
