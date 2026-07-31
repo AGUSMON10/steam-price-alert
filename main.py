@@ -236,8 +236,8 @@ def buscar_precio(market_hash_name, session, proxy):
     # =========================
     # CACHE
     # =========================
-    with lock:
 
+    with lock:
         cache_data = price_cache.get(market_hash_name)
 
     if cache_data:
@@ -251,22 +251,20 @@ def buscar_precio(market_hash_name, session, proxy):
                 "name": cache_data["name"]
             }
 
-    print(f"\n[DEBUG] === BUSCANDO EXACTO: {market_hash_name} ===")
+    print(f"\n[DEBUG] === PRICEOVERVIEW: {market_hash_name} ===")
 
-    url = "https://steamcommunity.com/market/search/render/"
-
-    query = normalizar(market_hash_name)
+    url = "https://steamcommunity.com/market/priceoverview/"
 
     params = {
-        "query": query,
-        "start": 0,
-        "count": 30,
+        "appid": 730,
         "currency": 1,
-        "language": "english",
-        "norender": 1
+        "market_hash_name": market_hash_name
     }
 
-    proxies = {"http": proxy, "https": proxy} if proxy else None
+    proxies = {
+        "http": proxy,
+        "https": proxy
+    } if proxy else None
 
     try:
 
@@ -278,23 +276,38 @@ def buscar_precio(market_hash_name, session, proxy):
             proxies=proxies
         )
 
+        print(f"[HTTP] {proxy} -> {r.status_code}")
+
+        # =========================
+        # RATE LIMIT
+        # =========================
+
         if r.status_code == 429:
 
-            print(f"[RATE LIMIT] {proxy}")
+            print(f"[RATE LIMIT PRICEOVERVIEW] {proxy}")
 
             with lock:
 
                 PROXY_STATUS[proxy] = (
                     time.time() + PROXY_COOLDOWN
                 )
-                
+
                 SESSIONS[proxy] = crear_session()
 
                 PROXY_FAILS[proxy] = 0
 
             return None
 
+        # =========================
+        # OTROS ERRORES HTTP
+        # =========================
+
         if r.status_code != 200:
+
+            print(
+                f"[HTTP ERROR] "
+                f"{proxy} -> {r.status_code}"
+            )
 
             with lock:
 
@@ -306,118 +319,115 @@ def buscar_precio(market_hash_name, session, proxy):
                         time.time() + PROXY_COOLDOWN
                     )
 
-                    print(f"[PROXY COOLDOWN] {proxy}")
+                    print(
+                        f"[PROXY COOLDOWN] "
+                        f"{proxy}"
+                    )
 
                     PROXY_FAILS[proxy] = 0
 
             return None
 
-
-        with lock:
-            PROXY_FAILS[proxy] = 0
+        # =========================
+        # JSON
+        # =========================
 
         data = r.json()
 
-        results = data.get("results", [])
-
-        best_price = None
-        best_score = -1
-        best_name = None
-        best_market_price = "N/A"
-
-        for item in results:
-
-            name_raw = item.get("name", "")
-
-            name = normalizar(name_raw)
-
-            price_raw = item.get("sell_price")
-
-            price_text = item.get("sell_price_text", "")
-
-            if not price_raw:
-                continue
-
-            # filtro basura
-            if not es_item_valido(name):
-                continue
-
-            price = price_raw / 100
-
-            score = 0
-
-            query_words = set(query.split())
-            name_words = set(name.split())
-
-            coincidencias = len(query_words & name_words)
-
-            score = coincidencias * 20
-
-            # bonus importantes
-            if "knife" in query and "knife" in name:
-                score += 20
-
-            if "stattrak" in query and "stattrak" in name:
-                score += 20
-
-            # bonus wear
-            wears = [
-                "factory",
-                "minimal",
-                "field",
-                "well",
-                "battle"
-            ]
-
-            for wear in wears:
-                if wear in query and wear in name:
-                    score += 15
-
-            # castigo basura
-            if "case" in name:
-                score -= 999
-
-            if score > best_score:
-                best_score = score
-                best_price = price
-                best_name = name_raw
-                best_market_price = price_text
-
         print(
-            f"[DEBUG] MATCH FINAL: "
-            f"{best_name} | "
-            f"${best_price} | "
-            f"market {best_market_price} | "
-            f"score {best_score}"
+            f"[PRICEOVERVIEW] "
+            f"{market_hash_name} -> "
+            f"{data}"
         )
-        
-        if best_score == -1:
-            failed_counts[market_hash_name] = failed_counts.get(market_hash_name, 0) + 1
 
-        elif best_score >= 60:
-            failed_counts[market_hash_name] = 0
+        # =========================
+        # STEAM SUCCESS
+        # =========================
+
+        if not data.get("success"):
+
+            print(
+                f"[STEAM] Sin datos para: "
+                f"{market_hash_name}"
+            )
+
+            return {
+                "price": None,
+                "name": market_hash_name
+            }
+
+        lowest_price = data.get("lowest_price")
+
+        if not lowest_price:
+
+            print(
+                f"[STEAM] Sin lowest_price: "
+                f"{market_hash_name}"
+            )
+
+            return {
+                "price": None,
+                "name": market_hash_name
+            }
+
+        # =========================
+        # CONVERTIR PRECIO
+        # =========================
+
+        precio_texto = (
+            lowest_price
+            .replace("$", "")
+            .replace(",", "")
+            .strip()
+        )
+
+        try:
+
+            precio = float(precio_texto)
+
+        except ValueError:
+
+            print(
+                f"[ERROR] No pude convertir "
+                f"precio: {lowest_price}"
+            )
+
+            return {
+                "price": None,
+                "name": market_hash_name
+            }
 
         # =========================
         # GUARDAR CACHE
         # =========================
-        if best_price is not None:
 
-            with lock:
+        with lock:
 
-                price_cache[market_hash_name] = {
-                    "price": best_price,
-                    "name": best_name,
-                    "timestamp": ahora
-                }
+            price_cache[market_hash_name] = {
+                "price": precio,
+                "name": market_hash_name,
+                "timestamp": ahora
+            }
+
+            PROXY_FAILS[proxy] = 0
+
+        print(
+            f"[PRICE] "
+            f"{market_hash_name} -> "
+            f"${precio:.2f}"
+        )
 
         return {
-            "price": best_price,
-            "name": best_name
+            "price": precio,
+            "name": market_hash_name
         }
 
     except Exception as e:
 
-        print(f"[DEBUG] ERROR: {e}")
+        print(
+            f"[DEBUG] ERROR PRICEOVERVIEW: "
+            f"{type(e).__name__}: {e}"
+        )
 
         with lock:
 
@@ -429,7 +439,10 @@ def buscar_precio(market_hash_name, session, proxy):
                     time.time() + PROXY_COOLDOWN
                 )
 
-                print(f"[PROXY COOLDOWN] {proxy}")
+                print(
+                    f"[PROXY COOLDOWN] "
+                    f"{proxy}"
+                )
 
                 PROXY_FAILS[proxy] = 0
 
@@ -478,7 +491,7 @@ def worker(grupo_skins, worker_id):
 
             resultado = None
 
-            for intento in range(2):
+            for intento in range(1):
 
                 proxy = obtener_proxy()
 
