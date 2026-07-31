@@ -23,10 +23,9 @@ PROXIES = [
     "http://olrliwpe:v769pjjmxnb1@9.142.195.37:6205"
 ]
 
-PROXY_COOLDOWN = 600  # 10 min
+PROXY_COOLDOWN = 600
 PROXY_STATUS = {p: 0 for p in PROXIES}
 PROXY_FAILS = {p: 0 for p in PROXIES}
-PROXY_IN_USE = {p: False for p in PROXIES}
 
 # Redefinir print global con flush automático
 original_print = print
@@ -230,57 +229,6 @@ def get_headers():
         "Sec-Fetch-Dest": "empty",
     }
 
-def obtener_proxy(worker_id, proxy_actual=None):
-
-    ahora = time.time()
-
-    with lock:
-
-        # Proxy fijo del worker
-        proxy_fijo = PROXIES[worker_id % len(PROXIES)]
-
-        # Si el proxy fijo está disponible, usar siempre ese
-        if (
-            PROXY_STATUS[proxy_fijo] <= ahora
-            and not PROXY_IN_USE[proxy_fijo]
-        ):
-            PROXY_IN_USE[proxy_fijo] = True
-            return proxy_fijo
-
-        # Si ya tenía otro proxy y sigue disponible, seguir usándolo
-        if (
-            proxy_actual
-            and PROXY_STATUS[proxy_actual] <= ahora
-            and PROXY_IN_USE[proxy_actual]
-        ):
-            return proxy_actual
-
-        # Liberar el anterior
-        if proxy_actual:
-            PROXY_IN_USE[proxy_actual] = False
-
-        disponibles = [
-            p for p in PROXIES
-            if (
-                PROXY_STATUS[p] <= ahora
-                and not PROXY_IN_USE[p]
-            )
-        ]
-
-        if not disponibles:
-            print("[WARN] No hay proxies libres")
-            return None
-
-        proxy = random.choice(disponibles)
-
-        PROXY_IN_USE[proxy] = True
-
-        print(
-            f"[PROXY NUEVO] "
-            f"{threading.current_thread().name} -> {proxy}"
-        )
-
-        return proxy
 
 # Crear app Flask para UptimeRobot
 app = Flask(__name__)
@@ -372,7 +320,6 @@ def buscar_precio(market_hash_name, session, proxy):
             with lock:
 
                 PROXY_STATUS[proxy] = time.time() + PROXY_COOLDOWN
-                PROXY_IN_USE[proxy] = False
                 SESSIONS[proxy] = crear_session()
                 PROXY_FAILS[proxy] = 0
 
@@ -556,67 +503,98 @@ def dividir_skins_en_grupos():
 
     lista = list(skins_a_vigilar.items())
 
-    num_workers = min(4, len(lista))
+    num_workers = min(len(PROXIES), len(lista))
 
     grupos = [[] for _ in range(num_workers)]
 
     for i, item in enumerate(lista):
-
         grupos[i % num_workers].append(item)
 
     return grupos
 
 def worker(grupo_skins, worker_id):
 
-    print(f"[DEBUG] Worker {worker_id} arrancó")
-    
-    proxy_actual = None
+    proxy = PROXIES[worker_id]
+
+    print("=" * 70)
+    print(f"[WORKER {worker_id}] INICIADO")
+    print(f"[WORKER {worker_id}] Proxy fijo: {proxy}")
+    print(f"[WORKER {worker_id}] Skins asignadas: {len(grupo_skins)}")
+    print("=" * 70)
 
     global skins_revisadas_total
+    global ciclo_numero
+
+    session = SESSIONS[proxy]
 
     while estado_app["activo"]:
 
         inicio_ciclo = time.time()
 
+        # =====================================================
+        # SI EL PROXY ESTÁ EN COOLDOWN
+        # =====================================================
+
+        ahora = time.time()
+
+        if PROXY_STATUS[proxy] > ahora:
+
+            restante = int(PROXY_STATUS[proxy] - ahora)
+
+            print(
+                f"[WORKER {worker_id}] "
+                f"Proxy en cooldown. "
+                f"Esperando {restante}s"
+            )
+
+            time.sleep(min(restante, 30))
+
+            continue
+
+        # =====================================================
+        # REVISAR SKINS
+        # =====================================================
+
         for skin_name, precio_max in grupo_skins:
 
-            resultado = None
+            if not estado_app["activo"]:
+                break
 
-            for intento in range(2):
-
-                proxy_actual = obtener_proxy(worker_id, proxy_actual)
-
-                proxy = proxy_actual
-
-                if proxy is None:
-
-                    time.sleep(2)
-
-                    continue
-
-                with lock:
-                    session = SESSIONS[proxy]
-
-                resultado = buscar_precio(
-                    skin_name,
-                    session,
-                    proxy
-                )
-
-                if resultado is not None:
-
-                    break
+            # Si este proxy entró en cooldown durante el ciclo
+            if PROXY_STATUS[proxy] > time.time():
 
                 print(
-                    f"[RETRY] "
-                    f"{skin_name} | "
-                    f"Intento {intento + 1}"
+                    f"[WORKER {worker_id}] "
+                    f"Proxy bloqueado. Pausando ciclo."
                 )
 
-                time.sleep(random.uniform(1, 2))
+                break
+
+            resultado = buscar_precio(
+                skin_name,
+                session,
+                proxy
+            )
+
+            # =================================================
+            # ERROR / 429
+            # =================================================
 
             if resultado is None:
+
+                print(
+                    f"[WORKER {worker_id}] "
+                    f"No se pudo revisar: {skin_name}"
+                )
+
+                # Espera antes de continuar
+                time.sleep(random.uniform(5, 10))
+
                 continue
+
+            # =================================================
+            # CONTADOR
+            # =================================================
 
             with lock:
                 skins_revisadas_total += 1
@@ -624,97 +602,69 @@ def worker(grupo_skins, worker_id):
             precio_actual = resultado["price"]
             nombre_real = resultado["name"]
 
-            ultima_alerta = notificados.get(skin_name)
+            # =================================================
+            # TELEGRAM
+            # =================================================
 
-            if precio_actual <= precio_max and (
-                ultima_alerta is None
-                or precio_actual < ultima_alerta
-            ):
+            if precio_actual is not None:
 
-                steam_url = (
-                    "steam://openurl/https://steamcommunity.com/market/listings/730/"
-                    + requests.utils.quote(nombre_real, safe='')
-                )
+                ultima_alerta = notificados.get(skin_name)
 
-                enviar_telegram(
-                    f"🛒 Skin en oferta\n"
-                    f"{skin_name}\n"
-                    f"{steam_url}\n"
-                    f"💵 {precio_actual:.2f} USD\n"
-                    f"📉 Max {precio_max:.2f} USD"
-                )
+                if precio_actual <= precio_max and (
+                    ultima_alerta is None
+                    or precio_actual < ultima_alerta
+                ):
 
-                notificados[skin_name] = precio_actual
+                    steam_url = (
+                        "steam://openurl/https://steamcommunity.com/market/listings/730/"
+                        + requests.utils.quote(
+                            nombre_real,
+                            safe=''
+                        )
+                    )
 
-            time.sleep(random.uniform(8, 13))
+                    enviar_telegram(
+                        f"🛒 Skin en oferta\n"
+                        f"{skin_name}\n"
+                        f"{steam_url}\n"
+                        f"💵 {precio_actual:.2f} USD\n"
+                        f"📉 Max {precio_max:.2f} USD"
+                    )
+
+                    notificados[skin_name] = precio_actual
+
+            # =================================================
+            # DELAY ENTRE SKINS
+            # =================================================
+
+            time.sleep(random.uniform(8, 14))
+
+        # =====================================================
+        # FIN DEL CICLO
+        # =====================================================
 
         estado_app["ultimo_escaneo"] = datetime.now().isoformat()
 
-        if worker_id == 0:
+        duracion = round(
+            time.time() - inicio_ciclo,
+            2
+        )
 
-            global ciclo_numero
+        print(
+            f"[WORKER {worker_id}] "
+            f"Ciclo terminado | "
+            f"Duración: {duracion}s"
+        )
 
-            ciclo_numero += 1
+        # Espera antes del próximo ciclo
+        espera = random.uniform(20, 35)
 
-            duracion = round(time.time() - inicio_ciclo, 2)
+        print(
+            f"[WORKER {worker_id}] "
+            f"Esperando {espera:.1f}s para próximo ciclo"
+        )
 
-            ahora = time.time()
-
-            proxies_activos = len([
-                p for p, t in PROXY_STATUS.items()
-                if t <= ahora
-            ])
-
-            proxies_cooldown = len([
-                p for p, t in PROXY_STATUS.items()
-                if t > ahora
-            ])
-
-            print("\n================ RESUMEN CICLO ================")
-
-            print(f"[INFO] Ciclo número: {ciclo_numero}")
-
-            print(f"[INFO] Skins totales vigiladas: {len(skins_a_vigilar)}")
-
-            print(f"[INFO] Skins revisadas: {skins_revisadas_total}")
-
-            print(f"[INFO] Proxies activos: {proxies_activos}")
-
-            print(f"[INFO] Proxies cooldown: {proxies_cooldown}")
-
-            print(f"[INFO] Cache size: {len(price_cache)}")
-
-            limpiar_cache()
-
-            print(f"[INFO] Duración ciclo: {duracion} segundos")
-
-            skins_a_eliminar = []
-
-            for skin, fails in failed_counts.items():
-
-                if fails >= 50:
-
-                    print("\n[INFO] Skin desactivada por demasiados fallos:")
-                    print(skin)
-
-                    skins_a_eliminar.append(skin)
-
-            # eliminar skins problemáticas
-            for skin_name in skins_a_eliminar:
-
-                if skin_name in skins_a_vigilar:
-
-                    del skins_a_vigilar[skin_name]
-
-                    print(f"[INFO] Eliminada del monitoreo: {skin_name}")
-
-            print()
-
-            print("================================================\n")
-
-            skins_revisadas_total = 0
-
-        time.sleep(random.uniform(15, 30))
+        time.sleep(espera)
 
 # 🔁 Ejecutar el servidor Flask en hilo separado
 def iniciar_servidor():
