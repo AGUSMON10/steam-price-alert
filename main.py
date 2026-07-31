@@ -23,7 +23,7 @@ PROXIES = [
     "http://olrliwpe:v769pjjmxnb1@9.142.195.37:6205"
 ]
 
-PROXY_COOLDOWN = 600
+PROXY_COOLDOWN = 600  # 10 min
 PROXY_STATUS = {p: 0 for p in PROXIES}
 PROXY_FAILS = {p: 0 for p in PROXIES}
 
@@ -221,14 +221,40 @@ def get_headers():
         "Accept-Language": "en-US,en;q=0.9",
         "Accept": "application/json,text/javascript,*/*;q=0.1",
         "Referer": "https://steamcommunity.com/market/",
-        "Connection": "keep-alive",
-        "Cache-Control": "no-cache",
-        "Pragma": "no-cache",
-        "Sec-Fetch-Site": "same-origin",
-        "Sec-Fetch-Mode": "cors",
-        "Sec-Fetch-Dest": "empty",
+        "Connection": "keep-alive"
     }
 
+def obtener_proxy():
+
+    ahora = time.time()
+
+    disponibles = [
+        p for p, t in PROXY_STATUS.items()
+        if t <= ahora
+    ]
+
+    if not disponibles:
+
+        cooldown_activos = [
+            p for p, t in PROXY_STATUS.items()
+            if t > ahora
+        ]
+
+        print(
+            f"[WARN] Sin proxies disponibles | "
+            f"Cooldown: {len(cooldown_activos)}"
+        )
+
+        # reset global si TODOS están en cooldown
+        if len(cooldown_activos) == len(PROXIES):
+
+            print("[WARN] Todos los proxies en cooldown")
+
+            return None
+
+        return None
+
+    return random.choice(disponibles)
 
 # Crear app Flask para UptimeRobot
 app = Flask(__name__)
@@ -304,36 +330,23 @@ def buscar_precio(market_hash_name, session, proxy):
             proxies=proxies
         )
 
-        print(f"[HTTP] {proxy} -> {r.status_code}")
-
         if r.status_code == 429:
 
-            print("=" * 70)
-            print("[RATE LIMIT]")
-            print("Proxy:", proxy)
-            print("URL:", r.url)
-            print("Status:", r.status_code)
-            print("Headers:")
-            print(dict(r.headers))
-            print("=" * 70)
+            print(f"[RATE LIMIT] {proxy}")
 
             with lock:
 
-                PROXY_STATUS[proxy] = time.time() + PROXY_COOLDOWN
+                PROXY_STATUS[proxy] = (
+                    time.time() + PROXY_COOLDOWN
+                )
+                
                 SESSIONS[proxy] = crear_session()
+
                 PROXY_FAILS[proxy] = 0
 
             return None
 
         if r.status_code != 200:
-            print("=" * 70)
-            print("[HTTP ERROR]")
-            print("Proxy:", proxy)
-            print("Status:", r.status_code)
-            print("URL:", r.url)
-            print("Body:")
-            print(r.text[:500])
-            print("=" * 70)
 
             with lock:
 
@@ -456,15 +469,7 @@ def buscar_precio(market_hash_name, session, proxy):
 
     except Exception as e:
 
-        import traceback
-
-        print("=" * 70)
-        print("[EXCEPTION]")
-        print("Proxy:", proxy)
-        print("Tipo:", type(e).__name__)
-        print("Mensaje:", str(e))
-        traceback.print_exc()
-        print("=" * 70)
+        print(f"[DEBUG] ERROR: {e}")
 
         with lock:
 
@@ -501,109 +506,63 @@ def dividir_skins_en_grupos():
 
     lista = list(skins_a_vigilar.items())
 
-    # Solo 4 workers trabajando al mismo tiempo
-    num_workers = min(4, len(PROXIES), len(lista))
+    num_workers = min(4, len(lista))
 
     grupos = [[] for _ in range(num_workers)]
 
     for i, item in enumerate(lista):
+
         grupos[i % num_workers].append(item)
 
     return grupos
 
 def worker(grupo_skins, worker_id):
 
-    proxy = PROXIES[worker_id]
-
-    print("=" * 70)
-    print(f"[WORKER {worker_id}] INICIADO")
-    print(f"[WORKER {worker_id}] Proxy fijo: {proxy}")
-    print(f"[WORKER {worker_id}] Skins asignadas: {len(grupo_skins)}")
-    print("=" * 70)
+    print(f"[DEBUG] Worker {worker_id} arrancó")
 
     global skins_revisadas_total
-    global ciclo_numero
-
-    session = SESSIONS[proxy]
 
     while estado_app["activo"]:
 
         inicio_ciclo = time.time()
 
-        # =====================================================
-        # SI EL PROXY ESTÁ EN COOLDOWN
-        # =====================================================
-
-        ahora = time.time()
-
-        if PROXY_STATUS[proxy] > ahora:
-
-            restante = int(PROXY_STATUS[proxy] - ahora)
-
-            print(
-                f"[WORKER {worker_id}] "
-                f"Proxy en cooldown. "
-                f"Esperando {restante}s"
-            )
-
-            time.sleep(min(restante, 30))
-
-            continue
-
-        # =====================================================
-        # REVISAR SKINS
-        # =====================================================
-
         for skin_name, precio_max in grupo_skins:
 
-            if not estado_app["activo"]:
-                break
+            resultado = None
 
-            # Si este proxy entró en cooldown durante el ciclo
-            if PROXY_STATUS[proxy] > time.time():
+            for intento in range(2):
 
-                print(
-                    f"[WORKER {worker_id}] "
-                    f"Proxy bloqueado. Pausando ciclo."
+                proxy = obtener_proxy()
+
+                if proxy is None:
+
+                    time.sleep(2)
+
+                    continue
+
+                with lock:
+                    session = SESSIONS[proxy]
+
+                resultado = buscar_precio(
+                    skin_name,
+                    session,
+                    proxy
                 )
 
-                break
-
-            resultado = buscar_precio(
-                skin_name,
-                session,
-                proxy
-            )
-
-            # =================================================
-            # ERROR / 429
-            # =================================================
-
-            if resultado is None:
-
-                print(
-                    f"[WORKER {worker_id}] "
-                    f"No se pudo revisar: {skin_name}"
-                )
-
-                # Si el proxy recibió 429, dejamos terminar el ciclo
-                if PROXY_STATUS[proxy] > time.time():
-
-                    print(
-                        f"[WORKER {worker_id}] "
-                        f"Proxy en cooldown. "
-                        f"Terminando ciclo."
-                    )
+                if resultado is not None:
 
                     break
 
-                time.sleep(random.uniform(8, 12))
+                print(
+                    f"[RETRY] "
+                    f"{skin_name} | "
+                    f"Intento {intento + 1}"
+                )
 
+                time.sleep(random.uniform(1, 2))
+
+            if resultado is None:
                 continue
-
-            # =================================================
-            # CONTADOR
-            # =================================================
 
             with lock:
                 skins_revisadas_total += 1
@@ -611,103 +570,101 @@ def worker(grupo_skins, worker_id):
             precio_actual = resultado["price"]
             nombre_real = resultado["name"]
 
-            # =================================================
-            # TELEGRAM
-            # =================================================
+            ultima_alerta = notificados.get(skin_name)
 
-            if precio_actual is not None:
+            if precio_actual <= precio_max and (
+                ultima_alerta is None
+                or precio_actual < ultima_alerta
+            ):
 
-                ultima_alerta = notificados.get(skin_name)
+                steam_url = (
+                    "steam://openurl/https://steamcommunity.com/market/listings/730/"
+                    + requests.utils.quote(nombre_real, safe='')
+                )
 
-                if precio_actual <= precio_max and (
-                    ultima_alerta is None
-                    or precio_actual < ultima_alerta
-                ):
+                enviar_telegram(
+                    f"🛒 Skin en oferta\n"
+                    f"{skin_name}\n"
+                    f"{steam_url}\n"
+                    f"💵 {precio_actual:.2f} USD\n"
+                    f"📉 Max {precio_max:.2f} USD"
+                )
 
-                    steam_url = (
-                        "steam://openurl/https://steamcommunity.com/market/listings/730/"
-                        + requests.utils.quote(
-                            nombre_real,
-                            safe=''
-                        )
-                    )
+                notificados[skin_name] = precio_actual
 
-                    enviar_telegram(
-                        f"🛒 Skin en oferta\n"
-                        f"{skin_name}\n"
-                        f"{steam_url}\n"
-                        f"💵 {precio_actual:.2f} USD\n"
-                        f"📉 Max {precio_max:.2f} USD"
-                    )
-
-                    notificados[skin_name] = precio_actual
-
-            # =================================================
-            # DELAY ENTRE SKINS
-            # =================================================
-
-            time.sleep(random.uniform(15, 25))
-
-        # =====================================================
-        # FIN DEL CICLO
-        # =====================================================
+            time.sleep(random.uniform(3, 6))
 
         estado_app["ultimo_escaneo"] = datetime.now().isoformat()
 
-        duracion = round(
-            time.time() - inicio_ciclo,
-            2
-        )
+        if worker_id == 0:
 
-        print(
-            f"[WORKER {worker_id}] "
-            f"Ciclo terminado | "
-            f"Duración: {duracion}s"
-        )
+            global ciclo_numero
 
-        # Espera antes del próximo ciclo
-        espera = random.uniform(20, 35)
+            ciclo_numero += 1
 
-        print(
-            f"[WORKER {worker_id}] "
-            f"Esperando {espera:.1f}s para próximo ciclo"
-        )
+            duracion = round(time.time() - inicio_ciclo, 2)
 
-        time.sleep(espera)
+            ahora = time.time()
+
+            proxies_activos = len([
+                p for p, t in PROXY_STATUS.items()
+                if t <= ahora
+            ])
+
+            proxies_cooldown = len([
+                p for p, t in PROXY_STATUS.items()
+                if t > ahora
+            ])
+
+            print("\n================ RESUMEN CICLO ================")
+
+            print(f"[INFO] Ciclo número: {ciclo_numero}")
+
+            print(f"[INFO] Skins totales vigiladas: {len(skins_a_vigilar)}")
+
+            print(f"[INFO] Skins revisadas: {skins_revisadas_total}")
+
+            print(f"[INFO] Proxies activos: {proxies_activos}")
+
+            print(f"[INFO] Proxies cooldown: {proxies_cooldown}")
+
+            print(f"[INFO] Cache size: {len(price_cache)}")
+
+            limpiar_cache()
+
+            print(f"[INFO] Duración ciclo: {duracion} segundos")
+
+            skins_a_eliminar = []
+
+            for skin, fails in failed_counts.items():
+
+                if fails >= 50:
+
+                    print("\n[INFO] Skin desactivada por demasiados fallos:")
+                    print(skin)
+
+                    skins_a_eliminar.append(skin)
+
+            # eliminar skins problemáticas
+            for skin_name in skins_a_eliminar:
+
+                if skin_name in skins_a_vigilar:
+
+                    del skins_a_vigilar[skin_name]
+
+                    print(f"[INFO] Eliminada del monitoreo: {skin_name}")
+
+            print()
+
+            print("================================================\n")
+
+            skins_revisadas_total = 0
+
+        time.sleep(random.uniform(15, 30))
 
 # 🔁 Ejecutar el servidor Flask en hilo separado
 def iniciar_servidor():
     app.run(host="0.0.0.0", port=8080, threaded=True, use_reloader=False)
-
-def probar_proxies():
-
-    print("\n========== TEST PROXIES ==========\n")
-
-    for proxy in PROXIES:
-
-        try:
-
-            r = requests.get(
-                "https://steamcommunity.com",
-                proxies={
-                    "http": proxy,
-                    "https": proxy
-                },
-                headers=get_headers(),
-                timeout=10
-            )
-
-            print(proxy)
-            print("Status:", r.status_code)
-            print()
-
-        except Exception as e:
-
-            print(proxy)
-            print(type(e).__name__, e)
-            print()
-
-    print("=================================\n")
 
 if __name__ == "__main__":
 
@@ -722,11 +679,7 @@ if __name__ == "__main__":
     threads = []
 
     for i, grupo in enumerate(grupos):
-        t = threading.Thread(
-            target=worker,
-            args=(grupo, i),
-            name=f"Worker-{i}"
-        )
+        t = threading.Thread(target=worker, args=(grupo, i))
         t.start()
         threads.append(t)
 
