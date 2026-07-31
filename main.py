@@ -123,6 +123,19 @@ CACHE_TTL = 70  # segundos
 
 failed_counts = {}
 
+# =========================
+# ESTADÍSTICAS
+# =========================
+
+stats = {
+    "requests_steam": 0,
+    "requests_exitosas": 0,
+    "requests_fallidas": 0,
+    "cache_hits": 0,
+    "alertas_enviadas": 0,
+    "tiempo_consultas": 0.0
+}
+
 def limpiar_cache():
 
     ahora = time.time()
@@ -256,6 +269,9 @@ def buscar_precio(market_hash_name, session, proxy):
 
         if ahora - cache_data["timestamp"] < CACHE_TTL:
 
+            with lock:
+                stats["cache_hits"] += 1
+
             print(
                 f"[CACHE HIT] "
                 f"{market_hash_name} -> "
@@ -325,6 +341,11 @@ def buscar_precio(market_hash_name, session, proxy):
         # HISTOGRAMA
         # =========================
 
+        inicio_request = time.time()
+
+        with lock:
+            stats["requests_steam"] += 1
+
         r = session.get(
             "https://steamcommunity.com/market/itemordershistogram",
             params=params,
@@ -332,6 +353,11 @@ def buscar_precio(market_hash_name, session, proxy):
             timeout=(8, 15),
             proxies=proxies
         )
+
+        duracion_request = time.time() - inicio_request
+
+        with lock:
+            stats["tiempo_consultas"] += duracion_request
 
         print(
             f"[HTTP HISTOGRAM] "
@@ -390,6 +416,7 @@ def buscar_precio(market_hash_name, session, proxy):
 
             with lock:
                 PROXY_FAILS[proxy] += 1
+                stats["requests_fallidas"] += 1
 
             return None
 
@@ -429,10 +456,25 @@ def buscar_precio(market_hash_name, session, proxy):
 
         if not data.get("success"):
 
+            with lock:
+                stats["requests_fallidas"] += 1
+
             print(
                 f"[HISTOGRAM] Steam respondió "
                 f"success=False"
             )
+
+            print(
+                f"[DEBUG DATA] {data}"
+            )
+
+            return {
+                "price": None,
+                "name": market_hash_name
+            }
+
+        with lock:
+            stats["requests_exitosas"] += 1
 
             print(
                 f"[DEBUG DATA] {data}"
@@ -716,6 +758,11 @@ def worker(grupo_skins, worker_id):
                 )
 
                 notificados[skin_name] = precio_actual
+                
+                with lock:
+                    stats["alertas_enviadas"] += 1
+
+            
 
             time.sleep(random.uniform(3, 6))
 
@@ -749,15 +796,44 @@ def worker(grupo_skins, worker_id):
 
             print(f"[INFO] Skins revisadas: {skins_revisadas_total}")
 
+            print(f"[INFO] Requests a Steam: {stats['requests_steam']}")
+
+            print(f"[INFO] Requests exitosas: {stats['requests_exitosas']}")
+
+            print(f"[INFO] Requests fallidas: {stats['requests_fallidas']}")
+
+            print(f"[INFO] Cache hits: {stats['cache_hits']}")
+
+            print(f"[INFO] Alertas enviadas: {stats['alertas_enviadas']}")
+
             print(f"[INFO] Proxies activos: {proxies_activos}")
 
             print(f"[INFO] Proxies cooldown: {proxies_cooldown}")
 
             print(f"[INFO] Cache size: {len(price_cache)}")
 
+            print(f"[INFO] Duración ciclo: {duracion} segundos")
+
+            if stats["requests_steam"] > 0:
+
+                promedio = (
+                    stats["tiempo_consultas"] /
+                    stats["requests_steam"]
+                )
+
+                print(
+                    f"[INFO] Tiempo promedio/request: "
+                    f"{promedio:.2f}s"
+                )
+
+                print(
+                    f"[INFO] Tiempo promedio/request: "
+                    f"{promedio:.2f}s"
+                )
+
             limpiar_cache()
 
-            print(f"[INFO] Duración ciclo: {duracion} segundos")
+            print("================================================\n")
 
             skins_a_eliminar = []
 
@@ -784,6 +860,12 @@ def worker(grupo_skins, worker_id):
             print("================================================\n")
 
             skins_revisadas_total = 0
+
+            with lock:
+                stats["requests_steam"] = 0
+                stats["requests_exitosas"] = 0
+                stats["requests_fallidas"] = 0
+                stats["cache_hits"] = 0
 
         time.sleep(random.uniform(15, 30))
 
