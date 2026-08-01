@@ -100,6 +100,12 @@ skins_a_vigilar = {
     "StatTrak Nomad Knife | Ultraviolet Field": 150.00,
     "StatTrak Bowie Knife | Lore Well": 125.00,
     "StatTrak Bowie Knife | Autotronic Well": 130.00,
+    "StatTrak Falchion Knife | Freehand Minimal": 116.00,
+    "Falchion Knife | Lore Well": 124.00,
+    "StatTrak Falchion | Damascus Steel Field": 130.00,
+    "Falchion Knife | Blue Steel Well": 130.00,
+    "StatTrak Falchion Knife | Damascus Steel Minimal": 144.00,
+    
 }
 
 ITEM_NAME_IDS = {
@@ -119,6 +125,11 @@ ITEM_NAME_IDS = {
     "StatTrak Nomad Knife | Ultraviolet Field": 176506919,
     "StatTrak Bowie Knife | Lore Well": 176263539,
     "StatTrak Bowie Knife | Autotronic Well": 176270413,
+    "StatTrak Falchion Knife | Freehand Minimal": 176263480,
+    "Falchion Knife | Lore Well": 176263314,
+    "StatTrak Falchion | Damascus Steel Field": 175881128,
+    "Falchion Knife | Blue Steel Well": 49422311,
+    "StatTrak Falchion Knife | Damascus Steel Minimal": 175882043,
 }
 
 notificados = {}
