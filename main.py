@@ -84,52 +84,52 @@ if not TELEGRAM_BOT_TOKEN or not TELEGRAM_CHAT_ID:
 
 # Lista de ítems con URL y precio máximo aceptado
 skins_a_vigilar = {
-    "Knife falchion ★ StatTrak™ | Autotronic minimal": 165.00,
-    "StatTrak Huntsman Knife | Damascus Steel Factory": 170.00,
-    "StatTrak Falchion Knife | Stained Minimal": 125.00,
-    "StatTrak Falchion Knife | Crimson Web Field": 180.00,
-    "StatTrak Bowie Knife | Autotronic Minimal": 145.00,
-    "stattrak Paracord Knife | Blue Steel Minimal": 150.00,
-    "StatTrak Falchion Knife | Lore Minimal": 190.00,
-    "Classic Knife | Blue Steel Minimal": 169.00,
-    "Bowie Knife | Blue Steel Minimal": 160.00,
-    "StatTrak Falchion Knife | Black Laminate Factory": 175.00,
-    "Kukri Knife | Night Stripe Factory": 140.00,
-    "StatTrak Skeleton Knife | Scorched Field": 174.00,
-    "Falchion Knife | Ultraviolet Minimal": 150.00,
-    "StatTrak Nomad Knife | Ultraviolet Field": 150.00,
-    "StatTrak Bowie Knife | Lore Well": 125.00,
-    "StatTrak Bowie Knife | Autotronic Well": 130.00,
-    "StatTrak Falchion Knife | Freehand Minimal": 116.00,
-    "Falchion Knife | Lore Well": 124.00,
-    "StatTrak Falchion | Damascus Steel Field": 130.00,
-    "Falchion Knife | Blue Steel Well": 130.00,
-    "StatTrak Falchion Knife | Damascus Steel Minimal": 144.00,
+    "★ StatTrak™ Falchion Knife | Autotronic (Minimal Wear)": 165.00,
+    "★ StatTrak™ Huntsman Knife | Damascus Steel (Factory New)": 170.00,
+    "★ StatTrak™ Falchion Knife | Stained (Minimal Wear)": 125.00,
+    "★ StatTrak™ Falchion Knife | Crimson Web (Field-Tested)": 180.00,
+    "★ StatTrak™ Bowie Knife | Autotronic (Minimal Wear)": 145.00,
+    "★ StatTrak™ Paracord Knife | Blue Steel (Minimal Wear)": 150.00,
+    "★ StatTrak™ Falchion Knife | Lore (Minimal Wear)": 190.00,
+    "★ Classic Knife | Blue Steel (Minimal Wear)": 169.00,
+    "★ Bowie Knife | Blue Steel (Minimal Wear)": 160.00,
+    "★ StatTrak™ Falchion Knife | Black Laminate (Factory New)": 175.00,
+    "★ Kukri Knife | Night Stripe (Factory New)": 140.00,
+    "★ StatTrak™ Skeleton Knife | Scorched (Field-Tested)": 174.00,
+    "★ Falchion Knife | Ultraviolet (Minimal Wear)": 150.00,
+    "★ StatTrak™ Nomad Knife | Ultraviolet (Field-Tested)": 150.00,
+    "★ StatTrak™ Bowie Knife | Lore (Well-Worn)": 125.00,
+    "★ StatTrak™ Bowie Knife | Autotronic (Well-Worn)": 130.00,
+    "★ StatTrak™ Falchion Knife | Freehand (Minimal Wear)": 116.00,
+    "★ Falchion Knife | Lore (Well-Worn)": 124.00,..
+    "★ StatTrak™ Falchion Knife | Damascus Steel (Field-Tested)": 130.00,
+    "★ Falchion Knife | Blue Steel (Well-Worn)": 130.00,
+    "★ StatTrak™ Falchion Knife | Damascus Steel (Minimal Wear)": 144.00,
     
 }
 
 ITEM_NAME_IDS = {
-    "Knife falchion ★ StatTrak™ | Autotronic minimal": 176263237,
-    "StatTrak Huntsman Knife | Damascus Steel Factory": 175885007,
-    "StatTrak Falchion Knife | Stained Minimal": 49698684,
-    "StatTrak Falchion Knife | Crimson Web Field": 49612097,
-    "StatTrak Bowie Knife | Autotronic Minimal": 176263307,
-    "stattrak Paracord Knife | Blue Steel Minimal": 176097689,
-    "StatTrak Falchion Knife | Lore Minimal": 176263373,
-    "Classic Knife | Blue Steel Minimal": 176091953,
-    "Bowie Knife | Blue Steel Minimal": 139673208,
-    "StatTrak Falchion Knife | Black Laminate Factory": 176283223,
-    "Kukri Knife | Night Stripe Factory": 176420350,
-    "StatTrak Skeleton Knife | Scorched Field": 176097569,
-    "Falchion Knife | Ultraviolet Minimal": 175880741,
-    "StatTrak Nomad Knife | Ultraviolet Field": 176506919,
-    "StatTrak Bowie Knife | Lore Well": 176263539,
-    "StatTrak Bowie Knife | Autotronic Well": 176270413,
-    "StatTrak Falchion Knife | Freehand Minimal": 176263480,
-    "Falchion Knife | Lore Well": 176263314,
-    "StatTrak Falchion | Damascus Steel Field": 175881128,
-    "Falchion Knife | Blue Steel Well": 49422311,
-    "StatTrak Falchion Knife | Damascus Steel Minimal": 175882043,
+    "★ StatTrak™ Falchion Knife | Autotronic (Minimal Wear)": 176263237,
+    "★ StatTrak™ Huntsman Knife | Damascus Steel (Factory New)": 175885007,
+    "★ StatTrak™ Falchion Knife | Stained (Minimal Wear)": 49698684,
+    "★ StatTrak™ Falchion Knife | Crimson Web (Field-Tested)": 49612097,
+    "★ StatTrak™ Bowie Knife | Autotronic (Minimal Wear)": 176263307,
+    "★ StatTrak™ Paracord Knife | Blue Steel (Minimal Wear)": 176097689,
+    "★ StatTrak™ Falchion Knife | Lore (Minimal Wear)": 176263373,
+    "★ Classic Knife | Blue Steel (Minimal Wear)": 176091953,
+    "★ Bowie Knife | Blue Steel (Minimal Wear)": 139673208,
+    "★ StatTrak™ Falchion Knife | Black Laminate (Factory New)": 176283223,
+    "★ Kukri Knife | Night Stripe (Factory New)": 176420350,
+    "★ StatTrak™ Skeleton Knife | Scorched (Field-Tested)": 176097569,
+    "★ Falchion Knife | Ultraviolet (Minimal Wear)": 175880741,
+    "★ StatTrak™ Nomad Knife | Ultraviolet (Field-Tested)": 176506919,
+    "★ StatTrak™ Bowie Knife | Lore (Well-Worn)": 176263539,
+    "★ StatTrak™ Bowie Knife | Autotronic (Well-Worn)": 176270413,
+    "★ StatTrak™ Falchion Knife | Freehand (Minimal Wear)": 176263480,
+    "★ Falchion Knife | Lore (Well-Worn)": 176263314,
+    "★ StatTrak™ Falchion Knife | Damascus Steel (Field-Tested)": 130.00": 175881128,
+    "★ Falchion Knife | Blue Steel (Well-Worn)": 49422311,
+    "★ StatTrak™ Falchion Knife | Damascus Steel (Minimal Wear)": 175882043,
 }
 
 notificados = {}
@@ -142,7 +142,7 @@ lock = threading.Lock()
 
 # Cache temporal de precios
 price_cache = {}
-CACHE_TTL = 70  # segundos
+CACHE_TTL = 80  # segundos
 
 failed_counts = {}
 
@@ -648,7 +648,7 @@ def worker(grupo_skins, worker_id):
 
             resultado = None
 
-            MAX_INTENTOS = 3
+            MAX_INTENTOS = 1
 
             for intento in range(MAX_INTENTOS):
 
@@ -661,7 +661,7 @@ def worker(grupo_skins, worker_id):
                         f"{skin_name}"
                     )
 
-                    time.sleep(10)
+                    time.sleep(15)
 
                     continue
 
@@ -684,7 +684,7 @@ def worker(grupo_skins, worker_id):
                 )
 
                 # Espera antes del siguiente intento
-                time.sleep(random.uniform(5, 10))
+                time.sleep(random.uniform(8, 20))
 
             with lock:
                 skins_revisadas_total += 1
@@ -720,9 +720,7 @@ def worker(grupo_skins, worker_id):
                 with lock:
                     stats["alertas_enviadas"] += 1
 
-            
-
-            time.sleep(random.uniform(3, 6))
+            time.sleep(random.uniform(5, 8))
 
         estado_app["ultimo_escaneo"] = datetime.now().isoformat()
 
