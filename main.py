@@ -127,7 +127,7 @@ ITEM_NAME_IDS = {
     "★ StatTrak™ Bowie Knife | Autotronic (Well-Worn)": 176270413,
     "★ StatTrak™ Falchion Knife | Freehand (Minimal Wear)": 176263480,
     "★ Falchion Knife | Lore (Well-Worn)": 176263314,
-    "★ StatTrak™ Falchion Knife | Damascus Steel (Field-Tested)": 130.00": 175881128,
+    "★ StatTrak™ Falchion Knife | Damascus Steel (Field-Tested)": 175881128,
     "★ Falchion Knife | Blue Steel (Well-Worn)": 49422311,
     "★ StatTrak™ Falchion Knife | Damascus Steel (Minimal Wear)": 175882043,
 }
