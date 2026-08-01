@@ -101,7 +101,7 @@ skins_a_vigilar = {
     "★ StatTrak™ Bowie Knife | Lore (Well-Worn)": 125.00,
     "★ StatTrak™ Bowie Knife | Autotronic (Well-Worn)": 130.00,
     "★ StatTrak™ Falchion Knife | Freehand (Minimal Wear)": 116.00,
-    "★ Falchion Knife | Lore (Well-Worn)": 124.00,..
+    "★ Falchion Knife | Lore (Well-Worn)": 124.00,
     "★ StatTrak™ Falchion Knife | Damascus Steel (Field-Tested)": 130.00,
     "★ Falchion Knife | Blue Steel (Well-Worn)": 130.00,
     "★ StatTrak™ Falchion Knife | Damascus Steel (Minimal Wear)": 144.00,
