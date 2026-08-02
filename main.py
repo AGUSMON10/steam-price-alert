@@ -142,7 +142,7 @@ lock = threading.Lock()
 
 # Cache temporal de precios
 price_cache = {}
-CACHE_TTL = 80  # segundos
+CACHE_TTL = 150  # segundos
 
 failed_counts = {}
 
@@ -720,7 +720,7 @@ def worker(grupo_skins, worker_id):
                 with lock:
                     stats["alertas_enviadas"] += 1
 
-            time.sleep(random.uniform(5, 8))
+            time.sleep(random.uniform(8, 15))
 
         estado_app["ultimo_escaneo"] = datetime.now().isoformat()
 
