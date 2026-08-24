@@ -102,6 +102,7 @@ skins_a_vigilar = {
     "★ StatTrak™ Nomad Knife | Blue Steel (Field-Tested)": 200.00,
     "★ Paracord Knife | Tiger Tooth (Minimal Wear)": 160.00,
     "★ Paracord Knife | Blue Steel (Factory New)": 199.00,
+    "★ Paracord Knife | Crimson Web (Minimal Wear)": 149.00,
     
 }
 
@@ -124,6 +125,7 @@ ITEM_NAME_IDS = {
     "★ StatTrak™ Nomad Knife | Blue Steel (Field-Tested)": 176097644,
     "★ Paracord Knife | Tiger Tooth (Minimal Wear)": 176507016,
     "★ Paracord Knife | Blue Steel (Factory New)": 176099222,
+    "★ Paracord Knife | Crimson Web (Minimal Wear)": 176097544,
 }
 
 notificados = {}
