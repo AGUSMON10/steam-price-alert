@@ -140,7 +140,7 @@ lock = threading.Lock()
 
 # Cache temporal de precios
 price_cache = {}
-CACHE_TTL = 240  # segundos
+CACHE_TTL = 300  # segundos
 
 failed_counts = {}
 
@@ -360,7 +360,7 @@ def buscar_precio(market_hash_name, session, proxy):
             "https://steamcommunity.com/market/itemordershistogram",
             params=params,
             headers=get_headers(),
-            timeout=(8, 15),
+            timeout=(10, 20),
             proxies=proxies
         )
 
@@ -719,7 +719,7 @@ def worker(grupo_skins, worker_id):
                 with lock:
                     stats["alertas_enviadas"] += 1
 
-            time.sleep(random.uniform(8, 15))
+            time.sleep(random.uniform(5, 10))
 
         estado_app["ultimo_escaneo"] = datetime.now().isoformat()
 
