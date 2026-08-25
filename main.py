@@ -24,8 +24,15 @@ PROXIES = [
 ]
 
 PROXY_COOLDOWN = 600  # 10 min
+
+# Tiempo mínimo entre usos del mismo proxy
+PROXY_MIN_INTERVAL = 20  # 20 segundos
+
 PROXY_STATUS = {p: 0 for p in PROXIES}
 PROXY_FAILS = {p: 0 for p in PROXIES}
+
+# Última vez que se utilizó cada proxy
+PROXY_LAST_USED = {p: 0 for p in PROXIES}
 
 # Redefinir print global con flush automático
 original_print = print
@@ -223,27 +230,57 @@ def obtener_proxy():
         ahora = time.time()
 
         disponibles = [
-            p for p, t in PROXY_STATUS.items()
-            if t <= ahora
+            p for p in PROXIES
+            if PROXY_STATUS[p] <= ahora
+            and ahora - PROXY_LAST_USED[p] >= PROXY_MIN_INTERVAL
         ]
 
         if disponibles:
-            return random.choice(disponibles)
 
-        tiempos_restantes = [
-            t - ahora
-            for t in PROXY_STATUS.values()
-            if t > ahora
-        ]
+            # Elegir el proxy que hace más tiempo no usamos
+            proxy = min(
+                disponibles,
+                key=lambda p: PROXY_LAST_USED[p]
+            )
 
-        if not tiempos_restantes:
-            return None
+            # Guardar cuánto tiempo llevaba sin usarse
+            ultimo_uso = ahora - PROXY_LAST_USED[proxy]
 
-        espera = max(1, min(tiempos_restantes))
+            # Actualizar última utilización
+            PROXY_LAST_USED[proxy] = ahora
+
+            print(
+                f"[PROXY] Seleccionado: {proxy} | "
+                f"Último uso hace {ultimo_uso:.1f}s"
+            )
+
+            return proxy
+
+        # Calcular cuánto falta para que algún proxy pueda utilizarse
+        esperas = []
+
+        for p in PROXIES:
+
+            cooldown_restante = max(
+                0,
+                PROXY_STATUS[p] - ahora
+            )
+
+            intervalo_restante = max(
+                0,
+                PROXY_MIN_INTERVAL -
+                (ahora - PROXY_LAST_USED[p])
+            )
+
+            esperas.append(
+                max(cooldown_restante, intervalo_restante)
+            )
+
+        espera = max(1, min(esperas))
 
         print(
-            f"[WARN] Todos los proxies están en cooldown. "
-            f"Esperando {espera:.0f}s..."
+            f"[WARN] Ningún proxy disponible. "
+            f"Esperando {espera:.1f}s..."
         )
 
         time.sleep(espera)
@@ -577,18 +614,19 @@ def buscar_precio(market_hash_name, session, proxy):
             "name": market_hash_name
         }
 
-    except Exception as e:
+    except requests.exceptions.ReadTimeout:
 
         print(
-            f"[ERROR HISTOGRAM] "
-            f"{type(e).__name__}: {e}"
+            f"[TIMEOUT] {market_hash_name} | "
+            f"Proxy: {proxy}"
         )
 
         with lock:
-
             PROXY_FAILS[proxy] += 1
 
-            if PROXY_FAILS[proxy] >= 5:
+            fails = PROXY_FAILS[proxy]
+
+            if fails >= 3:
 
                 PROXY_STATUS[proxy] = (
                     time.time() + PROXY_COOLDOWN
@@ -596,8 +634,31 @@ def buscar_precio(market_hash_name, session, proxy):
 
                 print(
                     f"[PROXY COOLDOWN] {proxy} | "
-                    f"HTTP {r.status_code} | "
-                    f"5 fallos consecutivos"
+                    f"3 timeouts consecutivos"
+                )
+
+                PROXY_FAILS[proxy] = 0
+
+        return None
+
+    except requests.exceptions.RequestException as e:
+
+        print(
+            f"[REQUEST ERROR] "
+            f"{type(e).__name__}: {e}"
+        )
+
+        with lock:
+            PROXY_FAILS[proxy] += 1
+
+            if PROXY_FAILS[proxy] >= 5:
+                PROXY_STATUS[proxy] = (
+                    time.time() + PROXY_COOLDOWN
+                )
+
+                print(
+                    f"[PROXY COOLDOWN] {proxy} | "
+                    f"5 errores consecutivos"
                 )
 
                 PROXY_FAILS[proxy] = 0
@@ -719,7 +780,7 @@ def worker(grupo_skins, worker_id):
                 with lock:
                     stats["alertas_enviadas"] += 1
 
-            time.sleep(random.uniform(5, 10))
+            time.sleep(random.uniform(8, 15))
 
         estado_app["ultimo_escaneo"] = datetime.now().isoformat()
 
