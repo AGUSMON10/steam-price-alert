@@ -11,16 +11,16 @@ import builtins
 # Lista de proxies (pegá los tuyos de Webshare)
 
 PROXIES = [
-    "http://olrliwpe:v769pjjmxnb1@130.180.232.130:8568",
-    "http://olrliwpe:v769pjjmxnb1@96.62.181.13:7225",
-    "http://olrliwpe:v769pjjmxnb1@82.29.239.219:5367",
-    "http://olrliwpe:v769pjjmxnb1@87.86.24.154:5805",
-    "http://olrliwpe:v769pjjmxnb1@31.98.15.224:5401",
-    "http://olrliwpe:v769pjjmxnb1@209.166.2.202:7863",
-    "http://olrliwpe:v769pjjmxnb1@45.58.228.57:5729",
-    "http://olrliwpe:v769pjjmxnb1@5.59.251.216:6255",
-    "http://olrliwpe:v769pjjmxnb1@9.142.218.36:6700",
-    "http://olrliwpe:v769pjjmxnb1@9.142.195.37:6205"
+    "http://olrliwpe:v769pjjmxnb1@195.40.128.37:6757",
+    "http://olrliwpe:v769pjjmxnb1@192.46.189.205:6198",
+    "http://olrliwpe:v769pjjmxnb1@138.226.70.245:7935",
+    "http://olrliwpe:v769pjjmxnb1@82.22.73.22:7228",
+    "http://olrliwpe:v769pjjmxnb1@195.40.128.230:6950",
+    "http://olrliwpe:v769pjjmxnb1@104.252.62.94:5465",
+    "http://olrliwpe:v769pjjmxnb1@166.0.40.123:7131",
+    "http://olrliwpe:v769pjjmxnb1@203.100.210.175:5324",
+    "http://olrliwpe:v769pjjmxnb1@31.98.15.128:5305",
+    "http://olrliwpe:v769pjjmxnb1@9.142.42.134:5804"
 ]
 
 PROXY_COOLDOWN = 600  # 10 min
@@ -103,6 +103,7 @@ skins_a_vigilar = {
     "★ Paracord Knife | Tiger Tooth (Minimal Wear)": 160.00,
     "★ Paracord Knife | Blue Steel (Factory New)": 199.00,
     "★ Paracord Knife | Crimson Web (Minimal Wear)": 149.00,
+    "M4A4 | Asiimov (Well-Worn)": 170.00,
     
 }
 
@@ -126,6 +127,7 @@ ITEM_NAME_IDS = {
     "★ Paracord Knife | Tiger Tooth (Minimal Wear)": 176507016,
     "★ Paracord Knife | Blue Steel (Factory New)": 176099222,
     "★ Paracord Knife | Crimson Web (Minimal Wear)": 176097544,
+    "M4A4 | Asiimov (Well-Worn)": 3455082,
 }
 
 notificados = {}
@@ -138,7 +140,7 @@ lock = threading.Lock()
 
 # Cache temporal de precios
 price_cache = {}
-CACHE_TTL = 150  # segundos
+CACHE_TTL = 240  # segundos
 
 failed_counts = {}
 
@@ -197,19 +199,17 @@ for proxy in PROXIES:
 
     SESSIONS[proxy] = crear_session()
 
-# Headers realistas
-USER_AGENTS = [
-    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/121 Safari/537.36",
-    "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 Chrome/120 Safari/537.36",
-    "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 Chrome/119 Safari/537.36",
-    "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:122.0) Gecko/20100101 Firefox/122.0",
-    "Mozilla/5.0 (Macintosh; Intel Mac OS X 13_0) AppleWebKit/605.1.15 Version/17.0 Safari/605.1.15"
-]
+# Header fijo para todas las consultas
+USER_AGENT = (
+    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+    "AppleWebKit/537.36 (KHTML, like Gecko) "
+    "Chrome/131.0.0.0 Safari/537.36"
+)
 
 
 def get_headers():
     return {
-        "User-Agent": random.choice(USER_AGENTS),
+        "User-Agent": USER_AGENT,
         "Accept-Language": "en-US,en;q=0.9",
         "Accept": "application/json,text/javascript,*/*;q=0.1",
         "Referer": "https://steamcommunity.com/market/",
@@ -218,35 +218,37 @@ def get_headers():
 
 def obtener_proxy():
 
-    ahora = time.time()
+    while estado_app["activo"]:
 
-    disponibles = [
-        p for p, t in PROXY_STATUS.items()
-        if t <= ahora
-    ]
+        ahora = time.time()
 
-    if not disponibles:
-
-        cooldown_activos = [
+        disponibles = [
             p for p, t in PROXY_STATUS.items()
+            if t <= ahora
+        ]
+
+        if disponibles:
+            return random.choice(disponibles)
+
+        tiempos_restantes = [
+            t - ahora
+            for t in PROXY_STATUS.values()
             if t > ahora
         ]
 
-        print(
-            f"[WARN] Sin proxies disponibles | "
-            f"Cooldown: {len(cooldown_activos)}"
-        )
-
-        # reset global si TODOS están en cooldown
-        if len(cooldown_activos) == len(PROXIES):
-
-            print("[WARN] Todos los proxies en cooldown")
-
+        if not tiempos_restantes:
             return None
 
-        return None
+        espera = max(1, min(tiempos_restantes))
 
-    return random.choice(disponibles)
+        print(
+            f"[WARN] Todos los proxies están en cooldown. "
+            f"Esperando {espera:.0f}s..."
+        )
+
+        time.sleep(espera)
+
+    return None
 
 # Crear app Flask para UptimeRobot
 app = Flask(__name__)
@@ -593,8 +595,9 @@ def buscar_precio(market_hash_name, session, proxy):
                 )
 
                 print(
-                    f"[PROXY COOLDOWN] "
-                    f"{proxy}"
+                    f"[PROXY COOLDOWN] {proxy} | "
+                    f"HTTP {r.status_code} | "
+                    f"5 fallos consecutivos"
                 )
 
                 PROXY_FAILS[proxy] = 0
