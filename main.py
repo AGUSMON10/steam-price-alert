@@ -756,7 +756,7 @@ def worker(grupo_skins, worker_id):
                 )
 
                 # Espera antes del siguiente intento
-                time.sleep(random.uniform(8, 20))
+                time.sleep(random.uniform(7, 17))
 
             with lock:
                 skins_revisadas_total += 1
@@ -792,7 +792,7 @@ def worker(grupo_skins, worker_id):
                 with lock:
                     stats["alertas_enviadas"] += 1
 
-            time.sleep(random.uniform(8, 15))
+            time.sleep(random.uniform(6, 13))
 
         estado_app["ultimo_escaneo"] = datetime.now().isoformat()
 
@@ -887,7 +887,7 @@ def worker(grupo_skins, worker_id):
                 stats["requests_fallidas"] = 0
                 stats["cache_hits"] = 0
 
-        time.sleep(random.uniform(15, 30))
+        time.sleep(random.uniform(13, 25))
 
 # 🔁 Ejecutar el servidor Flask en hilo separado
 def iniciar_servidor():
