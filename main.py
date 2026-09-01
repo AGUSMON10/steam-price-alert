@@ -111,6 +111,9 @@ skins_a_vigilar = {
     "★ Paracord Knife | Blue Steel (Factory New)": 199.00,
     "★ Paracord Knife | Crimson Web (Minimal Wear)": 149.00,
     "M4A4 | Asiimov (Well-Worn)": 170.00,
+    "★ StatTrak™ Ursus Knife | Ultraviolet (Minimal Wear)": 140.00,
+    "★ StatTrak™ Ursus Knife | Crimson Web (Field-Tested)": 170.00,
+    "★ StatTrak™ Paracord Knife | Tiger Tooth (Minimal Wear)": 150.00,
     
 }
 
@@ -135,6 +138,9 @@ ITEM_NAME_IDS = {
     "★ Paracord Knife | Blue Steel (Factory New)": 176099222,
     "★ Paracord Knife | Crimson Web (Minimal Wear)": 176097544,
     "M4A4 | Asiimov (Well-Worn)": 3455082,
+    "★ StatTrak™ Ursus Knife | Ultraviolet (Minimal Wear)": 176045737,
+    "★ StatTrak™ Ursus Knife | Crimson Web (Field-Tested)": 176004224,
+    "★ StatTrak™ Paracord Knife | Tiger Tooth (Minimal Wear)": 176519236,
 }
 
 notificados = {}
