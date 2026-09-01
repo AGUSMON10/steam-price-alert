@@ -114,6 +114,9 @@ skins_a_vigilar = {
     "★ StatTrak™ Ursus Knife | Ultraviolet (Minimal Wear)": 140.00,
     "★ StatTrak™ Ursus Knife | Crimson Web (Field-Tested)": 170.00,
     "★ StatTrak™ Paracord Knife | Tiger Tooth (Minimal Wear)": 150.00,
+    "★ StatTrak™ Bowie Knife | Tiger Tooth (Factory New)": 180.00,
+    "★ Survival Knife | Crimson Web (Minimal Wear)": 131.00,
+    "★ Survival Knife | Blue Steel (Factory New)": 150.00,
     
 }
 
@@ -141,6 +144,9 @@ ITEM_NAME_IDS = {
     "★ StatTrak™ Ursus Knife | Ultraviolet (Minimal Wear)": 176045737,
     "★ StatTrak™ Ursus Knife | Crimson Web (Field-Tested)": 176004224,
     "★ StatTrak™ Paracord Knife | Tiger Tooth (Minimal Wear)": 176519236,
+    "★ StatTrak™ Bowie Knife | Tiger Tooth (Factory New)": 175891607,
+    "★ Survival Knife | Crimson Web (Minimal Wear)": 176097789,
+    "★ Survival Knife | Blue Steel (Factory New)": 176103425,
 }
 
 notificados = {}
