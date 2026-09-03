@@ -165,7 +165,7 @@ lock = threading.Lock()
 
 # Cache temporal de precios
 price_cache = {}
-CACHE_TTL = 300  # segundos
+CACHE_TTL = 180  # segundos
 
 failed_counts = {}
 
@@ -798,7 +798,7 @@ def worker(grupo_skins, worker_id):
                 with lock:
                     stats["alertas_enviadas"] += 1
 
-            time.sleep(random.uniform(6, 13))
+            time.sleep(random.uniform(2, 5))
 
         estado_app["ultimo_escaneo"] = datetime.now().isoformat()
 
@@ -893,7 +893,7 @@ def worker(grupo_skins, worker_id):
                 stats["requests_fallidas"] = 0
                 stats["cache_hits"] = 0
 
-        time.sleep(random.uniform(13, 25))
+        time.sleep(random.uniform(3, 8))
 
 # 🔁 Ejecutar el servidor Flask en hilo separado
 def iniciar_servidor():
