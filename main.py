@@ -117,6 +117,9 @@ skins_a_vigilar = {
     "★ StatTrak™ Bowie Knife | Tiger Tooth (Factory New)": 180.00,
     "★ Survival Knife | Crimson Web (Minimal Wear)": 131.00,
     "★ Survival Knife | Blue Steel (Factory New)": 150.00,
+    "★ M9 Bayonet | Ultraviolet (Field-Tested)": 440.00,
+    "★ Stiletto Knife | Ultraviolet (Well-Worn)": 183.00,
+    "★ StatTrak™ Stiletto Knife | Damascus Steel (Field-Tested)": 205.00,
     
 }
 
@@ -147,6 +150,9 @@ ITEM_NAME_IDS = {
     "★ StatTrak™ Bowie Knife | Tiger Tooth (Factory New)": 175891607,
     "★ Survival Knife | Crimson Web (Minimal Wear)": 176097789,
     "★ Survival Knife | Blue Steel (Factory New)": 176103425,
+    "★ M9 Bayonet | Ultraviolet (Field-Tested)": 29389708,
+    "★ Stiletto Knife | Ultraviolet (Well-Worn)": 176043112,
+    "★ StatTrak™ Stiletto Knife | Damascus Steel (Field-Tested)": 176047257,
 }
 
 notificados = {}
