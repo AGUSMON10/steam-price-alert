@@ -165,7 +165,7 @@ lock = threading.Lock()
 
 # Cache temporal de precios
 price_cache = {}
-CACHE_TTL = 180  # segundos
+CACHE_TTL = 300  # segundos
 
 failed_counts = {}
 
@@ -357,7 +357,8 @@ def buscar_precio(market_hash_name, session, proxy):
             return {
                 "price": cache_data["price"],
                 "buy_price": cache_data.get("buy_price"),
-                "name": cache_data["name"]
+                "name": cache_data["name"],
+                "from_cache": True
             }
 
     # =========================
@@ -586,7 +587,8 @@ def buscar_precio(market_hash_name, session, proxy):
             return {
                 "price": None,
                 "buy_price": buy_price,
-                "name": market_hash_name
+                "name": market_hash_name,
+                "from_cache": False
             }
 
         # =========================
@@ -798,7 +800,8 @@ def worker(grupo_skins, worker_id):
                 with lock:
                     stats["alertas_enviadas"] += 1
 
-            time.sleep(random.uniform(5, 8))
+            if not resultado.get("from_cache", False):
+                time.sleep(random.uniform(5, 8))
 
         estado_app["ultimo_escaneo"] = datetime.now().isoformat()
 
