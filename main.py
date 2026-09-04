@@ -25,9 +25,6 @@ PROXIES = [
 
 PROXY_COOLDOWN = 600  # 10 min
 
-# Tiempo mínimo entre usos del mismo proxy
-PROXY_MIN_INTERVAL = 20  # 20 segundos
-
 PROXY_STATUS = {p: 0 for p in PROXIES}
 PROXY_FAILS = {p: 0 for p in PROXIES}
 
@@ -208,69 +205,100 @@ def get_headers():
     }
 
 def obtener_proxy():
+    """
+    Selecciona el mejor proxy disponible según:
+    1. Tiempo desde el último uso
+    2. Cantidad de fallos
+    3. Cooldown activo
+    4. Disponibilidad inmediata
+
+    Si hay varios proxies disponibles, elige el que lleva
+    más tiempo sin utilizarse.
+
+    Si todos están temporalmente ocupados, espera solamente
+    hasta que el mejor proxy vuelva a estar disponible.
+    """
 
     while estado_app["activo"]:
-
         ahora = time.time()
+        disponibles = []
 
-        disponibles = [
-            p for p in PROXIES
-            if PROXY_STATUS[p] <= ahora
-            and ahora - PROXY_LAST_USED[p] >= PROXY_MIN_INTERVAL
-        ]
+        for proxy in PROXIES:
+
+            # 1. Ignorar proxies en cooldown
+            if ahora < PROXY_STATUS[proxy]:
+                continue
+
+            # 2. Tiempo desde el último uso
+            tiempo_sin_uso = ahora - PROXY_LAST_USED[proxy]
+
+            # 3. Penalización por fallos
+            fallos = PROXY_FAILS[proxy]
+            penalizacion = fallos * 30
+
+            # 4. Score de prioridad
+            score = tiempo_sin_uso - penalizacion
+
+            disponibles.append(
+                (score, proxy, tiempo_sin_uso)
+            )
+
+        # =====================================================
+        # HAY PROXIES DISPONIBLES
+        # =====================================================
 
         if disponibles:
 
-            # Elegir el proxy que hace más tiempo no usamos
-            proxy = min(
-                disponibles,
-                key=lambda p: PROXY_LAST_USED[p]
+            # Mayor score = mejor proxy
+            disponibles.sort(
+                key=lambda x: x[0],
+                reverse=True
             )
 
-            # Guardar cuánto tiempo llevaba sin usarse
-            ultimo_uso = ahora - PROXY_LAST_USED[proxy]
+            score, proxy_elegido, tiempo_sin_uso = disponibles[0]
 
-            # Actualizar última utilización
-            PROXY_LAST_USED[proxy] = ahora
+            PROXY_LAST_USED[proxy_elegido] = ahora
 
             print(
-                f"[PROXY] Seleccionado: {proxy} | "
-                f"Último uso hace {ultimo_uso:.1f}s"
+                f"[PROXY] {proxy_elegido} | "
+                f"Sin uso: {tiempo_sin_uso:.1f}s | "
+                f"Fallos: {PROXY_FAILS[proxy_elegido]} | "
+                f"Score: {score:.1f}"
             )
 
-            return proxy
+            return proxy_elegido
 
-        # Calcular cuánto falta para que algún proxy pueda utilizarse
-        esperas = []
+        # =====================================================
+        # NINGÚN PROXY DISPONIBLE
+        # =====================================================
 
-        for p in PROXIES:
+        tiempos_disponibilidad = [
+            PROXY_STATUS[p]
+            for p in PROXIES
+            if PROXY_STATUS[p] > ahora
+        ]
 
-            cooldown_restante = max(
-                0,
-                PROXY_STATUS[p] - ahora
+        if tiempos_disponibilidad:
+
+            proximo = min(tiempos_disponibilidad)
+
+            espera = max(
+                0.1,
+                proximo - ahora
             )
 
-            intervalo_restante = max(
-                0,
-                PROXY_MIN_INTERVAL -
-                (ahora - PROXY_LAST_USED[p])
+            print(
+                f"[PROXY] Todos temporalmente ocupados. "
+                f"Esperando {espera:.1f}s..."
             )
 
-            esperas.append(
-                max(cooldown_restante, intervalo_restante)
-            )
+            time.sleep(espera)
 
-        espera = max(1, min(esperas))
-
-        print(
-            f"[WARN] Ningún proxy disponible. "
-            f"Esperando {espera:.1f}s..."
-        )
-
-        time.sleep(espera)
+        else:
+            time.sleep(0.5)
 
     return None
-
+    
 # Crear app Flask para UptimeRobot
 app = Flask(__name__)
 
