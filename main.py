@@ -36,39 +36,6 @@ PROXY_LAST_USED = {p: 0 for p in PROXIES}
 
 # Redefinir print global con flush automático
 original_print = print
-
-def normalizar(texto):
-
-    texto = texto.lower()
-
-    texto = texto.replace("★", "")
-
-    texto = texto.replace("™", "")
-
-    texto = re.sub(r"\s+", " ", texto)
-
-    return texto.strip()
-
-def es_item_valido(name):
-    name = name.lower()
-
-    blacklist = [
-        "case",
-        "key",
-        "capsule",
-        "graffiti",
-        "soundtrack",
-        "booster",
-        "package",
-        "sealed",
-        "gift"
-    ]
-
-    for b in blacklist:
-        if b in name:
-            return False
-
-    return True
     
 def flush_print(*args, **kwargs):
     kwargs['flush'] = True
@@ -156,7 +123,6 @@ ITEM_NAME_IDS = {
 }
 
 notificados = {}
-ultimo_escaneo = None
 skins_revisadas_total = 0
 ciclo_numero = 0
 estado_app = {"activo": True, "errores": 0, "ultimo_escaneo": None}
@@ -338,20 +304,16 @@ def buscar_precio(market_hash_name, session, proxy):
     # CACHE
     # =========================
 
-    with lock:
-        cache_data = price_cache.get(market_hash_name)
+    if market_hash_name in price_cache:
 
-    if cache_data:
+        cache_data = price_cache[market_hash_name]
 
         if ahora - cache_data["timestamp"] < CACHE_TTL:
 
-            with lock:
-                stats["cache_hits"] += 1
+            stats["cache_hits"] += 1
 
             print(
-                f"[CACHE HIT] "
-                f"{market_hash_name} -> "
-                f"${cache_data['price']:.2f}"
+                f"[CACHE HIT] {market_hash_name}"
             )
 
             return {
@@ -376,7 +338,8 @@ def buscar_precio(market_hash_name, session, proxy):
 
         return {
             "price": None,
-            "name": market_hash_name
+            "name": market_hash_name,
+            "from_cache": False
         }
 
     # =========================
@@ -444,8 +407,6 @@ def buscar_precio(market_hash_name, session, proxy):
                     time.time() + cooldown
                 )
 
-                fails = PROXY_FAILS[proxy]
-
             print(f"[WARN] Steam limitó una consulta. Reintentando...")
 
             return None
@@ -494,6 +455,9 @@ def buscar_precio(market_hash_name, session, proxy):
                 f"[DEBUG] Respuesta: "
                 f"{r.text[:500]}"
             )
+
+            with lock:
+                stats["requests_fallidas"] += 1
 
             return None
 
@@ -631,7 +595,8 @@ def buscar_precio(market_hash_name, session, proxy):
         return {
             "price": precio,
             "buy_price": buy_price,
-            "name": market_hash_name
+            "name": market_hash_name,
+            "from_cache": False
         }
 
     except requests.exceptions.ReadTimeout:
@@ -728,9 +693,40 @@ def worker(grupo_skins, worker_id):
 
             resultado = None
 
-            MAX_INTENTOS = 1
+            MAX_INTENTOS = 2
 
             for intento in range(MAX_INTENTOS):
+
+                # =========================
+                # CACHE ANTES DE PEDIR PROXY
+                # =========================
+
+                ahora = time.time()
+
+                with lock:
+                    cache_data = price_cache.get(skin_name)
+
+                if (
+                    cache_data is not None
+                    and ahora - cache_data["timestamp"] < CACHE_TTL
+                ):
+
+                    stats["cache_hits"] += 1
+
+                    resultado = {
+                        "price": cache_data["price"],
+                        "buy_price": cache_data.get("buy_price"),
+                        "name": cache_data["name"],
+                        "from_cache": True
+                    }
+
+                    print(f"[CACHE HIT] {skin_name}")
+
+                    break
+
+                # =========================
+                # NO HAY CACHE → PROXY
+                # =========================
 
                 proxy = obtener_proxy()
 
@@ -763,7 +759,6 @@ def worker(grupo_skins, worker_id):
                     f"Intento {intento + 1}/{MAX_INTENTOS}"
                 )
 
-                # Espera antes del siguiente intento
                 time.sleep(random.uniform(7, 17))
 
             with lock:
