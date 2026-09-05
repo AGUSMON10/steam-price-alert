@@ -128,7 +128,10 @@ lock = threading.Lock()
 
 # Cache temporal de precios
 price_cache = {}
-CACHE_TTL = 300  # segundos
+
+# Tiempo mínimo y máximo antes de volver a consultar cada skin
+CACHE_MIN_TTL = 240   # 4 minutos
+CACHE_MAX_TTL = 330   # 5 minutos y medio
 
 # =========================
 # ESTADÍSTICAS
@@ -153,7 +156,9 @@ def limpiar_cache():
 
         for k, v in price_cache.items():
 
-            if ahora - v["timestamp"] > CACHE_TTL * 3:
+            # Eliminamos caches demasiado viejas.
+            # El TTL real de actualización está dado por next_refresh.
+            if ahora - v["timestamp"] > CACHE_MAX_TTL * 3:
 
                 keys_a_borrar.append(k)
 
@@ -161,7 +166,10 @@ def limpiar_cache():
 
             del price_cache[k]
 
-    print(f"[CACHE CLEAN] Eliminadas {len(keys_a_borrar)} entradas")
+    print(
+        f"[CACHE CLEAN] "
+        f"Eliminadas {len(keys_a_borrar)} entradas"
+    )
 
 def cache_valida(skin_name):
     ahora = time.time()
@@ -172,9 +180,7 @@ def cache_valida(skin_name):
     if cache_data is None:
         return False
 
-    edad = ahora - cache_data["timestamp"]
-
-    return edad < CACHE_TTL
+    return ahora < cache_data.get("next_refresh", 0)
 
 # Crear sessions optimizadas
 def crear_session():
@@ -343,11 +349,12 @@ def buscar_precio(market_hash_name, session, proxy):
     # CACHE
     # =========================
 
-    if market_hash_name in price_cache:
+    with lock:
+        cache_data = price_cache.get(market_hash_name)
 
-        cache_data = price_cache[market_hash_name]
+    if cache_data is not None:
 
-        if ahora - cache_data["timestamp"] < CACHE_TTL:
+        if ahora < cache_data.get("next_refresh", 0):
 
             stats["cache_hits"] += 1
 
@@ -378,7 +385,8 @@ def buscar_precio(market_hash_name, session, proxy):
         return {
             "price": None,
             "name": market_hash_name,
-            "from_cache": False
+            "from_cache": False,
+            "error": "item_nameid"
         }
 
     # =========================
@@ -406,7 +414,7 @@ def buscar_precio(market_hash_name, session, proxy):
     try:
 
         # =========================
-        # HISTOGRAMA
+        # REQUEST
         # =========================
 
         inicio_request = time.time()
@@ -428,7 +436,7 @@ def buscar_precio(market_hash_name, session, proxy):
             stats["tiempo_consultas"] += duracion_request
 
         # =========================
-        # RATE LIMIT
+        # HTTP 429
         # =========================
 
         if r.status_code == 429:
@@ -437,18 +445,31 @@ def buscar_precio(market_hash_name, session, proxy):
 
                 PROXY_FAILS[proxy] += 1
 
+                fallos = PROXY_FAILS[proxy]
+
                 cooldown = min(
-                    30 * (2 ** (PROXY_FAILS[proxy] - 1)),
-                    600
+                    30 * (2 ** (fallos - 1)),
+                    PROXY_COOLDOWN
                 )
 
                 PROXY_STATUS[proxy] = (
                     time.time() + cooldown
                 )
 
-            print(f"[WARN] Steam limitó una consulta. Reintentando...")
+                stats["requests_fallidas"] += 1
 
-            return None
+            print(
+                f"[429] {market_hash_name} | "
+                f"Proxy: {proxy} | "
+                f"Cooldown: {cooldown}s"
+            )
+
+            return {
+                "price": None,
+                "name": market_hash_name,
+                "from_cache": False,
+                "error": "429"
+            }
 
         # =========================
         # OTROS ERRORES HTTP
@@ -474,7 +495,21 @@ def buscar_precio(market_hash_name, session, proxy):
                 PROXY_FAILS[proxy] += 1
                 stats["requests_fallidas"] += 1
 
-            return None
+                # Error HTTP = proxy sospechoso.
+                # No lo mandamos directamente a 10 min;
+                # dejamos que el score lo penalice.
+                if PROXY_FAILS[proxy] >= 3:
+
+                    PROXY_STATUS[proxy] = (
+                        time.time() + 60
+                    )
+
+            return {
+                "price": None,
+                "name": market_hash_name,
+                "from_cache": False,
+                "error": "http"
+            }
 
         # =========================
         # JSON
@@ -496,13 +531,15 @@ def buscar_precio(market_hash_name, session, proxy):
             )
 
             with lock:
+                PROXY_FAILS[proxy] += 1
                 stats["requests_fallidas"] += 1
 
-            return None
-
-        # =========================
-        # DEBUG
-        # =========================
+            return {
+                "price": None,
+                "name": market_hash_name,
+                "from_cache": False,
+                "error": "json"
+            }
 
         # =========================
         # STEAM SUCCESS FALSE
@@ -520,15 +557,16 @@ def buscar_precio(market_hash_name, session, proxy):
 
             return {
                 "price": None,
-                "name": market_hash_name
+                "name": market_hash_name,
+                "from_cache": False,
+                "error": "steam"
             }
 
         with lock:
             stats["requests_exitosas"] += 1
 
-
-                # =========================
-        # PRECIOS DIRECTOS DE STEAM
+        # =========================
+        # PRECIOS
         # =========================
 
         sell_price_raw = data.get("sell_order_price")
@@ -537,10 +575,14 @@ def buscar_precio(market_hash_name, session, proxy):
         precio = None
         buy_price = None
 
+        # =========================
         # SELL
+        # =========================
+
         if sell_price_raw:
 
             try:
+
                 sell_clean = re.sub(
                     r"[^0-9.]",
                     "",
@@ -556,10 +598,14 @@ def buscar_precio(market_hash_name, session, proxy):
                     f"sell_order_price: {sell_price_raw}"
                 )
 
+        # =========================
         # BUY
+        # =========================
+
         if buy_price_raw:
 
             try:
+
                 buy_clean = re.sub(
                     r"[^0-9.]",
                     "",
@@ -591,7 +637,8 @@ def buscar_precio(market_hash_name, session, proxy):
                 "price": None,
                 "buy_price": buy_price,
                 "name": market_hash_name,
-                "from_cache": False
+                "from_cache": False,
+                "error": "no_price"
             }
 
         # =========================
@@ -619,15 +666,28 @@ def buscar_precio(market_hash_name, session, proxy):
         # CACHE
         # =========================
 
+        ahora = time.time()
+
+        proximo_refresh = (
+            ahora +
+            random.uniform(
+                CACHE_MIN_TTL,
+                CACHE_MAX_TTL
+            )
+        )
+
         with lock:
 
             price_cache[market_hash_name] = {
                 "price": precio,
                 "buy_price": buy_price,
                 "name": market_hash_name,
-                "timestamp": time.time()
+                "timestamp": ahora,
+                "next_refresh": proximo_refresh
             }
 
+            # Request exitoso:
+            # el proxy vuelve a tener máxima confianza.
             PROXY_FAILS[proxy] = 0
             PROXY_STATUS[proxy] = 0
 
@@ -638,6 +698,10 @@ def buscar_precio(market_hash_name, session, proxy):
             "from_cache": False
         }
 
+    # =========================
+    # TIMEOUT
+    # =========================
+
     except requests.exceptions.ReadTimeout:
 
         print(
@@ -646,11 +710,21 @@ def buscar_precio(market_hash_name, session, proxy):
         )
 
         with lock:
+
             PROXY_FAILS[proxy] += 1
 
-            fails = PROXY_FAILS[proxy]
+            fallos = PROXY_FAILS[proxy]
 
-            if fails >= 3:
+            # 1 timeout:
+            # penalización solamente.
+
+            # 2 timeouts:
+            # penalización mayor.
+
+            # 3 timeouts:
+            # cooldown completo.
+
+            if fallos >= 3:
 
                 PROXY_STATUS[proxy] = (
                     time.time() + PROXY_COOLDOWN
@@ -658,12 +732,23 @@ def buscar_precio(market_hash_name, session, proxy):
 
                 print(
                     f"[PROXY COOLDOWN] {proxy} | "
-                    f"3 timeouts consecutivos"
+                    f"3 timeouts"
                 )
 
                 PROXY_FAILS[proxy] = 0
 
-        return None
+            stats["requests_fallidas"] += 1
+
+        return {
+            "price": None,
+            "name": market_hash_name,
+            "from_cache": False,
+            "error": "timeout"
+        }
+
+    # =========================
+    # OTROS ERRORES REQUEST
+    # =========================
 
     except requests.exceptions.RequestException as e:
 
@@ -673,9 +758,13 @@ def buscar_precio(market_hash_name, session, proxy):
         )
 
         with lock:
+
             PROXY_FAILS[proxy] += 1
 
-            if PROXY_FAILS[proxy] >= 5:
+            fallos = PROXY_FAILS[proxy]
+
+            if fallos >= 5:
+
                 PROXY_STATUS[proxy] = (
                     time.time() + PROXY_COOLDOWN
                 )
@@ -687,7 +776,14 @@ def buscar_precio(market_hash_name, session, proxy):
 
                 PROXY_FAILS[proxy] = 0
 
-        return None
+            stats["requests_fallidas"] += 1
+
+        return {
+            "price": None,
+            "name": market_hash_name,
+            "from_cache": False,
+            "error": "request"
+        }
         
 def enviar_telegram(mensaje):
     try:
@@ -719,7 +815,10 @@ def worker(grupo_skins, worker_id):
 
         skins_ordenadas = sorted(
             grupo_skins,
-            key=lambda item: price_cache.get(item[0], {}).get("timestamp", 0)
+            key=lambda item: price_cache.get(
+                item[0],
+                {}
+            ).get("next_refresh", 0)
         )
 
         for skin_name, precio_max in skins_ordenadas:
@@ -778,16 +877,68 @@ def worker(grupo_skins, worker_id):
                     proxy
                 )
 
+                # =========================
+                # REQUEST EXITOSO
+                # =========================
+
                 if resultado is not None and resultado["price"] is not None:
+
                     break
+
+                # =========================
+                # REQUEST FALLIDO
+                # =========================
+
+                error = (
+                    resultado.get("error", "desconocido")
+                    if resultado
+                    else "desconocido"
+                )
 
                 print(
                     f"[RETRY] "
                     f"{skin_name} | "
+                    f"Error: {error} | "
                     f"Intento {intento + 1}/{MAX_INTENTOS}"
                 )
 
-                time.sleep(random.uniform(7, 17))
+                # No tiene sentido esperar si ya no
+                # quedan intentos.
+                if intento + 1 >= MAX_INTENTOS:
+                    break
+
+                # =========================
+                # ESPERA SEGÚN ERROR
+                # =========================
+
+                if error == "429":
+
+                    espera = random.uniform(2, 4)
+
+                elif error == "timeout":
+
+                    espera = random.uniform(1, 3)
+
+                elif error in ("http", "request"):
+
+                    espera = random.uniform(2, 5)
+
+                elif error in ("json", "steam"):
+
+                    espera = random.uniform(2, 4)
+
+                else:
+
+                    espera = random.uniform(3, 6)
+
+                print(
+                    f"[RETRY] "
+                    f"{skin_name} | "
+                    f"Esperando {espera:.1f}s "
+                    f"antes de nuevo intento"
+                )
+
+                time.sleep(espera)
 
             with lock:
                 skins_revisadas_total += 1
