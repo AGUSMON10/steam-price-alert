@@ -130,8 +130,6 @@ lock = threading.Lock()
 price_cache = {}
 CACHE_TTL = 300  # segundos
 
-failed_counts = {}
-
 # =========================
 # ESTADÍSTICAS
 # =========================
@@ -164,6 +162,19 @@ def limpiar_cache():
             del price_cache[k]
 
     print(f"[CACHE CLEAN] Eliminadas {len(keys_a_borrar)} entradas")
+
+def cache_valida(skin_name):
+    ahora = time.time()
+
+    with lock:
+        cache_data = price_cache.get(skin_name)
+
+    if cache_data is None:
+        return False
+
+    edad = ahora - cache_data["timestamp"]
+
+    return edad < CACHE_TTL
 
 # Crear sessions optimizadas
 def crear_session():
@@ -694,18 +705,7 @@ def enviar_telegram(mensaje):
         estado_app["errores"] += 1
 
 def dividir_skins_en_grupos():
-
-    lista = list(skins_a_vigilar.items())
-
-    num_workers = 1
-
-    grupos = [[] for _ in range(num_workers)]
-
-    for i, item in enumerate(lista):
-
-        grupos[i % num_workers].append(item)
-
-    return grupos
+    return [list(skins_a_vigilar.items())]
 
 def worker(grupo_skins, worker_id):
 
@@ -717,7 +717,12 @@ def worker(grupo_skins, worker_id):
 
         inicio_ciclo = time.time()
 
-        for skin_name, precio_max in grupo_skins:
+        skins_ordenadas = sorted(
+            grupo_skins,
+            key=lambda item: price_cache.get(item[0], {}).get("timestamp", 0)
+        )
+
+        for skin_name, precio_max in skins_ordenadas:
 
             resultado = None
 
@@ -729,15 +734,10 @@ def worker(grupo_skins, worker_id):
                 # CACHE ANTES DE PEDIR PROXY
                 # =========================
 
-                ahora = time.time()
+                if cache_valida(skin_name):
 
-                with lock:
-                    cache_data = price_cache.get(skin_name)
-
-                if (
-                    cache_data is not None
-                    and ahora - cache_data["timestamp"] < CACHE_TTL
-                ):
+                    with lock:
+                        cache_data = price_cache.get(skin_name)
 
                     stats["cache_hits"] += 1
 
@@ -890,27 +890,6 @@ def worker(grupo_skins, worker_id):
 
             print("================================================\n")
 
-            skins_a_eliminar = []
-
-            for skin, fails in failed_counts.items():
-
-                if fails >= 50:
-
-                    print("\n[INFO] Skin desactivada por demasiados fallos:")
-                    print(skin)
-
-                    skins_a_eliminar.append(skin)
-
-            # eliminar skins problemáticas
-            for skin_name in skins_a_eliminar:
-
-                if skin_name in skins_a_vigilar:
-
-                    del skins_a_vigilar[skin_name]
-
-                    print(f"[INFO] Eliminada del monitoreo: {skin_name}")
-
-
             skins_revisadas_total = 0
 
             with lock:
@@ -918,6 +897,7 @@ def worker(grupo_skins, worker_id):
                 stats["requests_exitosas"] = 0
                 stats["requests_fallidas"] = 0
                 stats["cache_hits"] = 0
+                stats["tiempo_consultas"] = 0.0
 
         time.sleep(random.uniform(6, 12))
 
