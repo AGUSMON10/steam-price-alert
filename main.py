@@ -129,9 +129,65 @@ lock = threading.Lock()
 # Cache temporal de precios
 price_cache = {}
 
-# Tiempo mínimo y máximo antes de volver a consultar cada skin
-CACHE_MIN_TTL = 240   # 4 minutos
-CACHE_MAX_TTL = 330   # 5 minutos y medio
+# =========================
+# TTL DINÁMICO
+# =========================
+
+CACHE_MIN_TTL = 60     # mínimo 1 minuto
+CACHE_MAX_TTL = 180    # máximo 3 minutos
+
+
+def calcular_ttl(precio, precio_max):
+
+    if precio is None or precio_max <= 0:
+        return random.uniform(
+            CACHE_MAX_TTL - 20,
+            CACHE_MAX_TTL
+        )
+
+    # Distancia porcentual respecto al máximo.
+    distancia = (precio - precio_max) / precio_max
+
+    # =========================
+    # YA ESTÁ EN PRECIO DE COMPRA
+    # =========================
+
+    if distancia <= 0:
+
+        return random.uniform(60, 90)
+
+    # =========================
+    # MUY CERCA DEL MÁXIMO
+    # Ej: máximo 150 / precio 159
+    # =========================
+
+    elif distancia <= 0.07:
+
+        return random.uniform(75, 110)
+
+    # =========================
+    # CERCA
+    # =========================
+
+    elif distancia <= 0.15:
+
+        return random.uniform(110, 150)
+
+    # =========================
+    # DISTANCIA MEDIA
+    # =========================
+
+    elif distancia <= 0.25:
+
+        return random.uniform(150, 195)
+
+    # =========================
+    # LEJOS DEL MÁXIMO
+    # =========================
+
+    else:
+
+        return random.uniform(200, CACHE_MAX_TTL)
 
 # =========================
 # ESTADÍSTICAS
@@ -668,12 +724,24 @@ def buscar_precio(market_hash_name, session, proxy):
 
         ahora = time.time()
 
-        proximo_refresh = (
-            ahora +
-            random.uniform(
-                CACHE_MIN_TTL,
-                CACHE_MAX_TTL
-            )
+        precio_max = skins_a_vigilar.get(
+            market_hash_name,
+            precio
+        )
+
+        ttl = calcular_ttl(
+            precio,
+            precio_max
+        )
+
+        proximo_refresh = ahora + ttl
+
+        print(
+            f"[PRIORIDAD] "
+            f"{market_hash_name} | "
+            f"Precio: ${precio:.2f} | "
+            f"Máx: ${precio_max:.2f} | "
+            f"Próxima consulta: {ttl:.0f}s"
         )
 
         with lock:
