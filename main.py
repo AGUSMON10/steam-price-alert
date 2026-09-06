@@ -1043,7 +1043,7 @@ def worker(grupo_skins, worker_id):
                     stats["alertas_enviadas"] += 1
 
             if not resultado.get("from_cache", False):
-                time.sleep(random.uniform(5, 8))
+                time.sleep(random.uniform(1, 2))
 
         estado_app["ultimo_escaneo"] = datetime.now().isoformat()
 
