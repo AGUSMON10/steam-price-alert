@@ -151,6 +151,13 @@ lock = threading.Lock()
 # Cache temporal de precios
 price_cache = {}
 
+# Control de skins problemáticas
+SKIN_MAX_FAILS = 3
+SKIN_COOLDOWN = 600  # 10 minutos
+
+SKIN_FAILS = {skin: 0 for skin in skins_a_vigilar}
+SKIN_COOLDOWN_UNTIL = {skin: 0 for skin in skins_a_vigilar}
+
 # =========================
 # TTL DINÁMICO
 # =========================
@@ -206,6 +213,24 @@ stats = {
     "tiempo_consultas": 0.0
 }
 
+# ============================================================
+# ESTADÍSTICAS DIARIAS
+# ============================================================
+
+stats_diarias = {
+    "requests_steam": 0,
+    "requests_exitosas": 0,
+    "requests_fallidas": 0,
+    "cache_hits": 0,
+    "alertas_enviadas": 0,
+    "alertas_dobles": 0,
+    "ciclos": 0,
+    "tiempo_consultas": 0.0,
+    "tiempo_ciclos": 0.0,
+}
+
+fecha_estadisticas = datetime.now().date()
+
 def limpiar_cache():
 
     ahora = time.time()
@@ -241,6 +266,56 @@ def cache_valida(skin_name):
         return False
 
     return ahora < cache_data.get("next_refresh", 0)
+
+def skin_en_cooldown(skin_name):
+    ahora = time.time()
+    cooldown_hasta = SKIN_COOLDOWN_UNTIL.get(skin_name, 0)
+
+    if ahora < cooldown_hasta:
+        return True
+
+    return False
+    
+def registrar_error_skin(skin_name, error):
+
+    with lock:
+
+        SKIN_FAILS[skin_name] = (
+            SKIN_FAILS.get(skin_name, 0) + 1
+        )
+
+        fallos = SKIN_FAILS[skin_name]
+
+        print(
+            f"[SKIN ERROR] {skin_name} | "
+            f"Motivo: {error} | "
+            f"Fallos consecutivos: "
+            f"{fallos}/{SKIN_MAX_FAILS}"
+        )
+
+        if fallos >= SKIN_MAX_FAILS:
+            SKIN_COOLDOWN_UNTIL[skin_name] = time.time() + SKIN_COOLDOWN
+
+            print(
+                f"[SKIN COOLDOWN] {skin_name} | "
+                f"Motivo: {fallos} fallos consecutivos | "
+                f"Cooldown: {SKIN_COOLDOWN // 60} minutos"
+            )
+
+            SKIN_FAILS[skin_name] = 0
+            
+def registrar_exito_skin(skin_name):
+
+    with lock:
+
+        if SKIN_FAILS.get(skin_name, 0) > 0:
+
+            print(
+                f"[SKIN OK] {skin_name} | "
+                f"Fallos consecutivos reseteados"
+            )
+
+        SKIN_FAILS[skin_name] = 0
 
 # Crear sessions optimizadas
 def crear_session():
@@ -481,6 +556,7 @@ def buscar_precio(market_hash_name, session, proxy):
 
         with lock:
             stats["requests_steam"] += 1
+            stats_diarias["requests_steam"] += 1
 
         r = session.get(
             "https://steamcommunity.com/market/itemordershistogram",
@@ -494,6 +570,7 @@ def buscar_precio(market_hash_name, session, proxy):
 
         with lock:
             stats["tiempo_consultas"] += duracion_request
+            stats_diarias["tiempo_consultas"] += duracion_request
 
         # =========================
         # HTTP 429
@@ -517,6 +594,7 @@ def buscar_precio(market_hash_name, session, proxy):
                 )
 
                 stats["requests_fallidas"] += 1
+                stats_diarias["requests_fallidas"] += 1
 
             print(
                 f"[429] {market_hash_name} | "
@@ -554,6 +632,7 @@ def buscar_precio(market_hash_name, session, proxy):
             with lock:
                 PROXY_FAILS[proxy] += 1
                 stats["requests_fallidas"] += 1
+                stats_diarias["requests_fallidas"] += 1
 
                 # Error HTTP = proxy sospechoso.
                 # No lo mandamos directamente a 10 min;
@@ -593,6 +672,7 @@ def buscar_precio(market_hash_name, session, proxy):
             with lock:
                 PROXY_FAILS[proxy] += 1
                 stats["requests_fallidas"] += 1
+                stats_diarias["requests_fallidas"] += 1
 
             return {
                 "price": None,
@@ -609,6 +689,7 @@ def buscar_precio(market_hash_name, session, proxy):
 
             with lock:
                 stats["requests_fallidas"] += 1
+                stats_diarias["requests_fallidas"] += 1
 
             print(
                 f"[HISTOGRAM] Steam respondió "
@@ -624,6 +705,7 @@ def buscar_precio(market_hash_name, session, proxy):
 
         with lock:
             stats["requests_exitosas"] += 1
+            stats_diarias["requests_exitosas"] += 1
 
         # =========================
         # PRECIOS
@@ -810,6 +892,7 @@ def buscar_precio(market_hash_name, session, proxy):
                 PROXY_FAILS[proxy] = 0
 
             stats["requests_fallidas"] += 1
+            stats_diarias["requests_fallidas"] += 1
 
         return {
             "price": None,
@@ -849,6 +932,7 @@ def buscar_precio(market_hash_name, session, proxy):
                 PROXY_FAILS[proxy] = 0
 
             stats["requests_fallidas"] += 1
+            stats_diarias["requests_fallidas"] += 1
 
         return {
             "price": None,
@@ -872,6 +956,93 @@ def enviar_telegram(mensaje):
         print(f"[ERROR] No se pudo enviar el mensaje a Telegram: {e}")
         estado_app["errores"] += 1
 
+def enviar_resumen_diario():
+    global stats_diarias
+    global fecha_estadisticas
+
+    ahora = datetime.now()
+
+    requests_total = stats_diarias["requests_steam"]
+    requests_exitosas = stats_diarias["requests_exitosas"]
+    requests_fallidas = stats_diarias["requests_fallidas"]
+    cache_hits = stats_diarias["cache_hits"]
+
+    porcentaje_exitos = (
+        requests_exitosas / requests_total * 100
+        if requests_total > 0 else 0
+    )
+
+    porcentaje_fallos = (
+        requests_fallidas / requests_total * 100
+        if requests_total > 0 else 0
+    )
+
+    tiempo_promedio_request = (
+        stats_diarias["tiempo_consultas"] / requests_total
+        if requests_total > 0 else 0
+    )
+
+    ciclos = stats_diarias["ciclos"]
+
+    tiempo_promedio_ciclo = (
+        stats_diarias["tiempo_ciclos"] / ciclos
+        if ciclos > 0 else 0
+    )
+
+    # Proxies actualmente en cooldown
+    proxies_cooldown = sum(
+        1
+        for t in PROXY_STATUS.values()
+        if t > time.time()
+    )
+
+    # Skins actualmente en cooldown
+    skins_cooldown = sum(
+        1
+        for t in SKIN_COOLDOWN_UNTIL.values()
+        if t > time.time()
+    )
+
+    mensaje = (
+        f"📊 RESUMEN DIARIO\n\n"
+        f"📅 {fecha_estadisticas.strftime('%d/%m/%Y')}\n\n"
+
+        f"🔎 SKINS\n"
+        f"• Vigiladas: {len(skins_a_vigilar)}\n"
+        f"• Ciclos realizados: {ciclos}\n\n"
+
+        f"🌐 REQUESTS STEAM\n"
+        f"• Totales: {requests_total}\n"
+        f"• Exitosas: {requests_exitosas} ({porcentaje_exitos:.1f}%)\n"
+        f"• Fallidas: {requests_fallidas} ({porcentaje_fallos:.1f}%)\n"
+        f"• Cache hits: {cache_hits}\n\n"
+
+        f"🚨 ALERTAS\n"
+        f"• Alertas enviadas: {stats_diarias['alertas_enviadas']}\n"
+        f"• Alertas dobles: {stats_diarias['alertas_dobles']}\n\n"
+
+        f"🛡️ PROXIES\n"
+        f"• Total: {len(PROXIES)}\n"
+        f"• En cooldown ahora: {proxies_cooldown}\n\n"
+
+        f"⚠️ SKINS PROBLEMÁTICAS\n"
+        f"• En cooldown ahora: {skins_cooldown}\n\n"
+
+        f"⏱️ RENDIMIENTO\n"
+        f"• Promedio request: {tiempo_promedio_request:.2f}s\n"
+        f"• Promedio ciclo: {tiempo_promedio_ciclo:.2f}s\n"
+    )
+
+    enviar_telegram(mensaje)
+
+    print("[INFO] Resumen diario enviado a Telegram")
+
+    # Reiniciar estadísticas del nuevo día
+    for key in stats_diarias:
+        stats_diarias[key] = 0
+
+    fecha_estadisticas = ahora.date()
+
 def dividir_skins_en_grupos():
     return [list(skins_a_vigilar.items())]
 
@@ -882,6 +1053,17 @@ def worker(grupo_skins, worker_id):
     global skins_revisadas_total
 
     while estado_app["activo"]:
+
+        # ====================================================
+        # CAMBIO DE DÍA → ENVIAR RESUMEN DEL DÍA ANTERIOR
+        # ====================================================
+
+        if worker_id == 0:
+
+            fecha_actual = datetime.now().date()
+
+            if fecha_actual != fecha_estadisticas:
+                enviar_resumen_diario()
 
         inicio_ciclo = time.time()
 
@@ -895,8 +1077,31 @@ def worker(grupo_skins, worker_id):
 
         for skin_name, precio_max in skins_ordenadas:
 
-            resultado = None
+            # Si la skin está temporalmente bloqueada por errores,
+            # no hacemos ninguna consulta a Steam.
+            if skin_en_cooldown(skin_name):
+                restante = SKIN_COOLDOWN_UNTIL[skin_name] - time.time()
 
+                print(
+                    f"[SKIN SKIP] {skin_name} | "
+                    f"Cooldown restante: {max(0, restante):.0f}s"
+                )
+
+                with lock:
+                    skins_revisadas_total += 1
+
+                continue
+
+            # Avisar cuando vuelve a estar disponible después del cooldown
+            if SKIN_COOLDOWN_UNTIL.get(skin_name, 0) > 0:
+                print(
+                    f"[SKIN RETRY] {skin_name} | "
+                    f"Finalizó cooldown"
+                )
+
+                SKIN_COOLDOWN_UNTIL[skin_name] = 0
+
+            resultado = None
             MAX_INTENTOS = 2
 
             for intento in range(MAX_INTENTOS):
@@ -911,6 +1116,7 @@ def worker(grupo_skins, worker_id):
                         cache_data = price_cache.get(skin_name)
 
                     stats["cache_hits"] += 1
+                    stats_diarias["cache_hits"] += 1
 
                     resultado = {
                         "price": cache_data["price"],
@@ -967,6 +1173,15 @@ def worker(grupo_skins, worker_id):
                     else "desconocido"
                 )
 
+                # Solo consideramos problemáticos los errores
+                # que realmente pueden estar relacionados con
+                # la consulta de esta skin.
+                #
+                # 429 queda fuera porque lo maneja el sistema de proxies.
+
+                if error in ("timeout", "http", "request", "json", "steam", "no_price"):
+                    registrar_error_skin(skin_name, error)
+
                 print(
                     f"[RETRY] "
                     f"{skin_name} | "
@@ -1018,6 +1233,9 @@ def worker(grupo_skins, worker_id):
             if resultado is None or resultado["price"] is None:
                 continue
 
+            # Consulta válida: resetear errores consecutivos
+            registrar_exito_skin(skin_name)
+
             precio_actual = resultado["price"]
             nombre_real = resultado["name"]
 
@@ -1051,6 +1269,7 @@ def worker(grupo_skins, worker_id):
 
                 with lock:
                     stats["alertas_enviadas"] += 1
+                    stats_diarias["alertas_enviadas"] += 1
 
                 # =========================
                 # SEGUNDA ALERTA
@@ -1078,6 +1297,8 @@ def worker(grupo_skins, worker_id):
 
                     with lock:
                         stats["alertas_enviadas"] += 1
+                        stats_diarias["alertas_enviadas"] += 1
+                        stats_diarias["alertas_dobles"] += 1
 
                 notificados[skin_name] = precio_actual
 
@@ -1091,8 +1312,11 @@ def worker(grupo_skins, worker_id):
             global ciclo_numero
 
             ciclo_numero += 1
+            stats_diarias["ciclos"] += 1
 
             duracion = round(time.time() - inicio_ciclo, 2)
+            with lock:
+                stats_diarias["tiempo_ciclos"] += duracion
 
             ahora = time.time()
 
@@ -1128,9 +1352,33 @@ def worker(grupo_skins, worker_id):
 
             print(f"[INFO] Proxies cooldown: {proxies_cooldown}")
 
+            skins_cooldown = sum(
+                1
+                for t in SKIN_COOLDOWN_UNTIL.values()
+                if t > ahora
+            )
+
+            print(f"[INFO] Skins en cooldown: {skins_cooldown}")
+
             print(f"[INFO] Cache size: {len(price_cache)}")
 
             print(f"[INFO] Duración ciclo: {duracion} segundos")
+
+
+            if skins_cooldown > 0:
+
+                print("[INFO] Skins problemáticas:")
+
+                for skin, cooldown_hasta in SKIN_COOLDOWN_UNTIL.items():
+
+                    if cooldown_hasta > ahora:
+
+                        restante = cooldown_hasta - ahora
+
+                        print(
+                            f"       - {skin} | "
+                            f"Cooldown restante: {restante:.0f}s"
+                        )
 
             if stats["requests_steam"] > 0:
 
