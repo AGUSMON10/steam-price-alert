@@ -7,6 +7,9 @@ import re
 from flask import Flask, jsonify
 from datetime import datetime
 import builtins
+from zoneinfo import ZoneInfo
+
+ZONA_ARG = ZoneInfo("America/Argentina/Buenos_Aires")
 
 # Lista de proxies (pegá los tuyos de Webshare)
 
@@ -36,7 +39,7 @@ original_print = print
     
 def flush_print(*args, **kwargs):
     kwargs['flush'] = True
-    timestamp = datetime.now().strftime("%H:%M:%S")
+    timestamp = datetime.now(ZONA_ARG).strftime("%H:%M:%S")
     original_print(f"[{timestamp}]", *args, **kwargs)
 
 builtins.print = flush_print
@@ -229,7 +232,24 @@ stats_diarias = {
     "tiempo_ciclos": 0.0,
 }
 
-fecha_estadisticas = datetime.now().date()
+stats_proxies = {
+    proxy: {
+        "requests": 0,
+        "exitosas": 0,
+        "fallidas": 0,
+        "429": 0,
+        "timeouts": 0,
+        "http": 0,
+        "json": 0,
+        "steam": 0,
+        "request": 0,
+        "tiempo_total": 0.0,
+        "tiempo_cooldown": 0.0,
+    }
+    for proxy in PROXIES
+}
+
+fecha_estadisticas = datetime.now(ZONA_ARG).date()
 
 def limpiar_cache():
 
@@ -462,7 +482,7 @@ def home():
         "mensaje": "Steam Alert Bot está activo",
         "ultimo_escaneo": estado_app["ultimo_escaneo"],
         "errores": estado_app["errores"],
-        "timestamp": datetime.now().isoformat()
+        "timestamp": datetime.now(ZONA_ARG).isoformat()
     })
 
 @app.route('/status')
@@ -557,6 +577,7 @@ def buscar_precio(market_hash_name, session, proxy):
         with lock:
             stats["requests_steam"] += 1
             stats_diarias["requests_steam"] += 1
+            stats_proxies[proxy]["requests"] += 1
 
         r = session.get(
             "https://steamcommunity.com/market/itemordershistogram",
@@ -571,6 +592,7 @@ def buscar_precio(market_hash_name, session, proxy):
         with lock:
             stats["tiempo_consultas"] += duracion_request
             stats_diarias["tiempo_consultas"] += duracion_request
+            stats_proxies[proxy]["tiempo_total"] += duracion_request
 
         # =========================
         # HTTP 429
@@ -579,9 +601,7 @@ def buscar_precio(market_hash_name, session, proxy):
         if r.status_code == 429:
 
             with lock:
-
                 PROXY_FAILS[proxy] += 1
-
                 fallos = PROXY_FAILS[proxy]
 
                 cooldown = min(
@@ -589,12 +609,14 @@ def buscar_precio(market_hash_name, session, proxy):
                     PROXY_COOLDOWN
                 )
 
-                PROXY_STATUS[proxy] = (
-                    time.time() + cooldown
-                )
+                PROXY_STATUS[proxy] = time.time() + cooldown
 
                 stats["requests_fallidas"] += 1
                 stats_diarias["requests_fallidas"] += 1
+
+                stats_proxies[proxy]["fallidas"] += 1
+                stats_proxies[proxy]["429"] += 1
+                stats_proxies[proxy]["cooldowns"] += 1
 
             print(
                 f"[429] {market_hash_name} | "
@@ -633,6 +655,8 @@ def buscar_precio(market_hash_name, session, proxy):
                 PROXY_FAILS[proxy] += 1
                 stats["requests_fallidas"] += 1
                 stats_diarias["requests_fallidas"] += 1
+                stats_proxies[proxy]["fallidas"] += 1
+                stats_proxies[proxy]["http"] += 1
 
                 # Error HTTP = proxy sospechoso.
                 # No lo mandamos directamente a 10 min;
@@ -642,6 +666,9 @@ def buscar_precio(market_hash_name, session, proxy):
                     PROXY_STATUS[proxy] = (
                         time.time() + 60
                     )
+
+                    stats_proxies[proxy]["cooldowns"] += 1
+                    PROXY_FAILS[proxy] = 0
 
             return {
                 "price": None,
@@ -673,6 +700,8 @@ def buscar_precio(market_hash_name, session, proxy):
                 PROXY_FAILS[proxy] += 1
                 stats["requests_fallidas"] += 1
                 stats_diarias["requests_fallidas"] += 1
+                stats_proxies[proxy]["fallidas"] += 1
+                stats_proxies[proxy]["json"] += 1
 
             return {
                 "price": None,
@@ -690,6 +719,8 @@ def buscar_precio(market_hash_name, session, proxy):
             with lock:
                 stats["requests_fallidas"] += 1
                 stats_diarias["requests_fallidas"] += 1
+                stats_proxies[proxy]["fallidas"] += 1
+                stats_proxies[proxy]["steam"] += 1
 
             print(
                 f"[HISTOGRAM] Steam respondió "
@@ -706,6 +737,7 @@ def buscar_precio(market_hash_name, session, proxy):
         with lock:
             stats["requests_exitosas"] += 1
             stats_diarias["requests_exitosas"] += 1
+            stats_proxies[proxy]["exitosas"] += 1
 
         # =========================
         # PRECIOS
@@ -884,6 +916,8 @@ def buscar_precio(market_hash_name, session, proxy):
                     time.time() + PROXY_COOLDOWN
                 )
 
+                stats_proxies[proxy]["cooldowns"] += 1
+
                 print(
                     f"[PROXY COOLDOWN] {proxy} | "
                     f"3 timeouts"
@@ -893,6 +927,8 @@ def buscar_precio(market_hash_name, session, proxy):
 
             stats["requests_fallidas"] += 1
             stats_diarias["requests_fallidas"] += 1
+            stats_proxies[proxy]["fallidas"] += 1
+            stats_proxies[proxy]["timeouts"] += 1
 
         return {
             "price": None,
@@ -924,6 +960,8 @@ def buscar_precio(market_hash_name, session, proxy):
                     time.time() + PROXY_COOLDOWN
                 )
 
+                stats_proxies[proxy]["cooldowns"] += 1
+
                 print(
                     f"[PROXY COOLDOWN] {proxy} | "
                     f"5 errores consecutivos"
@@ -933,6 +971,8 @@ def buscar_precio(market_hash_name, session, proxy):
 
             stats["requests_fallidas"] += 1
             stats_diarias["requests_fallidas"] += 1
+            stats_proxies[proxy]["fallidas"] += 1
+            stats_proxies[proxy]["request"] += 1
 
         return {
             "price": None,
@@ -960,7 +1000,7 @@ def enviar_resumen_diario():
     global stats_diarias
     global fecha_estadisticas
 
-    ahora = datetime.now()
+    ahora = datetime.now(ZONA_ARG)
 
     requests_total = stats_diarias["requests_steam"]
     requests_exitosas = stats_diarias["requests_exitosas"]
@@ -989,17 +1029,13 @@ def enviar_resumen_diario():
         if ciclos > 0 else 0
     )
 
-    # Proxies actualmente en cooldown
     proxies_cooldown = sum(
-        1
-        for t in PROXY_STATUS.values()
+        1 for t in PROXY_STATUS.values()
         if t > time.time()
     )
 
-    # Skins actualmente en cooldown
     skins_cooldown = sum(
-        1
-        for t in SKIN_COOLDOWN_UNTIL.values()
+        1 for t in SKIN_COOLDOWN_UNTIL.values()
         if t > time.time()
     )
 
@@ -1025,10 +1061,56 @@ def enviar_resumen_diario():
         f"• Total: {len(PROXIES)}\n"
         f"• En cooldown ahora: {proxies_cooldown}\n\n"
 
+        f"📡 RENDIMIENTO POR PROXY\n\n"
+    )
+
+    for i, proxy in enumerate(PROXIES, start=1):
+        datos = stats_proxies[proxy]
+
+        total = datos["requests"]
+        exitosas = datos["exitosas"]
+        fallidas = datos["fallidas"]
+
+        porcentaje = (
+            exitosas / total * 100
+            if total > 0 else 0
+        )
+
+        promedio = (
+            datos["tiempo_total"] / total
+            if total > 0 else 0
+        )
+
+        if total == 0:
+            estado = "⚪ SIN DATOS"
+        elif porcentaje >= 99 and promedio < 1.0:
+            estado = "🟢 EXCELENTE"
+        elif porcentaje >= 95 and promedio < 1.5:
+            estado = "🟡 NORMAL"
+        else:
+            estado = "🔴 PROBLEMÁTICO"
+
+        mensaje += (
+            f"Proxy {i}\n"
+            f"• Requests: {total}\n"
+            f"• Exitosas: {exitosas} ({porcentaje:.1f}%)\n"
+            f"• Fallidas: {fallidas}\n"
+            f"• 429: {datos['429']}\n"
+            f"• Timeouts: {datos['timeouts']}\n"
+            f"• HTTP: {datos['http']}\n"
+            f"• JSON: {datos['json']}\n"
+            f"• Steam: {datos['steam']}\n"
+            f"• Request: {datos['request']}\n"
+            f"• Promedio: {promedio:.2f}s\n"
+            f"• Cooldowns: {datos['cooldowns']}\n"
+            f"• Estado: {estado}\n\n"
+        )
+
+    mensaje += (
         f"⚠️ SKINS PROBLEMÁTICAS\n"
         f"• En cooldown ahora: {skins_cooldown}\n\n"
 
-        f"⏱️ RENDIMIENTO\n"
+        f"⏱️ RENDIMIENTO GENERAL\n"
         f"• Promedio request: {tiempo_promedio_request:.2f}s\n"
         f"• Promedio ciclo: {tiempo_promedio_ciclo:.2f}s\n"
     )
@@ -1037,9 +1119,23 @@ def enviar_resumen_diario():
 
     print("[INFO] Resumen diario enviado a Telegram")
 
-    # Reiniciar estadísticas del nuevo día
     for key in stats_diarias:
         stats_diarias[key] = 0
+
+    for proxy in PROXIES:
+        stats_proxies[proxy] = {
+            "requests": 0,
+            "exitosas": 0,
+            "fallidas": 0,
+            "429": 0,
+            "timeouts": 0,
+            "http": 0,
+            "json": 0,
+            "steam": 0,
+            "request": 0,
+            "tiempo_total": 0.0,
+            "tiempo_cooldown": 0.0,
+        }
 
     fecha_estadisticas = ahora.date()
 
@@ -1060,7 +1156,7 @@ def worker(grupo_skins, worker_id):
 
         if worker_id == 0:
 
-            fecha_actual = datetime.now().date()
+            fecha_actual = datetime.now(ZONA_ARG).date()
 
             if fecha_actual != fecha_estadisticas:
                 enviar_resumen_diario()
@@ -1305,7 +1401,7 @@ def worker(grupo_skins, worker_id):
             if not resultado.get("from_cache", False):
                 time.sleep(random.uniform(1, 2))
 
-        estado_app["ultimo_escaneo"] = datetime.now().isoformat()
+        estado_app["ultimo_escaneo"] = datetime.now(ZONA_ARG).isoformat()
 
         if worker_id == 0:
 
