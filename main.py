@@ -139,61 +139,43 @@ price_cache = {}
 # TTL DINÁMICO
 # =========================
 
-CACHE_MIN_TTL = 60     # mínimo 1 minuto
-CACHE_MAX_TTL = 180    # máximo 3 minutos
+CACHE_MIN_TTL = 60
+CACHE_MAX_TTL = 180
+
+ALERTA_DOBLE_DESCUENTO = 0.133
+ALERTA_DOBLE_INTERVALO = 15
 
 
 def calcular_ttl(precio, precio_max):
-
     if precio is None or precio_max <= 0:
-        return random.uniform(
-            CACHE_MAX_TTL - 20,
-            CACHE_MAX_TTL
-        )
+        return random.uniform(160, 180)
 
-    # Distancia porcentual respecto al máximo.
     distancia = (precio - precio_max) / precio_max
 
-    # =========================
-    # YA ESTÁ EN PRECIO DE COMPRA
-    # =========================
-
+    # Precio igual o por debajo del máximo
+    # Máxima prioridad
     if distancia <= 0:
-
         return random.uniform(60, 90)
 
-    # =========================
-    # MUY CERCA DEL MÁXIMO
-    # Ej: máximo 150 / precio 159
-    # =========================
+    # Hasta 5% por encima
+    elif distancia <= 0.05:
+        return random.uniform(70, 100)
 
-    elif distancia <= 0.07:
+    # Entre 5% y 10% por encima
+    elif distancia <= 0.10:
+        return random.uniform(90, 120)
 
-        return random.uniform(75, 110)
-
-    # =========================
-    # CERCA
-    # =========================
-
+    # Entre 10% y 15% por encima
     elif distancia <= 0.15:
+        return random.uniform(120, 150)
 
-        return random.uniform(110, 150)
-
-    # =========================
-    # DISTANCIA MEDIA
-    # =========================
-
+    # Entre 15% y 25% por encima
     elif distancia <= 0.25:
+        return random.uniform(150, 175)
 
-        return random.uniform(150, 195)
-
-    # =========================
-    # LEJOS DEL MÁXIMO
-    # =========================
-
+    # Muy lejos del precio objetivo
     else:
-
-        return random.uniform(200, CACHE_MAX_TTL)
+        return random.uniform(160, 180)
 
 # =========================
 # ESTADÍSTICAS
@@ -1029,24 +1011,59 @@ def worker(grupo_skins, worker_id):
                 ultima_alerta is None
                 or precio_actual < ultima_alerta
             ):
-
                 steam_url = (
                     "steam://openurl/https://steamcommunity.com/market/listings/730/"
                     + requests.utils.quote(nombre_real, safe='')
                 )
+
+                ahorro = precio_max - precio_actual
+                descuento = ahorro / precio_max
+
+                # =========================
+                # PRIMERA ALERTA
+                # =========================
 
                 enviar_telegram(
                     f"🛒 Skin en oferta\n"
                     f"{skin_name}\n"
                     f"{steam_url}\n"
                     f"💵 {precio_actual:.2f} USD\n"
-                    f"📉 Max {precio_max:.2f} USD"
+                    f"📉 Máx {precio_max:.2f} USD\n"
+                    f"💰 Ahorrás {ahorro:.2f} USD "
+                    f"({descuento * 100:.1f}%)"
                 )
 
-                notificados[skin_name] = precio_actual
-                
                 with lock:
                     stats["alertas_enviadas"] += 1
+
+                # =========================
+                # SEGUNDA ALERTA
+                # =========================
+
+                if descuento >= ALERTA_DOBLE_DESCUENTO:
+                    print(
+                        f"[ALERTA DOBLE] "
+                        f"{skin_name} | "
+                        f"Descuento: {descuento * 100:.1f}% | "
+                        f"Esperando {ALERTA_DOBLE_INTERVALO}s"
+                    )
+
+                    time.sleep(ALERTA_DOBLE_INTERVALO)
+
+                    enviar_telegram(
+                        f"🚨🚨 OFERTA MUY BUENA 🚨🚨\n"
+                        f"{skin_name}\n"
+                        f"{steam_url}\n"
+                        f"💵 {precio_actual:.2f} USD\n"
+                        f"📉 Máx {precio_max:.2f} USD\n"
+                        f"💰 Ahorrás {ahorro:.2f} USD "
+                        f"({descuento * 100:.1f}%)"
+                    )
+
+                    with lock:
+                        stats["alertas_enviadas"] += 1
+
+                notificados[skin_name] = precio_actual
 
             if not resultado.get("from_cache", False):
                 time.sleep(random.uniform(1, 2))
