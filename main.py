@@ -87,6 +87,14 @@ skins_a_vigilar = {
     "★ StatTrak™ Nomad Knife | Crimson Web (Well-Worn)": 184.00,
     "★ Falchion Knife | Crimson Web (Well-Worn)": 128.00,
     "★ Falchion Knife | Tiger Tooth (Minimal Wear)": 184.00,
+    "StatTrak™ USP-S | Neo-Noir (Minimal Wear)": 135.00,
+    "StatTrak™ USP-S | Printstream (Well-Worn)": 63.00,
+    "StatTrak™ Desert Eagle | Ocean Drive (Minimal Wear)": 130.00,
+    "StatTrak™ AWP | Man-o'-war (Field-Tested)": 139.00,
+    "StatTrak™ SSG 08 | Dragonfire (Factory New)": 230.00,
+    "M4A1-S | Master Piece (Minimal Wear)": 198.00,
+    "StatTrak™ M4A1-S | Chantico's Fire (Minimal Wear)": 180.00,
+    "StatTrak™ M4A1-S | Hyper Beast (Minimal Wear)": 200.00,
     
 }
 
@@ -123,6 +131,14 @@ ITEM_NAME_IDS = {
     "★ StatTrak™ Nomad Knife | Crimson Web (Well-Worn)": 176097950,
     "★ Falchion Knife | Crimson Web (Well-Worn)": 49461583,
     "★ Falchion Knife | Tiger Tooth (Minimal Wear)": 175881471,
+    "StatTrak™ USP-S | Neo-Noir (Minimal Wear)": 175880519,
+    "StatTrak™ USP-S | Printstream (Well-Worn)": 176321377,
+    "StatTrak™ Desert Eagle | Ocean Drive (Minimal Wear)": 176263203,
+    "StatTrak™ AWP | Man-o'-war (Field-Tested)": 29285565,
+    "StatTrak™ SSG 08 | Dragonfire (Factory New)": 175854470,
+    "M4A1-S | Master Piece (Minimal Wear)": 14953196,
+    "StatTrak™ M4A1-S | Chantico's Fire (Minimal Wear)": 149922266,
+    "StatTrak™ M4A1-S | Hyper Beast (Minimal Wear)": 40194354,
 }
 
 notificados = {}
