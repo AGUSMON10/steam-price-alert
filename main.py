@@ -84,6 +84,9 @@ skins_a_vigilar = {
     "★ M9 Bayonet | Ultraviolet (Field-Tested)": 440.00,
     "★ Stiletto Knife | Ultraviolet (Well-Worn)": 183.00,
     "★ StatTrak™ Stiletto Knife | Damascus Steel (Field-Tested)": 205.00,
+    "★ StatTrak™ Nomad Knife | Crimson Web (Well-Worn)": 184.00,
+    "★ Falchion Knife | Crimson Web (Well-Worn)": 128.00,
+    "★ Falchion Knife | Tiger Tooth (Minimal Wear)": 184.00,
     
 }
 
@@ -117,6 +120,9 @@ ITEM_NAME_IDS = {
     "★ M9 Bayonet | Ultraviolet (Field-Tested)": 29389708,
     "★ Stiletto Knife | Ultraviolet (Well-Worn)": 176043112,
     "★ StatTrak™ Stiletto Knife | Damascus Steel (Field-Tested)": 176047257,
+    "★ StatTrak™ Nomad Knife | Crimson Web (Well-Worn)": 176097950,
+    "★ Falchion Knife | Crimson Web (Well-Worn)": 49461583,
+    "★ Falchion Knife | Tiger Tooth (Minimal Wear)": 175881471,
 }
 
 notificados = {}
