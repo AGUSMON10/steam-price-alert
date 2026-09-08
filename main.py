@@ -244,7 +244,7 @@ stats_proxies = {
         "steam": 0,
         "request": 0,
         "tiempo_total": 0.0,
-        "tiempo_cooldown": 0.0,
+        "cooldowns": 0,
     }
     for proxy in PROXIES
 }
@@ -984,17 +984,52 @@ def buscar_precio(market_hash_name, session, proxy):
 def enviar_telegram(mensaje):
     try:
         url = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendMessage"
-        data = {"chat_id": TELEGRAM_CHAT_ID, "text": mensaje}
-        response = requests.post(url, data=data, timeout=15)
+
+        data = {
+            "chat_id": TELEGRAM_CHAT_ID,
+            "text": mensaje
+        }
+
+        response = requests.post(
+            url,
+            data=data,
+            timeout=15
+        )
+
         if response.status_code == 200:
-            print("[INFO] Mensaje enviado a Telegram exitosamente")
-        else:
+
             print(
-                f"[ERROR] Error al enviar mensaje a Telegram: {response.status_code}"
+                "[INFO] Mensaje enviado a Telegram exitosamente"
             )
+
+            return True
+
+        else:
+
+            print(
+                f"[ERROR] Error al enviar mensaje a Telegram: "
+                f"{response.status_code}"
+            )
+
+            print(
+                f"[DEBUG TELEGRAM] "
+                f"{response.text[:500]}"
+            )
+
+            estado_app["errores"] += 1
+
+            return False
+
     except Exception as e:
-        print(f"[ERROR] No se pudo enviar el mensaje a Telegram: {e}")
+
+        print(
+            f"[ERROR] No se pudo enviar el mensaje a Telegram: "
+            f"{type(e).__name__}: {e}"
+        )
+
         estado_app["errores"] += 1
+
+        return False
 
 def enviar_resumen_diario():
     global stats_diarias
@@ -1115,29 +1150,38 @@ def enviar_resumen_diario():
         f"• Promedio ciclo: {tiempo_promedio_ciclo:.2f}s\n"
     )
 
-    enviar_telegram(mensaje)
+    enviado = enviar_telegram(mensaje)
 
-    print("[INFO] Resumen diario enviado a Telegram")
+    if enviado:
 
-    for key in stats_diarias:
-        stats_diarias[key] = 0
+        print("[INFO] Resumen diario enviado a Telegram")
 
-    for proxy in PROXIES:
-        stats_proxies[proxy] = {
-            "requests": 0,
-            "exitosas": 0,
-            "fallidas": 0,
-            "429": 0,
-            "timeouts": 0,
-            "http": 0,
-            "json": 0,
-            "steam": 0,
-            "request": 0,
-            "tiempo_total": 0.0,
-            "tiempo_cooldown": 0.0,
-        }
+        for key in stats_diarias:
+            stats_diarias[key] = 0
 
-    fecha_estadisticas = ahora.date()
+        for proxy in PROXIES:
+            stats_proxies[proxy] = {
+                "requests": 0,
+                "exitosas": 0,
+                "fallidas": 0,
+                "429": 0,
+                "timeouts": 0,
+                "http": 0,
+                "json": 0,
+                "steam": 0,
+                "request": 0,
+                "tiempo_total": 0.0,
+                "cooldowns": 0,
+            }
+
+        fecha_estadisticas = ahora.date()
+
+    else:
+
+        print(
+            "[ERROR] El resumen diario NO fue enviado. "
+            "Las estadísticas NO se reiniciarán."
+        )
 
 def dividir_skins_en_grupos():
     return [list(skins_a_vigilar.items())]
@@ -1159,7 +1203,14 @@ def worker(grupo_skins, worker_id):
             fecha_actual = datetime.now(ZONA_ARG).date()
 
             if fecha_actual != fecha_estadisticas:
-                enviar_resumen_diario()
+                try:
+                    enviar_resumen_diario()
+                except Exception as e:
+                    print(
+                        f"[ERROR] Falló el resumen diario: "
+                        f"{type(e).__name__}: {e}"
+                    )
+                    estado_app["errores"] += 1
 
         inicio_ciclo = time.time()
 
