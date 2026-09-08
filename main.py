@@ -28,8 +28,17 @@ PROXIES = [
 
 PROXY_COOLDOWN = 600  # 10 min
 
+PROXY_429_COOLDOWN_BASE = 90
+PROXY_429_COOLDOWN_MAX = 600
+
+PROXY_MIN_INTERVAL = 8
+# Tiempo mínimo entre requests reales a Steam
+GLOBAL_MIN_REQUEST_INTERVAL = 2.0
+LAST_STEAM_REQUEST = 0
+
 PROXY_STATUS = {p: 0 for p in PROXIES}
 PROXY_FAILS = {p: 0 for p in PROXIES}
+PROXY_429_FAILS = {p: 0 for p in PROXIES}
 
 # Última vez que se utilizó cada proxy
 PROXY_LAST_USED = {p: 0 for p in PROXIES}
@@ -177,35 +186,35 @@ ALERTA_DOBLE_INTERVALO = 15
 
 
 def calcular_ttl(precio, precio_max):
+
     if precio is None or precio_max <= 0:
-        return random.uniform(160, 180)
+        return random.uniform(170, 210)
 
     distancia = (precio - precio_max) / precio_max
 
     # Precio igual o por debajo del máximo
-    # Máxima prioridad
     if distancia <= 0:
-        return random.uniform(60, 90)
+        return random.uniform(75, 105)
 
     # Hasta 5% por encima
     elif distancia <= 0.05:
-        return random.uniform(70, 100)
+        return random.uniform(85, 120)
 
-    # Entre 5% y 10% por encima
+    # Entre 5% y 10%
     elif distancia <= 0.10:
-        return random.uniform(90, 120)
+        return random.uniform(105, 140)
 
-    # Entre 10% y 15% por encima
+    # Entre 10% y 15%
     elif distancia <= 0.15:
-        return random.uniform(120, 150)
+        return random.uniform(130, 165)
 
-    # Entre 15% y 25% por encima
+    # Entre 15% y 25%
     elif distancia <= 0.25:
-        return random.uniform(150, 175)
+        return random.uniform(155, 190)
 
-    # Muy lejos del precio objetivo
+    # Muy lejos del objetivo
     else:
-        return random.uniform(160, 180)
+        return random.uniform(175, 210)
 
 # =========================
 # ESTADÍSTICAS
@@ -408,6 +417,9 @@ def obtener_proxy():
             # 2. Tiempo desde el último uso
             tiempo_sin_uso = ahora - PROXY_LAST_USED[proxy]
 
+            if tiempo_sin_uso < PROXY_MIN_INTERVAL:
+                continue
+
             # 3. Penalización por fallos
             fallos = PROXY_FAILS[proxy]
             penalizacion = fallos * 30
@@ -460,7 +472,7 @@ def obtener_proxy():
 
             espera = max(
                 0.1,
-                proximo - ahora
+                proximo - ahora + random.uniform(1, 3)
             )
 
             print(
@@ -501,6 +513,8 @@ def status():
     })
     
 def buscar_precio(market_hash_name, session, proxy):
+
+    global LAST_STEAM_REQUEST
 
     ahora = time.time()
 
@@ -583,6 +597,31 @@ def buscar_precio(market_hash_name, session, proxy):
             stats_diarias["requests_steam"] += 1
             stats_proxies[proxy]["requests"] += 1
 
+        # ==========================================
+        # ESPACIAR REQUESTS A STEAM
+        # ==========================================
+
+        ahora = time.time()
+
+        with lock:
+            tiempo_desde_ultimo_request = (
+                ahora - LAST_STEAM_REQUEST
+            )
+
+        if tiempo_desde_ultimo_request < GLOBAL_MIN_REQUEST_INTERVAL:
+
+            espera = (
+                GLOBAL_MIN_REQUEST_INTERVAL
+                - tiempo_desde_ultimo_request
+                + random.uniform(0.2, 0.8)
+            )
+
+            time.sleep(espera)
+
+        with lock:
+            LAST_STEAM_REQUEST = time.time()
+
+
         r = session.get(
             "https://steamcommunity.com/market/itemordershistogram",
             params=params,
@@ -605,12 +644,15 @@ def buscar_precio(market_hash_name, session, proxy):
         if r.status_code == 429:
 
             with lock:
+
                 PROXY_FAILS[proxy] += 1
-                fallos = PROXY_FAILS[proxy]
+                PROXY_429_FAILS[proxy] += 1
+
+                fallos_429 = PROXY_429_FAILS[proxy]
 
                 cooldown = min(
-                    30 * (2 ** (fallos - 1)),
-                    PROXY_COOLDOWN
+                    PROXY_429_COOLDOWN_BASE * (2 ** (fallos_429 - 1)),
+                    PROXY_429_COOLDOWN_MAX
                 )
 
                 PROXY_STATUS[proxy] = time.time() + cooldown
@@ -625,6 +667,7 @@ def buscar_precio(market_hash_name, session, proxy):
             print(
                 f"[429] {market_hash_name} | "
                 f"Proxy: {proxy} | "
+                f"429 consecutivos: {fallos_429} | "
                 f"Cooldown: {cooldown}s"
             )
 
@@ -856,14 +899,18 @@ def buscar_precio(market_hash_name, session, proxy):
             precio_max
         )
 
-        proximo_refresh = ahora + ttl
+        # Jitter adicional para evitar que muchas skins
+        # vuelvan a consultarse al mismo tiempo.
+        jitter_cache = random.uniform(0, 30)
+
+        proximo_refresh = ahora + ttl + jitter_cache
 
         print(
             f"[PRIORIDAD] "
             f"{market_hash_name} | "
             f"Precio: ${precio:.2f} | "
             f"Máx: ${precio_max:.2f} | "
-            f"Próxima consulta: {ttl:.0f}s"
+            f"Próxima consulta: {ttl + jitter_cache:.0f}s"
         )
 
         with lock:
@@ -879,6 +926,7 @@ def buscar_precio(market_hash_name, session, proxy):
             # Request exitoso:
             # el proxy vuelve a tener máxima confianza.
             PROXY_FAILS[proxy] = 0
+            PROXY_429_FAILS[proxy] = 0
             PROXY_STATUS[proxy] = 0
 
         return {
@@ -1351,7 +1399,7 @@ def worker(grupo_skins, worker_id):
 
                 if error == "429":
 
-                    espera = random.uniform(2, 4)
+                    espera = random.uniform(8, 12)
 
                 elif error == "timeout":
 
