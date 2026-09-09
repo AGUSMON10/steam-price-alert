@@ -43,6 +43,9 @@ PROXY_429_FAILS = {p: 0 for p in PROXIES}
 # Última vez que se utilizó cada proxy
 PROXY_LAST_USED = {p: 0 for p in PROXIES}
 
+# PAUSA
+PROXIMA_PAUSA = time.time() + random.uniform(7200, 10800)
+
 # Redefinir print global con flush automático
 original_print = print
     
@@ -243,6 +246,8 @@ stats_diarias = {
     "ciclos": 0,
     "tiempo_consultas": 0.0,
     "tiempo_ciclos": 0.0,
+    "pausas_programadas": 0,
+    "tiempo_pausas": 0.0,
 }
 
 stats_proxies = {
@@ -284,10 +289,11 @@ def limpiar_cache():
 
             del price_cache[k]
 
-    print(
-        f"[CACHE CLEAN] "
-        f"Eliminadas {len(keys_a_borrar)} entradas"
-    )
+    if keys_a_borrar:
+        print(
+            f"[CACHE CLEAN] "
+            f"Eliminadas {len(keys_a_borrar)} entradas"
+        )
 
 def cache_valida(skin_name):
     ahora = time.time()
@@ -1193,9 +1199,15 @@ def enviar_resumen_diario():
             f"• Estado: {estado}\n\n"
         )
 
+        minutos_pausa = stats_diarias["tiempo_pausas"] / 60
+
     mensaje += (
         f"⚠️ SKINS PROBLEMÁTICAS\n"
         f"• En cooldown ahora: {skins_cooldown}\n\n"
+
+        f"⏸️ PAUSAS PROGRAMADAS\n"
+        f"• Cantidad: {stats_diarias['pausas_programadas']}\n"
+        f"• Tiempo total: {minutos_pausa:.1f} minutos\n\n"
 
         f"⏱️ RENDIMIENTO GENERAL\n"
         f"• Promedio request: {tiempo_promedio_request:.2f}s\n"
@@ -1243,6 +1255,8 @@ def worker(grupo_skins, worker_id):
     print(f"[DEBUG] Worker {worker_id} arrancó")
 
     global skins_revisadas_total
+    global ciclo_numero
+    global PROXIMA_PAUSA
 
     while estado_app["activo"]:
 
@@ -1508,8 +1522,6 @@ def worker(grupo_skins, worker_id):
 
         if worker_id == 0:
 
-            global ciclo_numero
-
             ciclo_numero += 1
             stats_diarias["ciclos"] += 1
 
@@ -1604,7 +1616,26 @@ def worker(grupo_skins, worker_id):
                 stats["cache_hits"] = 0
                 stats["tiempo_consultas"] = 0.0
 
-        time.sleep(random.uniform(6, 12))
+        if time.time() >= PROXIMA_PAUSA:
+            inicio_pausa = time.time()
+
+            pausa = random.uniform(600, 1200)
+
+            print(
+                f"[PAUSA] Pausa periódica de {pausa / 60:.1f} minutos"
+            )
+
+            time.sleep(pausa)
+
+            tiempo_pausa_real = time.time() - inicio_pausa
+
+            stats_diarias["pausas_programadas"] += 1
+            stats_diarias["tiempo_pausas"] += tiempo_pausa_real
+
+            PROXIMA_PAUSA = time.time() + random.uniform(7200, 10800)
+
+        else:
+            time.sleep(random.uniform(6, 12))
 
 # 🔁 Ejecutar el servidor Flask en hilo separado
 def iniciar_servidor():
