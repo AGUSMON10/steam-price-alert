@@ -22,8 +22,8 @@ PROXIES = [
     "http://olrliwpe:v769pjjmxnb1@166.0.40.123:7131",
     "http://olrliwpe:v769pjjmxnb1@203.100.210.175:5324",
     "http://olrliwpe:v769pjjmxnb1@31.98.15.128:5305",
-    "http://olrliwpe:v769pjjmxnb1@9.142.42.134:5804"
-    "http://olrliwpe:v769pjjmxnb1@103.243.147.64:6043"
+    "http://olrliwpe:v769pjjmxnb1@9.142.42.134:5804",
+    "http://olrliwpe:v769pjjmxnb1@103.243.147.64:6043",
 ]
 
 PROXY_COOLDOWN = 600  # 10 min
