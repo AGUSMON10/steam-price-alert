@@ -4,12 +4,15 @@ import time
 import os
 import threading
 import re
+import json
 from flask import Flask, jsonify
 from datetime import datetime
 import builtins
 from zoneinfo import ZoneInfo
 
 ZONA_ARG = ZoneInfo("America/Argentina/Buenos_Aires")
+
+ARCHIVO_ESTADO = "bot_state.json"
 
 # Lista de proxies (pegá los tuyos de Webshare)
 
@@ -181,7 +184,6 @@ SKIN_COOLDOWN_UNTIL = {skin: 0 for skin in skins_a_vigilar}
 # TTL DINÁMICO
 # =========================
 
-CACHE_MIN_TTL = 60
 CACHE_MAX_TTL = 180
 
 ALERTA_DOBLE_DESCUENTO = 0.133
@@ -268,6 +270,140 @@ stats_proxies = {
 }
 
 fecha_estadisticas = datetime.now(ZONA_ARG).date()
+
+def guardar_estado():
+    try:
+        estado = {
+            "fecha_estadisticas": fecha_estadisticas.isoformat(),
+            "stats_diarias": stats_diarias,
+            "stats_proxies": list(stats_proxies.values()),
+            "price_cache": price_cache,
+            "notificados": notificados,
+        }
+
+        archivo_temporal = ARCHIVO_ESTADO + ".tmp"
+
+        with open(archivo_temporal, "w", encoding="utf-8") as f:
+            json.dump(
+                estado,
+                f,
+                ensure_ascii=False,
+                indent=2
+            )
+
+        os.replace(archivo_temporal, ARCHIVO_ESTADO)
+
+    except Exception as e:
+        print(f"[ERROR] No se pudo guardar el estado: {e}")
+
+
+def cargar_estado():
+    global fecha_estadisticas
+
+    if not os.path.exists(ARCHIVO_ESTADO):
+        print("[INFO] No existe estado guardado. Se inicia desde cero.")
+        return
+
+    try:
+        with open(ARCHIVO_ESTADO, "r", encoding="utf-8") as f:
+            estado = json.load(f)
+
+        # =========================
+        # FECHA
+        # =========================
+
+        fecha_guardada = estado.get("fecha_estadisticas")
+
+        if fecha_guardada:
+            fecha_estadisticas = datetime.fromisoformat(
+                fecha_guardada
+            ).date()
+
+        # =========================
+        # STATS DIARIAS
+        # =========================
+
+        stats_guardadas = estado.get("stats_diarias", {})
+
+        for key in stats_diarias:
+            if key in stats_guardadas:
+                stats_diarias[key] = stats_guardadas[key]
+
+        # =========================
+        # STATS POR PROXY
+        # =========================
+
+        stats_proxies_guardadas = estado.get(
+            "stats_proxies",
+            []
+        )
+
+        proxies_actuales = list(stats_proxies.keys())
+
+        for i, datos in enumerate(stats_proxies_guardadas):
+
+            if i >= len(proxies_actuales):
+                break
+
+            proxy = proxies_actuales[i]
+
+            for key in stats_proxies[proxy]:
+
+                if key in datos:
+                    stats_proxies[proxy][key] = datos[key]
+
+        # =========================
+        # CACHE
+        # =========================
+
+        cache_guardada = estado.get(
+            "price_cache",
+            {}
+        )
+
+        price_cache.clear()
+
+        for skin, datos in cache_guardada.items():
+
+            if not isinstance(datos, dict):
+                continue
+
+            if "price" not in datos:
+                continue
+
+            price_cache[skin] = datos
+
+        # =========================
+        # NOTIFICADOS
+        # =========================
+
+        notificados_guardados = estado.get(
+            "notificados",
+            {}
+        )
+
+        notificados.clear()
+
+        for skin, precio in notificados_guardados.items():
+            notificados[skin] = precio
+
+        print(
+            f"[INFO] Estado recuperado correctamente | "
+            f"Cache: {len(price_cache)} | "
+            f"Notificados: {len(notificados)} | "
+            f"Fecha: {fecha_estadisticas.strftime('%d/%m/%Y')}"
+        )
+
+    except Exception as e:
+        print(
+            f"[ERROR] No se pudo cargar el estado: {e}"
+        )
+        print(
+            "[INFO] El bot continuará con los valores actuales."
+        )
+
+# Cargar estado guardado al iniciar el bot
+cargar_estado()
 
 def limpiar_cache():
 
@@ -523,30 +659,6 @@ def buscar_precio(market_hash_name, session, proxy):
     global LAST_STEAM_REQUEST
 
     ahora = time.time()
-
-    # =========================
-    # CACHE
-    # =========================
-
-    with lock:
-        cache_data = price_cache.get(market_hash_name)
-
-    if cache_data is not None:
-
-        if ahora < cache_data.get("next_refresh", 0):
-
-            stats["cache_hits"] += 1
-
-            print(
-                f"[CACHE HIT] {market_hash_name}"
-            )
-
-            return {
-                "price": cache_data["price"],
-                "buy_price": cache_data.get("buy_price"),
-                "name": cache_data["name"],
-                "from_cache": True
-            }
 
     # =========================
     # ITEM NAME ID
@@ -1240,6 +1352,8 @@ def enviar_resumen_diario():
 
         fecha_estadisticas = ahora.date()
 
+        guardar_estado()
+
     else:
 
         print(
@@ -1515,6 +1629,8 @@ def worker(grupo_skins, worker_id):
 
                 notificados[skin_name] = precio_actual
 
+                guardar_estado()
+
             if not resultado.get("from_cache", False):
                 time.sleep(random.uniform(1, 2))
 
@@ -1616,6 +1732,8 @@ def worker(grupo_skins, worker_id):
                 stats["cache_hits"] = 0
                 stats["tiempo_consultas"] = 0.0
 
+        guardar_estado()
+
         if time.time() >= PROXIMA_PAUSA:
             inicio_pausa = time.time()
 
@@ -1633,6 +1751,8 @@ def worker(grupo_skins, worker_id):
             stats_diarias["tiempo_pausas"] += tiempo_pausa_real
 
             PROXIMA_PAUSA = time.time() + random.uniform(7200, 10800)
+
+            guardar_estado()
 
         else:
             time.sleep(random.uniform(6, 12))
