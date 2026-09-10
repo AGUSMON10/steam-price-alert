@@ -48,6 +48,32 @@ GLOBAL_MIN_REQUEST_INTERVAL = 3.0
 LAST_STEAM_REQUEST = 0
 
 # =========================================================
+# AUTO-TUNER
+# =========================================================
+
+AUTO_TUNER_ACTIVO = True
+
+# Cada cuánto analiza el comportamiento
+AUTO_TUNER_INTERVALO = 1800  # 30 minutos
+
+AUTO_TUNER_ULTIMA_REVISION = time.time()
+
+# Valores permitidos
+AUTO_GLOBAL_MIN = 3.0
+AUTO_GLOBAL_MAX = 8.0
+
+AUTO_PROXY_MIN = 10
+AUTO_PROXY_MAX = 25
+
+AUTO_429_BASE_MIN = 60
+AUTO_429_BASE_MAX = 300
+
+# Estadísticas de la última medición
+AUTO_ULTIMOS_REQUESTS = 0
+AUTO_ULTIMOS_429 = 0
+AUTO_ULTIMOS_TIMEOUTS = 0
+
+# =========================================================
 # PROTECCIÓN GLOBAL CONTRA RATE LIMIT DE STEAM (HTTP 429)
 # =========================================================
 
@@ -136,6 +162,241 @@ def registrar_exito_steam_global():
             )
 
         STEAM_429_CONSECUTIVOS = 0
+
+# =========================================================
+# AUTO-TUNER
+# =========================================================
+
+def ejecutar_auto_tuner():
+
+    global AUTO_TUNER_ULTIMA_REVISION
+    global AUTO_ULTIMOS_REQUESTS
+    global AUTO_ULTIMOS_429
+    global AUTO_ULTIMOS_TIMEOUTS
+
+    global GLOBAL_MIN_REQUEST_INTERVAL
+    global PROXY_MIN_INTERVAL
+    global PROXY_429_COOLDOWN_BASE
+
+    if not AUTO_TUNER_ACTIVO:
+        return
+
+    ahora = time.time()
+
+    # Todavía no corresponde analizar
+    if ahora - AUTO_TUNER_ULTIMA_REVISION < AUTO_TUNER_INTERVALO:
+        return
+
+    AUTO_TUNER_ULTIMA_REVISION = ahora
+
+    with lock:
+
+        requests_actuales = stats_diarias["requests_steam"]
+
+        total_429 = sum(
+            datos["429"]
+            for datos in stats_proxies.values()
+        )
+
+        total_timeouts = sum(
+            datos["timeouts"]
+            for datos in stats_proxies.values()
+        )
+
+    requests_periodo = (
+        requests_actuales - AUTO_ULTIMOS_REQUESTS
+    )
+
+    nuevos_429 = (
+        total_429 - AUTO_ULTIMOS_429
+    )
+
+    nuevos_timeouts = (
+        total_timeouts - AUTO_ULTIMOS_TIMEOUTS
+    )
+
+    AUTO_ULTIMOS_REQUESTS = requests_actuales
+    AUTO_ULTIMOS_429 = total_429
+    AUTO_ULTIMOS_TIMEOUTS = total_timeouts
+
+    if requests_periodo <= 0:
+        print("[AUTO-TUNER] Sin suficientes requests para analizar.")
+        return
+
+    porcentaje_429 = (
+        nuevos_429 / requests_periodo * 100
+    )
+
+    porcentaje_timeout = (
+        nuevos_timeouts / requests_periodo * 100
+    )
+
+    print("")
+    print("============== AUTO-TUNER ==============")
+
+    print(
+        f"[AUTO-TUNER] Requests últimos 30 min: "
+        f"{requests_periodo}"
+    )
+
+    print(
+        f"[AUTO-TUNER] Nuevos 429: "
+        f"{nuevos_429} ({porcentaje_429:.2f}%)"
+    )
+
+    print(
+        f"[AUTO-TUNER] Nuevos timeouts: "
+        f"{nuevos_timeouts} ({porcentaje_timeout:.2f}%)"
+    )
+
+    print(
+        f"[AUTO-TUNER] Intervalo global actual: "
+        f"{GLOBAL_MIN_REQUEST_INTERVAL:.1f}s"
+    )
+
+    print(
+        f"[AUTO-TUNER] Intervalo proxy actual: "
+        f"{PROXY_MIN_INTERVAL}s"
+    )
+
+    # =====================================================
+    # DEMASIADOS 429
+    # =====================================================
+
+    if porcentaje_429 >= 3:
+
+        viejo = GLOBAL_MIN_REQUEST_INTERVAL
+
+        GLOBAL_MIN_REQUEST_INTERVAL = min(
+            GLOBAL_MIN_REQUEST_INTERVAL + 0.5,
+            AUTO_GLOBAL_MAX
+        )
+
+        viejo_proxy = PROXY_MIN_INTERVAL
+
+        PROXY_MIN_INTERVAL = min(
+            PROXY_MIN_INTERVAL + 2,
+            AUTO_PROXY_MAX
+        )
+
+        viejo_cooldown = PROXY_429_COOLDOWN_BASE
+
+        PROXY_429_COOLDOWN_BASE = min(
+            PROXY_429_COOLDOWN_BASE + 30,
+            AUTO_429_BASE_MAX
+        )
+
+        print(
+            f"[AUTO-TUNER] ⚠️ Muchos 429"
+        )
+
+        print(
+            f"[AUTO-TUNER] Global: "
+            f"{viejo:.1f}s → "
+            f"{GLOBAL_MIN_REQUEST_INTERVAL:.1f}s"
+        )
+
+        print(
+            f"[AUTO-TUNER] Proxy: "
+            f"{viejo_proxy}s → "
+            f"{PROXY_MIN_INTERVAL}s"
+        )
+
+        print(
+            f"[AUTO-TUNER] Cooldown 429: "
+            f"{viejo_cooldown}s → "
+            f"{PROXY_429_COOLDOWN_BASE}s"
+        )
+
+    # =====================================================
+    # ALGUNOS 429
+    # =====================================================
+
+    elif porcentaje_429 >= 1:
+
+        viejo = GLOBAL_MIN_REQUEST_INTERVAL
+
+        GLOBAL_MIN_REQUEST_INTERVAL = min(
+            GLOBAL_MIN_REQUEST_INTERVAL + 0.25,
+            AUTO_GLOBAL_MAX
+        )
+
+        print(
+            f"[AUTO-TUNER] 🟡 429 moderados | "
+            f"Global: {viejo:.1f}s → "
+            f"{GLOBAL_MIN_REQUEST_INTERVAL:.1f}s"
+        )
+
+    # =====================================================
+    # TODO BIEN
+    # =====================================================
+
+    elif nuevos_429 == 0 and nuevos_timeouts == 0:
+
+        viejo = GLOBAL_MIN_REQUEST_INTERVAL
+
+        GLOBAL_MIN_REQUEST_INTERVAL = max(
+            GLOBAL_MIN_REQUEST_INTERVAL - 0.25,
+            AUTO_GLOBAL_MIN
+        )
+
+        viejo_proxy = PROXY_MIN_INTERVAL
+
+        PROXY_MIN_INTERVAL = max(
+            PROXY_MIN_INTERVAL - 1,
+            AUTO_PROXY_MIN
+        )
+
+        viejo_cooldown = PROXY_429_COOLDOWN_BASE
+
+        PROXY_429_COOLDOWN_BASE = max(
+            PROXY_429_COOLDOWN_BASE - 15,
+            AUTO_429_BASE_MIN
+        )
+
+        print(
+            f"[AUTO-TUNER] 🟢 Todo estable"
+        )
+
+        print(
+            f"[AUTO-TUNER] Global: "
+            f"{viejo:.1f}s → "
+            f"{GLOBAL_MIN_REQUEST_INTERVAL:.1f}s"
+        )
+
+        print(
+            f"[AUTO-TUNER] Proxy: "
+            f"{viejo_proxy}s → "
+            f"{PROXY_MIN_INTERVAL}s"
+        )
+
+        print(
+            f"[AUTO-TUNER] Cooldown 429: "
+            f"{viejo_cooldown}s → "
+            f"{PROXY_429_COOLDOWN_BASE}s"
+        )
+
+    # =====================================================
+    # TIMEOUTS
+    # =====================================================
+
+    if porcentaje_timeout >= 3:
+
+        viejo = PROXY_MIN_INTERVAL
+
+        PROXY_MIN_INTERVAL = min(
+            PROXY_MIN_INTERVAL + 2,
+            AUTO_PROXY_MAX
+        )
+
+        print(
+            f"[AUTO-TUNER] ⚠️ Muchos timeouts | "
+            f"Proxy: {viejo}s → "
+            f"{PROXY_MIN_INTERVAL}s"
+        )
+
+    print("==========================================")
+    print("")
 
 # PAUSA
 PROXIMA_PAUSA = time.time() + random.uniform(7200, 10800)
@@ -2002,6 +2263,8 @@ def worker(grupo_skins, worker_id):
                 )
 
             limpiar_cache()
+
+            ejecutar_auto_tuner()
 
             print("================================================\n")
 
