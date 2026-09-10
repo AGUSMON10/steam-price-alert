@@ -626,138 +626,164 @@ fecha_estadisticas = datetime.now(ZONA_ARG).date()
 def guardar_estado():
     try:
         estado = {
-            "fecha_estadisticas": fecha_estadisticas.isoformat(),
+            "notificados": notificados,
             "stats_diarias": stats_diarias,
             "stats_proxies": stats_proxies,
             "price_cache": price_cache,
-            "notificados": notificados,
+            "ciclo_numero": ciclo_numero,
+            "estado_app": estado_app,
+            "skins_revisadas_total": skins_revisadas_total
         }
 
-        archivo_temporal = ARCHIVO_ESTADO + ".tmp"
+        with open(ARCHIVO_ESTADO, "w", encoding="utf-8") as f:
+            json.dump(estado, f, ensure_ascii=False, indent=2)
 
-        with open(archivo_temporal, "w", encoding="utf-8") as f:
-            json.dump(
-                estado,
-                f,
-                ensure_ascii=False,
-                indent=2
+        github_token = os.getenv("GITHUB_TOKEN")
+        github_repo = os.getenv("GITHUB_REPO")
+
+        if not github_token or not github_repo:
+            print("[GITHUB] Faltan GITHUB_TOKEN o GITHUB_REPO")
+            return
+
+        url = f"https://api.github.com/repos/{github_repo}/contents/bot_state.json"
+
+        headers = {
+            "Authorization": f"Bearer {github_token}",
+            "Accept": "application/vnd.github+json",
+            "X-GitHub-Api-Version": "2022-11-28"
+        }
+
+        # Obtener SHA del archivo actual, si existe
+        respuesta_actual = requests.get(
+            url,
+            headers=headers,
+            timeout=15
+        )
+
+        sha = None
+
+        if respuesta_actual.status_code == 200:
+            sha = respuesta_actual.json().get("sha")
+        elif respuesta_actual.status_code != 404:
+            print(
+                f"[GITHUB] Error consultando estado: "
+                f"HTTP {respuesta_actual.status_code}"
+            )
+            return
+
+        with open(ARCHIVO_ESTADO, "rb") as f:
+            contenido = f.read()
+
+        import base64
+
+        contenido_base64 = base64.b64encode(contenido).decode("utf-8")
+
+        datos_github = {
+            "message": "Actualizar bot_state.json",
+            "content": contenido_base64
+        }
+
+        if sha:
+            datos_github["sha"] = sha
+
+        respuesta = requests.put(
+            url,
+            headers=headers,
+            json=datos_github,
+            timeout=20
+        )
+
+        if respuesta.status_code in (200, 201):
+            print("[GITHUB] Estado guardado correctamente.")
+        else:
+            print(
+                f"[GITHUB] Error guardando estado: "
+                f"HTTP {respuesta.status_code}"
             )
 
-        os.replace(archivo_temporal, ARCHIVO_ESTADO)
-
     except Exception as e:
-        print(f"[ERROR] No se pudo guardar el estado: {e}")
+        print(f"[GITHUB] Error en guardar_estado(): {e}")
 
 
 def cargar_estado():
-    global fecha_estadisticas
-
-    if not os.path.exists(ARCHIVO_ESTADO):
-        print("[INFO] No existe estado guardado. Se inicia desde cero.")
-        return
+    global notificados
+    global stats_diarias
+    global stats_proxies
+    global price_cache
+    global ciclo_numero
+    global estado_app
+    global skins_revisadas_total
 
     try:
+        github_token = os.getenv("GITHUB_TOKEN")
+        github_repo = os.getenv("GITHUB_REPO")
+
+        if not github_token or not github_repo:
+            print("[GITHUB] Faltan GITHUB_TOKEN o GITHUB_REPO")
+            print("[INFO] Se inicia desde cero.")
+            return
+
+        url = f"https://api.github.com/repos/{github_repo}/contents/bot_state.json"
+
+        headers = {
+            "Authorization": f"Bearer {github_token}",
+            "Accept": "application/vnd.github+json",
+            "X-GitHub-Api-Version": "2022-11-28"
+        }
+
+        respuesta = requests.get(
+            url,
+            headers=headers,
+            timeout=15
+        )
+
+        if respuesta.status_code == 404:
+            print("[GITHUB] No existe bot_state.json todavía.")
+            print("[INFO] Se inicia desde cero.")
+            return
+
+        if respuesta.status_code != 200:
+            print(
+                f"[GITHUB] Error descargando estado: "
+                f"HTTP {respuesta.status_code}"
+            )
+            print("[INFO] Se inicia desde cero.")
+            return
+
+        datos_github = respuesta.json()
+
+        import base64
+
+        contenido = base64.b64decode(
+            datos_github["content"]
+        ).decode("utf-8")
+
+        with open(ARCHIVO_ESTADO, "w", encoding="utf-8") as f:
+            f.write(contenido)
+
         with open(ARCHIVO_ESTADO, "r", encoding="utf-8") as f:
             estado = json.load(f)
 
-        # =========================
-        # FECHA
-        # =========================
-
-        fecha_guardada = estado.get("fecha_estadisticas")
-
-        if fecha_guardada:
-            fecha_estadisticas = datetime.fromisoformat(
-                fecha_guardada
-            ).date()
-
-        # =========================
-        # STATS DIARIAS
-        # =========================
-
-        stats_guardadas = estado.get("stats_diarias", {})
-
-        for key in stats_diarias:
-            if key in stats_guardadas:
-                stats_diarias[key] = stats_guardadas[key]
-
-        # =========================
-        # STATS POR PROXY
-        # =========================
-
-        stats_proxies_guardadas = estado.get(
-            "stats_proxies",
-            {}
+        notificados = estado.get("notificados", {})
+        stats_diarias = estado.get("stats_diarias", stats_diarias)
+        stats_proxies = estado.get("stats_proxies", stats_proxies)
+        price_cache = estado.get("price_cache", {})
+        ciclo_numero = estado.get("ciclo_numero", 0)
+        estado_app = estado.get("estado_app", "iniciando")
+        skins_revisadas_total = estado.get(
+            "skins_revisadas_total",
+            0
         )
 
-        for proxy, datos in stats_proxies_guardadas.items():
-
-            if proxy not in stats_proxies:
-                continue
-
-            if not isinstance(datos, dict):
-                continue
-
-            for key in stats_proxies[proxy]:
-
-                if key in datos:
-                    stats_proxies[proxy][key] = datos[key]
-
-        # =========================
-        # CACHE
-        # =========================
-
-        cache_guardada = estado.get(
-            "price_cache",
-            {}
-        )
-
-        price_cache.clear()
-
-        for skin, datos in cache_guardada.items():
-
-            if not isinstance(datos, dict):
-                continue
-
-            if "price" not in datos:
-                continue
-
-            if skin not in skins_a_vigilar:
-                continue
-
-            price_cache[skin] = datos
-
-        # =========================
-        # NOTIFICADOS
-        # =========================
-
-        notificados_guardados = estado.get(
-            "notificados",
-            {}
-        )
-
-        notificados.clear()
-
-        for skin, precio in notificados_guardados.items():
-            notificados[skin] = precio
-
+        print("[GITHUB] Estado descargado correctamente.")
         print(
-            f"[INFO] Estado recuperado correctamente | "
-            f"Cache: {len(price_cache)} | "
-            f"Notificados: {len(notificados)} | "
-            f"Fecha: {fecha_estadisticas.strftime('%d/%m/%Y')}"
+            f"[GITHUB] Cache recuperada: "
+            f"{len(price_cache)} skins"
         )
 
     except Exception as e:
-        print(
-            f"[ERROR] No se pudo cargar el estado: {e}"
-        )
-        print(
-            "[INFO] El bot continuará con los valores actuales."
-        )
-
-# Cargar estado guardado al iniciar el bot
-cargar_estado()
+        print(f"[GITHUB] Error en cargar_estado(): {e}")
+        print("[INFO] Se inicia desde cero.")
 
 def limpiar_cache():
 
