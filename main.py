@@ -2335,9 +2335,27 @@ def iniciar_servidor():
 
 if __name__ == "__main__":
 
+    # =====================================================
+    # RECUPERAR ESTADO DESDE GITHUB
+    # =====================================================
+
+    print("==============================================")
+    print("[STARTUP] Recuperando estado guardado...")
+    print("==============================================")
+
+    cargar_estado()
+
+    print("==============================================")
+    print("[STARTUP] Estado recuperado.")
+    print(f"[STARTUP] Cache: {len(price_cache)} skins")
+    print(f"[STARTUP] Notificados: {len(notificados)}")
+    print(f"[STARTUP] Ciclo anterior: {ciclo_numero}")
+    print("==============================================")
+
     grupos = dividir_skins_en_grupos()
 
     print("=== DEBUG SYSTEM ===")
+
     print("Skins:", len(skins_a_vigilar))
     print("Proxies:", len(PROXIES))
     print("Grupos:", len(dividir_skins_en_grupos()))
