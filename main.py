@@ -1276,11 +1276,11 @@ def buscar_precio(market_hash_name, session, proxy):
                     f"{restante_global:.0f}s"
                 )
             print(
-                f"[429] {market_hash_name} | "
-                f"Proxy: {proxy} | "
-                f"429 consecutivos: {fallos_429} | "
-                f"Cooldown: {cooldown}s"
-            )
+                    f"[429] {market_hash_name} | "
+                    f"Proxy: {nombre_proxy(proxy)} | "
+                    f"429 consecutivos: {fallos_429} | "
+                    f"Cooldown: {cooldown}s"
+                )
 
             return {
                 "price": None,
@@ -1297,11 +1297,7 @@ def buscar_precio(market_hash_name, session, proxy):
 
             print(
                 f"[HTTP ERROR HISTOGRAM] "
-                f"{proxy} -> {r.status_code}"
-            )
-
-            print(
-                f"[DEBUG URL] {r.url}"
+                f"{nombre_proxy(proxy)} -> {r.status_code}"
             )
 
             print(
@@ -2057,12 +2053,13 @@ def worker(grupo_skins, worker_id):
 
                 if error == "429":
 
-                    pausa_restante = steam_pausa_restante()
+                    print(
+                        f"[RETRY] {skin_name} | "
+                        f"429 detectado → se cancela el retry "
+                        f"y se respeta la pausa global de Steam"
+                    )
 
-                    if pausa_restante > 0:
-                        espera = pausa_restante + random.uniform(5, 15)
-                    else:
-                        espera = random.uniform(20, 35)
+                    break
 
                 elif error == "timeout":
 
