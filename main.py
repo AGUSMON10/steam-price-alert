@@ -1786,11 +1786,11 @@ def enviar_resumen_diario():
 
             estado = "⚪ SIN DATOS"
 
-        elif porcentaje >= 99 and promedio < 1.0:
+        elif porcentaje >= 99 and datos["429"] == 0 and fallidas == 0:
 
             estado = "🟢 EXCELENTE"
 
-        elif porcentaje >= 95 and promedio < 1.5:
+        elif porcentaje >= 95:
 
             estado = "🟡 NORMAL"
 
