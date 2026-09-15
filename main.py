@@ -543,13 +543,13 @@ ALERTA_DOBLE_INTERVALO = 15
 def calcular_ttl(precio, precio_max):
 
     if precio is None or precio_max <= 0:
-        return random.uniform(170, 210)
+        return random.uniform(150, 190)
 
     distancia = (precio - precio_max) / precio_max
 
     # Precio igual o por debajo del máximo
     if distancia <= 0:
-        return random.uniform(75, 105)
+        return random.uniform(55, 85)
 
     # Hasta 5% por encima
     elif distancia <= 0.05:
@@ -557,19 +557,19 @@ def calcular_ttl(precio, precio_max):
 
     # Entre 5% y 10%
     elif distancia <= 0.10:
-        return random.uniform(105, 140)
+        return random.uniform(95, 120)
 
     # Entre 10% y 15%
     elif distancia <= 0.15:
-        return random.uniform(130, 165)
+        return random.uniform(110, 145)
 
     # Entre 15% y 25%
     elif distancia <= 0.25:
-        return random.uniform(155, 190)
+        return random.uniform(135, 170)
 
     # Muy lejos del objetivo
     else:
-        return random.uniform(175, 210)
+        return random.uniform(160, 190)
 
 # =========================
 # ESTADÍSTICAS
@@ -1510,7 +1510,7 @@ def buscar_precio(market_hash_name, session, proxy):
 
         # Jitter adicional para evitar que muchas skins
         # vuelvan a consultarse al mismo tiempo.
-        jitter_cache = random.uniform(0, 30)
+        jitter_cache = random.uniform(0, 25)
 
         proximo_refresh = ahora + ttl + jitter_cache
 
