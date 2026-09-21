@@ -454,6 +454,14 @@ skins_a_vigilar = {
     "★ Bowie Knife | Crimson Web (Minimal Wear)": 217.00,
     "★ Survival Knife | Blue Steel (Factory New)": 140.00,
     "★ StatTrak™ Classic Knife | Blue Steel (Field-Tested)": 141.00,
+    "★ StatTrak™ Falchion Knife | Freehand (Factory New)": 122.00,
+    "★ Falchion Knife | Blue Steel (Minimal Wear)": 156.00,
+    "★ Falchion Knife | Autotronic (Factory New)": 178.00,
+    "★ StatTrak™ Bowie Knife | Damascus Steel (Minimal Wear)": 118.00,
+    "★ StatTrak™ Bowie Knife | Marble Fade (Factory New)": 200.00,
+    "★ StatTrak™ Shadow Daggers | Freehand (Minimal Wear)": 70.00,
+    "★ StatTrak™ Shadow Daggers | Fade (Factory New)": 200.00,
+    "★ Shadow Daggers | Fade (Minimal Wear)": 205.00,
     
 }
 
@@ -489,6 +497,14 @@ ITEM_NAME_IDS = {
     "★ Bowie Knife | Crimson Web (Minimal Wear)": 139966115,
     "★ Survival Knife | Blue Steel (Factory New)": 176103425,
     "★ StatTrak™ Classic Knife | Blue Steel (Field-Tested)": 176091948,
+    "★ StatTrak™ Falchion Knife | Freehand (Factory New)": 176263345,
+    "★ Falchion Knife | Blue Steel (Minimal Wear)": 49461582,
+    "★ Falchion Knife | Autotronic (Factory New)": 176263260,
+    "★ StatTrak™ Bowie Knife | Damascus Steel (Minimal Wear)": 175880602,
+    "★ StatTrak™ Bowie Knife | Marble Fade (Factory New)": 175884373,
+    "★ StatTrak™ Shadow Daggers | Freehand (Minimal Wear)": 176263963,
+    "★ StatTrak™ Shadow Daggers | Fade (Factory New)": 67210734,
+    "★ Shadow Daggers | Fade (Minimal Wear)": 67590792,
 }
 
 notificados = {}
