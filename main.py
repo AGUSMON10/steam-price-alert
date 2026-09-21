@@ -762,7 +762,11 @@ def cargar_estado():
         stats_proxies = estado.get("stats_proxies", stats_proxies)
         price_cache = estado.get("price_cache", {})
         ciclo_numero = estado.get("ciclo_numero", 0)
-        estado_app = estado.get("estado_app", "iniciando")
+        estado_app = estado.get("estado_app", {
+            "activo": True,
+            "errores": 0,
+            "ultimo_escaneo": None
+        })
         skins_revisadas_total = estado.get(
             "skins_revisadas_total",
             0
