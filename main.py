@@ -1670,7 +1670,7 @@ def enviar_telegram(mensaje):
 
         return False
 
-def enviar_resumen_diario():
+def enviar_resumen_diario(reiniciar=True):
     global stats_diarias
     global fecha_estadisticas
 
@@ -1809,27 +1809,29 @@ def enviar_resumen_diario():
 
         print("[INFO] Resumen diario enviado a Telegram")
 
-        for key in stats_diarias:
-            stats_diarias[key] = 0
+        if reiniciar:
 
-        for proxy in PROXIES:
-            stats_proxies[proxy] = {
-                "requests": 0,
-                "exitosas": 0,
-                "fallidas": 0,
-                "429": 0,
-                "timeouts": 0,
-                "http": 0,
-                "json": 0,
-                "steam": 0,
-                "request": 0,
-                "tiempo_total": 0.0,
-                "cooldowns": 0,
-            }
+            for key in stats_diarias:
+                stats_diarias[key] = 0
 
-        fecha_estadisticas = ahora.date()
+            for proxy in PROXIES:
+                stats_proxies[proxy] = {
+                    "requests": 0,
+                    "exitosas": 0,
+                    "fallidas": 0,
+                    "429": 0,
+                    "timeouts": 0,
+                    "http": 0,
+                    "json": 0,
+                    "steam": 0,
+                    "request": 0,
+                    "tiempo_total": 0.0,
+                    "cooldowns": 0,
+                }
 
-        guardar_estado()
+            fecha_estadisticas = ahora.date()
+
+            guardar_estado()
 
     else:
 
@@ -1837,6 +1839,176 @@ def enviar_resumen_diario():
             "[ERROR] El resumen diario NO fue enviado. "
             "Las estadísticas NO se reiniciarán."
         )
+
+# ============================================================
+# COMANDOS DE TELEGRAM
+# ============================================================
+
+def comando_estado():
+    ahora = datetime.now(ZONA_ARG)
+
+    estado = "ACTIVO" if estado_app.get("activo", False) else "DETENIDO"
+
+    ultimo_escaneo = estado_app.get("ultimo_escaneo")
+
+    if ultimo_escaneo:
+        ultimo_escaneo_texto = str(ultimo_escaneo)
+    else:
+        ultimo_escaneo_texto = "Sin datos"
+
+    proxies_en_cooldown = sum(
+        1
+        for proxy in PROXIES
+        if PROXY_STATUS.get(proxy, 0) > time.time()
+    )
+
+    mensaje = (
+        "🤖 ESTADO DEL BOT\n\n"
+        f"Estado: {estado}\n"
+        f"Hora: {ahora.strftime('%d/%m/%Y %H:%M:%S')}\n"
+        f"Skins vigiladas: {len(skins_a_vigilar)}\n"
+        f"Skins en caché: {len(price_cache)}\n"
+        f"Ciclo actual: {ciclo_numero}\n"
+        f"Último escaneo: {ultimo_escaneo_texto}\n"
+        f"Proxies configurados: {len(PROXIES)}\n"
+        f"Proxies en cooldown: {proxies_en_cooldown}\n"
+        f"Fallos consecutivos de Steam: {STEAM_429_CONSECUTIVOS}\n"
+        f"Pausa global de Steam: "
+        f"{int(steam_pausa_restante())} segundos"
+    )
+
+    enviar_telegram(mensaje)
+
+
+def comando_resumen():
+    enviar_resumen_diario(reiniciar=False)
+
+
+def comando_proxies():
+    ahora = time.time()
+
+    mensaje = "🌐 ESTADO DE LOS PROXIES\n\n"
+
+    for i, proxy in enumerate(PROXIES, start=1):
+
+        datos = stats_proxies.get(proxy, {})
+
+        requests_total = datos.get("requests", 0)
+        exitosas = datos.get("exitosas", 0)
+        fallidas = datos.get("fallidas", 0)
+        errores_429 = datos.get("429", 0)
+        timeouts = datos.get("timeouts", 0)
+
+        cooldown_hasta = PROXY_STATUS.get(proxy, 0)
+
+        if cooldown_hasta > ahora:
+            estado = (
+                f"🔴 COOLdown "
+                f"{int(cooldown_hasta - ahora)}s"
+            )
+        else:
+            estado = "🟢 DISPONIBLE"
+
+        mensaje += (
+            f"Proxy {i}\n"
+            f"Estado: {estado}\n"
+            f"Requests: {requests_total}\n"
+            f"Exitosas: {exitosas}\n"
+            f"Fallidas: {fallidas}\n"
+            f"429: {errores_429}\n"
+            f"Timeouts: {timeouts}\n\n"
+        )
+
+    enviar_telegram(mensaje)
+
+
+def comando_ayuda():
+    mensaje = (
+        "📋 COMANDOS DISPONIBLES\n\n"
+        "/estado - Estado general del bot\n"
+        "/resumen - Resumen acumulado del día\n"
+        "/proxies - Estado detallado de los proxies\n"
+        "/ayuda - Mostrar esta ayuda"
+    )
+
+    enviar_telegram(mensaje)
+
+def telegram_listener():
+
+    print("[TELEGRAM] Receptor de comandos iniciado.")
+
+    offset = 0
+
+    while True:
+
+        try:
+
+            url = (
+                f"https://api.telegram.org/bot"
+                f"{TELEGRAM_BOT_TOKEN}/getUpdates"
+            )
+
+            params = {
+                "timeout": 25,
+                "offset": offset
+            }
+
+            respuesta = requests.get(
+                url,
+                params=params,
+                timeout=35
+            )
+
+            datos = respuesta.json()
+
+            if not datos.get("ok"):
+                time.sleep(5)
+                continue
+
+            for update in datos.get("result", []):
+
+                offset = update["update_id"] + 1
+
+                mensaje = update.get("message")
+
+                if not mensaje:
+                    continue
+
+                chat_id = mensaje["chat"]["id"]
+
+                # Solo aceptar comandos desde nuestro chat
+                if str(chat_id) != str(TELEGRAM_CHAT_ID):
+                    continue
+
+                texto = mensaje.get("text", "").strip()
+
+                if not texto:
+                    continue
+
+                comando = texto.split()[0].lower()
+
+                # Permite /estado y también /estado@nombre_del_bot
+                comando = comando.split("@")[0]
+
+                print(f"[TELEGRAM] Comando recibido: {comando}")
+
+                if comando == "/estado":
+                    comando_estado()
+
+                elif comando == "/resumen":
+                    comando_resumen()
+
+                elif comando == "/proxies":
+                    comando_proxies()
+
+                elif comando == "/ayuda":
+                    comando_ayuda()
+
+        except Exception as e:
+
+            print(f"[TELEGRAM] Error en receptor: {e}")
+
+            time.sleep(5)
 
 def dividir_skins_en_grupos():
     return [list(skins_a_vigilar.items())]
@@ -2343,6 +2515,12 @@ if __name__ == "__main__":
 
     servidor_thread = threading.Thread(target=iniciar_servidor)
     servidor_thread.start()
+
+    telegram_thread = threading.Thread(
+        target=telegram_listener,
+        daemon=True
+    )
+    telegram_thread.start()
 
     for t in threads:
         t.join()
