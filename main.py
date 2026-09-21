@@ -608,7 +608,8 @@ def guardar_estado():
             "price_cache": price_cache,
             "ciclo_numero": ciclo_numero,
             "estado_app": estado_app,
-            "skins_revisadas_total": skins_revisadas_total
+            "skins_revisadas_total": skins_revisadas_total,
+            "fecha_estadisticas": fecha_estadisticas.isoformat()
         }
 
         with open(ARCHIVO_ESTADO, "w", encoding="utf-8") as f:
