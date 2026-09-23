@@ -462,6 +462,9 @@ skins_a_vigilar = {
     "★ StatTrak™ Shadow Daggers | Freehand (Minimal Wear)": 70.00,
     "★ StatTrak™ Shadow Daggers | Fade (Factory New)": 200.00,
     "★ Shadow Daggers | Fade (Minimal Wear)": 205.00,
+    "★ Nomad Knife | Stained (Minimal Wear)": 151.00,
+    "★ StatTrak™ Nomad Knife | Ultraviolet (Minimal Wear)": 164.00,
+    "★ Nomad Knife | Crimson Web (Minimal Wear)": 226.00,
     
 }
 
@@ -505,6 +508,9 @@ ITEM_NAME_IDS = {
     "★ StatTrak™ Shadow Daggers | Freehand (Minimal Wear)": 176263963,
     "★ StatTrak™ Shadow Daggers | Fade (Factory New)": 67210734,
     "★ Shadow Daggers | Fade (Minimal Wear)": 67590792,
+    "★ Nomad Knife | Stained (Minimal Wear)": 176097478,
+    "★ StatTrak™ Nomad Knife | Ultraviolet (Minimal Wear)": 176508659,
+    "★ Nomad Knife | Crimson Web (Minimal Wear)": 176097767,
 }
 
 notificados = {}
