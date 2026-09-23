@@ -1062,7 +1062,7 @@ def obtener_proxy():
 # Crear app Flask para UptimeRobot
 app = Flask(__name__)
 
-@app.route("/")
+@app.route("/health")
 def home():
     """Endpoint para UptimeRobot"""
     return jsonify({
