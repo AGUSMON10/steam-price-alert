@@ -765,8 +765,30 @@ def cargar_estado():
 
         notificados = estado.get("notificados", {})
         stats_diarias = estado.get("stats_diarias", stats_diarias)
-        stats_proxies = estado.get("stats_proxies", stats_proxies)
+        stats_proxies_guardadas = estado.get("stats_proxies", {})
+
+        stats_proxies = {}
+
+        for proxy in PROXIES:
+
+            datos = stats_proxies_guardadas.get(proxy, {})
+
+            stats_proxies[proxy] = {
+                "requests": datos.get("requests", 0),
+                "exitosas": datos.get("exitosas", 0),
+                "fallidas": datos.get("fallidas", 0),
+                "429": datos.get("429", 0),
+                "timeouts": datos.get("timeouts", 0),
+                "http": datos.get("http", 0),
+                "json": datos.get("json", 0),
+                "steam": datos.get("steam", 0),
+                "request": datos.get("request", 0),
+                "tiempo_total": datos.get("tiempo_total", 0.0),
+                "cooldowns": datos.get("cooldowns", 0),
+            }
+
         price_cache = estado.get("price_cache", {})
+        
         ciclo_numero = estado.get("ciclo_numero", 0)
         estado_app = estado.get("estado_app")
 
