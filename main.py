@@ -463,6 +463,9 @@ skins_a_vigilar = {
     "★ Nomad Knife | Stained (Minimal Wear)": 152.00,
     "★ StatTrak™ Nomad Knife | Ultraviolet (Minimal Wear)": 164.00,
     "★ Nomad Knife | Crimson Web (Minimal Wear)": 226.00,
+    "★ Skeleton Knife | Stained (Minimal Wear)": 241.00,
+    "★ Flip Knife | Lore (Field-Tested)": 175.00,
+    "★ StatTrak™ Flip Knife | Blue Steel (Minimal Wear)": 215.00,
     
 }
 
@@ -507,6 +510,9 @@ ITEM_NAME_IDS = {
     "★ Nomad Knife | Stained (Minimal Wear)": 176097478,
     "★ StatTrak™ Nomad Knife | Ultraviolet (Minimal Wear)": 176508659,
     "★ Nomad Knife | Crimson Web (Minimal Wear)": 176097767,
+    "★ Skeleton Knife | Stained (Minimal Wear)": 176097674,
+    "★ Flip Knife | Lore (Field-Tested)": 156219676,
+    "★ StatTrak™ Flip Knife | Blue Steel (Minimal Wear)": 9672792,
 }
 
 notificados = {}
