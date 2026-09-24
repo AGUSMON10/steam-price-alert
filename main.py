@@ -1975,6 +1975,93 @@ def comando_proxies():
 
     enviar_telegram(mensaje)
 
+def comando_top():
+    try:
+        ranking = []
+
+        for skin, precio_maximo in skins_a_vigilar.items():
+
+            datos = price_cache.get(skin)
+
+            # Si todavía no tenemos precio para esta skin, la salteamos
+            if not datos:
+                continue
+
+            precio_actual = datos.get("price")
+
+            if precio_actual is None:
+                continue
+
+            try:
+                precio_actual = float(precio_actual)
+                precio_maximo = float(precio_maximo)
+            except (ValueError, TypeError):
+                continue
+
+            # Diferencia porcentual respecto al objetivo
+            diferencia_porcentaje = (
+                (precio_actual - precio_maximo)
+                / precio_maximo
+            ) * 100
+
+            # Solo mostrar skins que estén como máximo 10% por encima
+            if diferencia_porcentaje <= 10:
+                ranking.append({
+                    "skin": skin,
+                    "precio": precio_actual,
+                    "maximo": precio_maximo,
+                    "diferencia": diferencia_porcentaje
+                })
+
+        # Ordenar: primero las que están más cerca o ya debajo del objetivo
+        ranking.sort(key=lambda x: x["diferencia"])
+
+        # Mostrar solamente las 10 mejores
+        ranking = ranking[:10]
+
+        if not ranking:
+            enviar_telegram(
+                "🏆 TOP\n\n"
+                "No hay skins dentro del 10% de su objetivo "
+                "con precio disponible en caché."
+            )
+            return
+
+        mensaje = "🏆 TOP 10 — MÁS CERCA DEL OBJETIVO\n\n"
+
+        for i, item in enumerate(ranking, start=1):
+
+            skin = item["skin"]
+            precio = item["precio"]
+            maximo = item["maximo"]
+            diferencia = item["diferencia"]
+
+            if diferencia <= 0:
+                estado = f"🔥 {abs(diferencia):.1f}% DEBAJO"
+            else:
+                estado = f"📊 {diferencia:.1f}% arriba"
+
+            mensaje += (
+                f"{i}. {skin}\n"
+                f"   💰 ${precio:.2f} / 🎯 ${maximo:.2f}\n"
+                f"   {estado}\n\n"
+            )
+
+        mensaje += (
+            "ℹ️ Se muestran las 10 skins más cercanas "
+            "al objetivo dentro del 10%.\n"
+            "📦 Datos tomados del caché actual del bot."
+        )
+
+        enviar_telegram(mensaje)
+
+    except Exception as e:
+        print(f"[TELEGRAM] Error en comando_top: {e}")
+
+        enviar_telegram(
+            "❌ Error al generar el TOP."
+        )
+
 
 def comando_ayuda():
     mensaje = (
@@ -1982,6 +2069,7 @@ def comando_ayuda():
         "/estado - Estado general del bot\n"
         "/resumen - Resumen acumulado del día\n"
         "/proxies - Estado detallado de los proxies\n"
+        "/top - Top 10 skins más cerca del objetivo\n"
         "/ayuda - Mostrar esta ayuda"
     )
 
@@ -2054,6 +2142,9 @@ def telegram_listener():
 
                 elif comando == "/proxies":
                     comando_proxies()
+
+                elif comando == "/top":
+                    comando_top()
 
                 elif comando == "/ayuda":
                     comando_ayuda()
