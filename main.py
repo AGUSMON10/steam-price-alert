@@ -463,6 +463,8 @@ skins_a_vigilar = {
     "★ Skeleton Knife | Stained (Minimal Wear)": 241.00,
     "★ Flip Knife | Lore (Field-Tested)": 175.00,
     "★ StatTrak™ Flip Knife | Blue Steel (Minimal Wear)": 215.00,
+    "StatTrak™ AWP | Asiimov (Well-Worn)": 191.00,
+    "AWP | CMYK (Field-Tested)": 185.00,
     
 }
 
@@ -507,6 +509,8 @@ ITEM_NAME_IDS = {
     "★ Skeleton Knife | Stained (Minimal Wear)": 176097674,
     "★ Flip Knife | Lore (Field-Tested)": 156219676,
     "★ StatTrak™ Flip Knife | Blue Steel (Minimal Wear)": 9672792,
+    "StatTrak™ AWP | Asiimov (Well-Worn)": 7203621,
+    "AWP | CMYK (Field-Tested)": 176460908,
 }
 
 notificados = {}
