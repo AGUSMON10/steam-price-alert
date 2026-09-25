@@ -465,6 +465,7 @@ skins_a_vigilar = {
     "★ StatTrak™ Flip Knife | Blue Steel (Minimal Wear)": 215.00,
     "StatTrak™ AWP | Asiimov (Well-Worn)": 191.00,
     "AWP | CMYK (Field-Tested)": 185.00,
+    "AK-47 | Bloodsport (Minimal Wear)": 150.00,
     
 }
 
@@ -511,6 +512,7 @@ ITEM_NAME_IDS = {
     "★ StatTrak™ Flip Knife | Blue Steel (Minimal Wear)": 9672792,
     "StatTrak™ AWP | Asiimov (Well-Worn)": 7203621,
     "AWP | CMYK (Field-Tested)": 176460908,
+    "AK-47 | Bloodsport (Minimal Wear)": 175880372,
 }
 
 notificados = {}
