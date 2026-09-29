@@ -623,12 +623,63 @@ stats_proxies = {
 
 fecha_estadisticas = datetime.now(ZONA_ARG).date()
 
-def guardar_estado():
+# ============================================================
+# GUARDADO DEL ESTADO
+# ============================================================
+
+GUARDAR_ESTADO_INTERVALO = 900  # 15 minutos
+ULTIMO_GUARDADO_ESTADO = 0
+
+
+def guardar_estado(forzar=False):
+
+    global ULTIMO_GUARDADO_ESTADO
+
     try:
+
+        ahora = time.time()
+
+        # Evitar guardar en GitHub demasiado seguido
+        if (
+            not forzar
+            and ahora - ULTIMO_GUARDADO_ESTADO
+            < GUARDAR_ESTADO_INTERVALO
+        ):
+            return
+
+        # ====================================================
+        # ESTADÍSTICAS DE PROXIES
+        #
+        # IMPORTANTE:
+        # NO guardamos la URL completa del proxy.
+        # Así las credenciales NO quedan dentro de bot_state.json
+        # ====================================================
+
+        stats_proxies_guardadas = []
+
+        for i, proxy in enumerate(PROXIES, start=1):
+
+            datos = stats_proxies.get(proxy, {})
+
+            stats_proxies_guardadas.append({
+                "proxy_numero": i,
+                "requests": datos.get("requests", 0),
+                "exitosas": datos.get("exitosas", 0),
+                "fallidas": datos.get("fallidas", 0),
+                "429": datos.get("429", 0),
+                "timeouts": datos.get("timeouts", 0),
+                "http": datos.get("http", 0),
+                "json": datos.get("json", 0),
+                "steam": datos.get("steam", 0),
+                "request": datos.get("request", 0),
+                "tiempo_total": datos.get("tiempo_total", 0.0),
+                "cooldowns": datos.get("cooldowns", 0),
+            })
+
         estado = {
             "notificados": notificados,
             "stats_diarias": stats_diarias,
-            "stats_proxies": stats_proxies,
+            "stats_proxies": stats_proxies_guardadas,
             "price_cache": price_cache,
             "ciclo_numero": ciclo_numero,
             "estado_app": estado_app,
@@ -636,17 +687,31 @@ def guardar_estado():
             "fecha_estadisticas": fecha_estadisticas.isoformat()
         }
 
+        # ====================================================
+        # GUARDAR ARCHIVO LOCAL
+        # ====================================================
+
         with open(ARCHIVO_ESTADO, "w", encoding="utf-8") as f:
-            json.dump(estado, f, ensure_ascii=False, indent=2)
+            json.dump(
+                estado,
+                f,
+                ensure_ascii=False,
+                indent=2
+            )
 
         github_token = os.getenv("GITHUB_TOKEN")
         github_repo = os.getenv("GITHUB_REPO")
 
         if not github_token or not github_repo:
-            print("[GITHUB] Faltan GITHUB_TOKEN o GITHUB_REPO")
+            print(
+                "[GITHUB] Faltan GITHUB_TOKEN o GITHUB_REPO"
+            )
             return
 
-        url = f"https://api.github.com/repos/{github_repo}/contents/bot_state.json"
+        url = (
+            f"https://api.github.com/repos/"
+            f"{github_repo}/contents/bot_state.json"
+        )
 
         headers = {
             "Authorization": f"Bearer {github_token}",
@@ -654,7 +719,10 @@ def guardar_estado():
             "X-GitHub-Api-Version": "2022-11-28"
         }
 
-        # Obtener SHA del archivo actual, si existe
+        # ====================================================
+        # OBTENER SHA DEL ARCHIVO ACTUAL
+        # ====================================================
+
         respuesta_actual = requests.get(
             url,
             headers=headers,
@@ -664,20 +732,30 @@ def guardar_estado():
         sha = None
 
         if respuesta_actual.status_code == 200:
+
             sha = respuesta_actual.json().get("sha")
+
         elif respuesta_actual.status_code != 404:
+
             print(
                 f"[GITHUB] Error consultando estado: "
                 f"HTTP {respuesta_actual.status_code}"
             )
+
             return
+
+        # ====================================================
+        # PREPARAR CONTENIDO
+        # ====================================================
 
         with open(ARCHIVO_ESTADO, "rb") as f:
             contenido = f.read()
 
         import base64
 
-        contenido_base64 = base64.b64encode(contenido).decode("utf-8")
+        contenido_base64 = base64.b64encode(
+            contenido
+        ).decode("utf-8")
 
         datos_github = {
             "message": "Actualizar bot_state.json",
@@ -687,6 +765,10 @@ def guardar_estado():
         if sha:
             datos_github["sha"] = sha
 
+        # ====================================================
+        # SUBIR A GITHUB
+        # ====================================================
+
         respuesta = requests.put(
             url,
             headers=headers,
@@ -695,16 +777,25 @@ def guardar_estado():
         )
 
         if respuesta.status_code in (200, 201):
-            print("[GITHUB] Estado guardado correctamente.")
+
+            ULTIMO_GUARDADO_ESTADO = time.time()
+
+            print(
+                "[GITHUB] Estado guardado correctamente."
+            )
+
         else:
+
             print(
                 f"[GITHUB] Error guardando estado: "
                 f"HTTP {respuesta.status_code}"
             )
 
     except Exception as e:
-        print(f"[GITHUB] Error en guardar_estado(): {e}")
 
+        print(
+            f"[GITHUB] Error en guardar_estado(): {e}"
+        )
 
 def cargar_estado():
     global notificados
@@ -714,6 +805,7 @@ def cargar_estado():
     global ciclo_numero
     global estado_app
     global skins_revisadas_total
+    global fecha_estadisticas
 
     try:
         github_token = os.getenv("GITHUB_TOKEN")
@@ -766,32 +858,143 @@ def cargar_estado():
             estado = json.load(f)
 
         notificados = estado.get("notificados", {})
-        stats_diarias = estado.get("stats_diarias", stats_diarias)
-        stats_proxies_guardadas = estado.get("stats_proxies", {})
+
+        # ====================================================
+        # RECUPERAR ESTADÍSTICAS DIARIAS
+        # ====================================================
+
+        stats_diarias_guardadas = estado.get(
+            "stats_diarias",
+            {}
+        )
+
+        for key in stats_diarias:
+
+            if key in stats_diarias_guardadas:
+
+                stats_diarias[key] = stats_diarias_guardadas[key]
+
+
+        # ====================================================
+        # RECUPERAR ESTADÍSTICAS DE PROXIES
+        #
+        # Se identifican por número de proxy.
+        # Nunca necesitamos guardar la URL/credenciales.
+        # ====================================================
+
+        stats_proxies_guardadas = estado.get(
+            "stats_proxies",
+            []
+        )
 
         stats_proxies = {}
 
-        for proxy in PROXIES:
+        for i, proxy in enumerate(PROXIES, start=1):
 
-            datos = stats_proxies_guardadas.get(proxy, {})
+            datos = {}
+
+            # Nuevo formato seguro
+            if isinstance(stats_proxies_guardadas, list):
+
+                for guardado in stats_proxies_guardadas:
+
+                    if guardado.get("proxy_numero") == i:
+
+                        datos = guardado
+
+                        break
+
+            # Compatibilidad con un estado viejo
+            # que todavía tenía las URLs de los proxies
+            elif isinstance(stats_proxies_guardadas, dict):
+
+                datos = stats_proxies_guardadas.get(
+                    proxy,
+                    {}
+                )
 
             stats_proxies[proxy] = {
-                "requests": datos.get("requests", 0),
-                "exitosas": datos.get("exitosas", 0),
-                "fallidas": datos.get("fallidas", 0),
-                "429": datos.get("429", 0),
-                "timeouts": datos.get("timeouts", 0),
-                "http": datos.get("http", 0),
-                "json": datos.get("json", 0),
-                "steam": datos.get("steam", 0),
-                "request": datos.get("request", 0),
-                "tiempo_total": datos.get("tiempo_total", 0.0),
-                "cooldowns": datos.get("cooldowns", 0),
+
+                "requests":
+                    datos.get("requests", 0),
+
+                "exitosas":
+                    datos.get("exitosas", 0),
+
+                "fallidas":
+                    datos.get("fallidas", 0),
+
+                "429":
+                    datos.get("429", 0),
+
+                "timeouts":
+                    datos.get("timeouts", 0),
+
+                "http":
+                    datos.get("http", 0),
+
+                "json":
+                    datos.get("json", 0),
+
+                "steam":
+                    datos.get("steam", 0),
+
+                "request":
+                    datos.get("request", 0),
+
+                "tiempo_total":
+                    datos.get("tiempo_total", 0.0),
+
+                "cooldowns":
+                    datos.get("cooldowns", 0),
             }
 
-        price_cache = estado.get("price_cache", {})
-        
-        ciclo_numero = estado.get("ciclo_numero", 0)
+        price_cache = estado.get(
+            "price_cache",
+            {}
+        )
+
+        # ====================================================
+        # RECUPERAR CICLO
+        # ====================================================
+
+        ciclo_numero = estado.get(
+            "ciclo_numero",
+            0
+        )
+
+        # ====================================================
+        # RECUPERAR FECHA DE ESTADÍSTICAS
+        # ====================================================
+
+        fecha_guardada = estado.get(
+            "fecha_estadisticas"
+        )
+
+        if fecha_guardada:
+
+            try:
+
+                fecha_estadisticas = datetime.fromisoformat(
+                    fecha_guardada
+                ).date()
+
+            except Exception:
+
+                print(
+                    "[GITHUB] No se pudo recuperar "
+                    "la fecha de estadísticas."
+                )
+
+                fecha_estadisticas = (
+                    datetime.now(ZONA_ARG).date()
+                )
+
+        else:
+
+            fecha_estadisticas = (
+                datetime.now(ZONA_ARG).date()
+            )
         estado_app = estado.get("estado_app")
 
         if not isinstance(estado_app, dict):
@@ -1885,7 +2088,8 @@ def enviar_resumen_diario(reiniciar=True):
 
             fecha_estadisticas = ahora.date()
 
-            guardar_estado()
+            # Guardar inmediatamente el nuevo día
+            guardar_estado(forzar=True)
 
     else:
 
@@ -2476,7 +2680,8 @@ def worker(grupo_skins, worker_id):
 
                 notificados[skin_name] = precio_actual
 
-                guardar_estado()
+                # Guardar inmediatamente porque hubo una alerta
+                guardar_estado(forzar=True)
 
             if not resultado.get("from_cache", False):
                 time.sleep(random.uniform(1, 2))
@@ -2635,6 +2840,10 @@ if __name__ == "__main__":
 
     cargar_estado()
 
+    # Actualizar inmediatamente el bot_state.json
+    # al nuevo formato seguro sin credenciales de proxies
+    guardar_estado(forzar=True)
+    
     print("==============================================")
     print("[STARTUP] Estado recuperado.")
     print(f"[STARTUP] Cache: {len(price_cache)} skins")
