@@ -809,7 +809,7 @@ select {
 
                     <th>Skin</th>
 
-                    <th>SELL</th>
+                    <th>Precio de venta</th>
 
                     <th>Objetivo</th>
 
@@ -856,8 +856,8 @@ select {
                 <tr>
 
                     <th>Skin</th>
-                    <th>SELL</th>
-                    <th>BUY</th>
+                    <th>Precio de venta</th>
+                    <th>Pedido de compra</th>
                     <th>Tu máximo</th>
                     <th>Diferencia</th>
                     <th>Estado</th>
@@ -915,8 +915,8 @@ select {
 
     <div class="description">
 
-        Evolución real del SELL y BUY obtenidos
-        desde Steam.
+        Evolución real del precio de venta y los pedidos de compra
+        obtenidos desde Steam.
 
     </div>
 
@@ -995,7 +995,7 @@ select {
             <div class="history-stat">
 
                 <div class="history-stat-label">
-                    SELL actual
+                    Precio de Venta Actual
                 </div>
 
                 <div
@@ -1011,7 +1011,7 @@ select {
             <div class="history-stat">
 
                 <div class="history-stat-label">
-                    BUY actual
+                    Pedido de Compra Actual
                 </div>
 
                 <div
@@ -2052,7 +2052,7 @@ function renderRadar() {
 
                         <div>
                             <small>
-                                SELL
+                                Precio de Venta
                             </small>
                             <br>
                             ${money(price)}
@@ -2505,7 +2505,7 @@ function renderHistory(
 
                         {
                             label:
-                                "SELL",
+                                "Precio de Venta",
 
                             data:
                                 sellData,
@@ -2519,7 +2519,7 @@ function renderHistory(
 
                         {
                             label:
-                                "BUY",
+                                "Pedido de Compra",
 
                             data:
                                 buyData,
