@@ -1,1 +1,1251 @@
+<!DOCTYPE html>
+<html lang="es">
 
+<head>
+
+    <meta charset="UTF-8">
+
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    >
+
+    <title>Steam Market Radar</title>
+
+    <style>
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            font-family: Arial, Helvetica, sans-serif;
+            background: #0b0f14;
+            color: #e8edf3;
+        }
+
+        .layout {
+            display: flex;
+            min-height: 100vh;
+        }
+
+        /* =========================
+           SIDEBAR
+        ========================= */
+
+        .sidebar {
+            width: 230px;
+            background: #111720;
+            border-right: 1px solid #202936;
+            padding: 22px 15px;
+        }
+
+        .logo {
+            font-size: 20px;
+            font-weight: bold;
+            margin-bottom: 30px;
+            padding-left: 10px;
+        }
+
+        .logo span {
+            color: #4ade80;
+        }
+
+        .menu {
+            display: flex;
+            flex-direction: column;
+            gap: 7px;
+        }
+
+        .menu button {
+            width: 100%;
+            border: 0;
+            background: transparent;
+            color: #9aa6b2;
+            padding: 13px 12px;
+            text-align: left;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+
+        .menu button:hover {
+            background: #19212c;
+            color: white;
+        }
+
+        .menu button.active {
+            background: #1d2937;
+            color: white;
+        }
+
+        /* =========================
+           CONTENIDO
+        ========================= */
+
+        .content {
+            flex: 1;
+            padding: 30px;
+            overflow-x: auto;
+        }
+
+        .page {
+            display: none;
+        }
+
+        .page.active {
+            display: block;
+        }
+
+        .page-title {
+            font-size: 28px;
+            margin-bottom: 8px;
+        }
+
+        .page-description {
+            color: #8d99a6;
+            margin-bottom: 25px;
+        }
+
+        /* =========================
+           CARDS
+        ========================= */
+
+        .cards {
+            display: grid;
+            grid-template-columns:
+                repeat(auto-fit, minmax(190px, 1fr));
+
+            gap: 15px;
+
+            margin-bottom: 25px;
+        }
+
+        .card {
+            background: #111720;
+            border: 1px solid #202936;
+            border-radius: 12px;
+            padding: 20px;
+        }
+
+        .card-title {
+            color: #8d99a6;
+            font-size: 13px;
+            margin-bottom: 10px;
+        }
+
+        .card-value {
+            font-size: 27px;
+            font-weight: bold;
+        }
+
+        .green {
+            color: #4ade80;
+        }
+
+        .yellow {
+            color: #facc15;
+        }
+
+        .red {
+            color: #f87171;
+        }
+
+        .blue {
+            color: #60a5fa;
+        }
+
+        /* =========================
+           TABLAS
+        ========================= */
+
+        .table-container {
+            background: #111720;
+            border: 1px solid #202936;
+            border-radius: 12px;
+            overflow-x: auto;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        th {
+            text-align: left;
+            color: #7f8b98;
+            font-size: 12px;
+            text-transform: uppercase;
+            padding: 15px;
+            border-bottom: 1px solid #202936;
+        }
+
+        td {
+            padding: 15px;
+            border-bottom: 1px solid #1b2430;
+            font-size: 14px;
+        }
+
+        tr:last-child td {
+            border-bottom: 0;
+        }
+
+        /* =========================
+           BADGES
+        ========================= */
+
+        .badge {
+            display: inline-block;
+            padding: 5px 9px;
+            border-radius: 6px;
+            font-size: 12px;
+            font-weight: bold;
+        }
+
+        .badge-green {
+            background: #123d29;
+            color: #4ade80;
+        }
+
+        .badge-yellow {
+            background: #3d3410;
+            color: #facc15;
+        }
+
+        .badge-red {
+            background: #431b1b;
+            color: #f87171;
+        }
+
+        .badge-gray {
+            background: #202936;
+            color: #aab4bf;
+        }
+
+        /* =========================
+           BOTON
+        ========================= */
+
+        .steam-button {
+            background: #1b73e8;
+            color: white;
+            border: 0;
+            border-radius: 6px;
+            padding: 7px 11px;
+            cursor: pointer;
+            text-decoration: none;
+            font-size: 12px;
+        }
+
+        .steam-button:hover {
+            background: #155dbb;
+        }
+
+        /* =========================
+           ESTADO
+        ========================= */
+
+        .status-dot {
+            display: inline-block;
+            width: 9px;
+            height: 9px;
+            border-radius: 50%;
+            background: #4ade80;
+            margin-right: 6px;
+        }
+
+        .empty {
+            padding: 30px;
+            text-align: center;
+            color: #7f8b98;
+        }
+
+        /* =========================
+           RESPONSIVE
+        ========================= */
+
+        @media (max-width: 800px) {
+
+            .layout {
+                flex-direction: column;
+            }
+
+            .sidebar {
+                width: 100%;
+                border-right: 0;
+                border-bottom: 1px solid #202936;
+            }
+
+            .menu {
+                flex-direction: row;
+                overflow-x: auto;
+            }
+
+            .menu button {
+                white-space: nowrap;
+            }
+
+            .content {
+                padding: 20px;
+            }
+
+        }
+
+    </style>
+
+</head>
+
+<body>
+
+<div class="layout">
+
+    <!-- =========================
+         MENU
+    ========================== -->
+
+    <aside class="sidebar">
+
+        <div class="logo">
+            STEAM <span>RADAR</span>
+        </div>
+
+        <div class="menu">
+
+            <button
+                class="active"
+                onclick="mostrarPagina('dashboard', this)"
+            >
+                🏠 Dashboard
+            </button>
+
+            <button
+                onclick="mostrarPagina('skins', this)"
+            >
+                🎯 Skins
+            </button>
+
+            <button
+                onclick="mostrarPagina('radar', this)"
+            >
+                📡 Radar
+            </button>
+
+            <button
+                onclick="mostrarPagina('historial', this)"
+            >
+                📈 Historial
+            </button>
+
+            <button
+                onclick="mostrarPagina('estadisticas', this)"
+            >
+                📊 Estadísticas
+            </button>
+
+            <button
+                onclick="mostrarPagina('bot', this)"
+            >
+                ⚙️ Bot
+            </button>
+
+        </div>
+
+    </aside>
+
+
+    <!-- =========================
+         CONTENIDO
+    ========================== -->
+
+    <main class="content">
+
+
+        <!-- =====================
+             DASHBOARD
+        ====================== -->
+
+        <section
+            id="dashboard"
+            class="page active"
+        >
+
+            <div class="page-title">
+                Dashboard
+            </div>
+
+            <div class="page-description">
+                Vista general del Steam Market Radar
+            </div>
+
+
+            <div class="cards">
+
+                <div class="card">
+
+                    <div class="card-title">
+                        Estado
+                    </div>
+
+                    <div
+                        class="card-value green"
+                    >
+                        <span class="status-dot"></span>
+                        ONLINE
+                    </div>
+
+                </div>
+
+
+                <div class="card">
+
+                    <div class="card-title">
+                        Skins vigiladas
+                    </div>
+
+                    <div
+                        class="card-value"
+                        id="card-skins"
+                    >
+                        -
+                    </div>
+
+                </div>
+
+
+                <div class="card">
+
+                    <div class="card-title">
+                        Cache
+                    </div>
+
+                    <div
+                        class="card-value blue"
+                        id="card-cache"
+                    >
+                        -
+                    </div>
+
+                </div>
+
+
+                <div class="card">
+
+                    <div class="card-title">
+                        Errores
+                    </div>
+
+                    <div
+                        class="card-value"
+                        id="card-errors"
+                    >
+                        -
+                    </div>
+
+                </div>
+
+            </div>
+
+
+            <div class="table-container">
+
+                <table>
+
+                    <thead>
+
+                        <tr>
+
+                            <th>
+                                Skin
+                            </th>
+
+                            <th>
+                                Precio
+                            </th>
+
+                            <th>
+                                Objetivo
+                            </th>
+
+                            <th>
+                                Diferencia
+                            </th>
+
+                            <th>
+                                Estado
+                            </th>
+
+                        </tr>
+
+                    </thead>
+
+                    <tbody
+                        id="dashboard-table"
+                    >
+
+                    </tbody>
+
+                </table>
+
+            </div>
+
+        </section>
+
+
+        <!-- =====================
+             SKINS
+        ====================== -->
+
+        <section
+            id="skins"
+            class="page"
+        >
+
+            <div class="page-title">
+                Skins
+            </div>
+
+            <div class="page-description">
+                Todas las skins que estás vigilando.
+            </div>
+
+
+            <div class="table-container">
+
+                <table>
+
+                    <thead>
+
+                        <tr>
+
+                            <th>
+                                Skin
+                            </th>
+
+                            <th>
+                                SELL
+                            </th>
+
+                            <th>
+                                BUY
+                            </th>
+
+                            <th>
+                                Tu máximo
+                            </th>
+
+                            <th>
+                                Diferencia
+                            </th>
+
+                            <th>
+                                Estado
+                            </th>
+
+                        </tr>
+
+                    </thead>
+
+                    <tbody
+                        id="skins-table"
+                    >
+
+                    </tbody>
+
+                </table>
+
+            </div>
+
+        </section>
+
+
+        <!-- =====================
+             RADAR
+        ====================== -->
+
+        <section
+            id="radar"
+            class="page"
+        >
+
+            <div class="page-title">
+                Radar
+            </div>
+
+            <div class="page-description">
+                Las oportunidades más cercanas a tus objetivos.
+            </div>
+
+
+            <div class="table-container">
+
+                <table>
+
+                    <thead>
+
+                        <tr>
+
+                            <th>
+                                #
+                            </th>
+
+                            <th>
+                                Skin
+                            </th>
+
+                            <th>
+                                SELL
+                            </th>
+
+                            <th>
+                                Objetivo
+                            </th>
+
+                            <th>
+                                Diferencia
+                            </th>
+
+                            <th>
+                                Acción
+                            </th>
+
+                        </tr>
+
+                    </thead>
+
+                    <tbody
+                        id="radar-table"
+                    >
+
+                    </tbody>
+
+                </table>
+
+            </div>
+
+        </section>
+
+
+        <!-- =====================
+             HISTORIAL
+        ====================== -->
+
+        <section
+            id="historial"
+            class="page"
+        >
+
+            <div class="page-title">
+                Historial
+            </div>
+
+            <div class="page-description">
+                Historial de precios. Próximamente conectado.
+            </div>
+
+
+            <div class="card">
+
+                <div class="card-title">
+                    Estado
+                </div>
+
+                <div class="card-value">
+                    📈 Preparado
+                </div>
+
+                <p>
+                    En la siguiente fase vamos a guardar
+                    históricos de cada skin y mostrar
+                    gráficos de evolución.
+                </p>
+
+            </div>
+
+        </section>
+
+
+        <!-- =====================
+             ESTADISTICAS
+        ====================== -->
+
+        <section
+            id="estadisticas"
+            class="page"
+        >
+
+            <div class="page-title">
+                Estadísticas
+            </div>
+
+            <div class="page-description">
+                Rendimiento del bot.
+            </div>
+
+
+            <div class="cards">
+
+                <div class="card">
+
+                    <div class="card-title">
+                        Requests Steam
+                    </div>
+
+                    <div
+                        class="card-value"
+                        id="stats-requests"
+                    >
+                        -
+                    </div>
+
+                </div>
+
+
+                <div class="card">
+
+                    <div class="card-title">
+                        Requests exitosas
+                    </div>
+
+                    <div
+                        class="card-value green"
+                        id="stats-success"
+                    >
+                        -
+                    </div>
+
+                </div>
+
+
+                <div class="card">
+
+                    <div class="card-title">
+                        Cache hits
+                    </div>
+
+                    <div
+                        class="card-value blue"
+                        id="stats-cache"
+                    >
+                        -
+                    </div>
+
+                </div>
+
+
+                <div class="card">
+
+                    <div class="card-title">
+                        Alertas
+                    </div>
+
+                    <div
+                        class="card-value yellow"
+                        id="stats-alerts"
+                    >
+                        -
+                    </div>
+
+                </div>
+
+            </div>
+
+        </section>
+
+
+        <!-- =====================
+             BOT
+        ====================== -->
+
+        <section
+            id="bot"
+            class="page"
+        >
+
+            <div class="page-title">
+                Estado del Bot
+            </div>
+
+            <div class="page-description">
+                Información técnica del sistema.
+            </div>
+
+
+            <div class="cards">
+
+                <div class="card">
+
+                    <div class="card-title">
+                        Estado
+                    </div>
+
+                    <div
+                        class="card-value green"
+                        id="bot-status"
+                    >
+                        -
+                    </div>
+
+                </div>
+
+
+                <div class="card">
+
+                    <div class="card-title">
+                        Proxies
+                    </div>
+
+                    <div
+                        class="card-value"
+                        id="bot-proxies"
+                    >
+                        -
+                    </div>
+
+                </div>
+
+
+                <div class="card">
+
+                    <div class="card-title">
+                        Skins en cooldown
+                    </div>
+
+                    <div
+                        class="card-value yellow"
+                        id="bot-cooldown"
+                    >
+                        -
+                    </div>
+
+                </div>
+
+
+                <div class="card">
+
+                    <div class="card-title">
+                        Steam 429
+                    </div>
+
+                    <div
+                        class="card-value red"
+                        id="bot-429"
+                    >
+                        -
+                    </div>
+
+                </div>
+
+            </div>
+
+
+            <div class="card">
+
+                <div class="card-title">
+                    Último escaneo
+                </div>
+
+                <div
+                    id="bot-last-scan"
+                >
+                    -
+                </div>
+
+            </div>
+
+        </section>
+
+
+    </main>
+
+</div>
+
+
+<script>
+
+    /* =========================
+       CAMBIO DE SOLAPA
+    ========================= */
+
+    function mostrarPagina(id, boton) {
+
+        document
+            .querySelectorAll(".page")
+            .forEach(function(page) {
+
+                page.classList.remove("active");
+
+            });
+
+
+        document
+            .querySelectorAll(".menu button")
+            .forEach(function(button) {
+
+                button.classList.remove("active");
+
+            });
+
+
+        document
+            .getElementById(id)
+            .classList.add("active");
+
+
+        boton.classList.add("active");
+
+    }
+
+
+    /* =========================
+       CARGAR ESTADO DEL BOT
+    ========================= */
+
+    async function cargarEstado() {
+
+        try {
+
+            const respuesta =
+                await fetch("/status");
+
+            const datos =
+                await respuesta.json();
+
+
+            document.getElementById(
+                "card-skins"
+            ).textContent =
+                datos.items_vigilados ?? "-";
+
+
+            document.getElementById(
+                "card-cache"
+            ).textContent =
+                datos.cache ?? "-";
+
+
+            document.getElementById(
+                "card-errors"
+            ).textContent =
+                datos.errores_totales ?? "-";
+
+
+            document.getElementById(
+                "stats-requests"
+            ).textContent =
+                datos.requests_steam ?? "-";
+
+
+            document.getElementById(
+                "stats-success"
+            ).textContent =
+                datos.requests_exitosas ?? "-";
+
+
+            document.getElementById(
+                "stats-cache"
+            ).textContent =
+                datos.cache ?? "-";
+
+
+            document.getElementById(
+                "stats-alerts"
+            ).textContent =
+                datos.notificaciones_enviadas ?? "-";
+
+
+            document.getElementById(
+                "bot-status"
+            ).textContent =
+                datos.activo
+                    ? "ONLINE"
+                    : "DETENIDO";
+
+
+            document.getElementById(
+                "bot-proxies"
+            ).textContent =
+                `${datos.proxies_totales ?? 0} / ${datos.proxies_cooldown ?? 0}`;
+
+
+            document.getElementById(
+                "bot-cooldown"
+            ).textContent =
+                datos.skins_cooldown ?? "-";
+
+
+            document.getElementById(
+                "bot-429"
+            ).textContent =
+                datos.steam_429_consecutivos ?? "-";
+
+
+            document.getElementById(
+                "bot-last-scan"
+            ).textContent =
+                datos.ultimo_escaneo ?? "Sin datos";
+
+
+        } catch (error) {
+
+            console.error(
+                "Error cargando estado:",
+                error
+            );
+
+        }
+
+    }
+
+
+    /* =========================
+       CARGAR SKINS
+    ========================= */
+
+    async function cargarSkins() {
+
+        try {
+
+            const respuesta =
+                await fetch("/api/skins");
+
+            const datos =
+                await respuesta.json();
+
+
+            const tabla =
+                document.getElementById(
+                    "skins-table"
+                );
+
+
+            tabla.innerHTML = "";
+
+
+            datos.forEach(function(item) {
+
+                const diferencia =
+                    item.price !== null
+                        ? item.price - item.max
+                        : null;
+
+
+                let estado =
+                    '<span class="badge badge-gray">SIN DATOS</span>';
+
+
+                if (diferencia !== null) {
+
+                    if (diferencia <= 0) {
+
+                        estado =
+                            '<span class="badge badge-green">OFERTA</span>';
+
+                    } else if (
+                        diferencia <= item.max * 0.05
+                    ) {
+
+                        estado =
+                            '<span class="badge badge-yellow">CERCA</span>';
+
+                    }
+
+                }
+
+
+                const fila =
+                    document.createElement("tr");
+
+
+                fila.innerHTML = `
+
+                    <td>
+                        <strong>${item.name}</strong>
+                    </td>
+
+                    <td>
+                        ${
+                            item.price !== null
+                                ? "$" + item.price.toFixed(2)
+                                : "-"
+                        }
+                    </td>
+
+                    <td>
+                        $${item.max.toFixed(2)}
+                    </td>
+
+                    <td>
+                        ${
+                            diferencia !== null
+                                ? "$" + diferencia.toFixed(2)
+                                : "-"
+                        }
+                    </td>
+
+                    <td>
+                        ${estado}
+                    </td>
+
+                `;
+
+
+                tabla.appendChild(fila);
+
+            });
+
+
+        } catch (error) {
+
+            console.error(
+                "Error cargando skins:",
+                error
+            );
+
+        }
+
+    }
+
+
+    /* =========================
+       CARGAR RADAR
+    ========================= */
+
+    async function cargarRadar() {
+
+        try {
+
+            const respuesta =
+                await fetch("/api/skins");
+
+            const datos =
+                await respuesta.json();
+
+
+            datos.sort(function(a, b) {
+
+                const da =
+                    a.price === null
+                        ? 999999
+                        : a.price - a.max;
+
+                const db =
+                    b.price === null
+                        ? 999999
+                        : b.price - b.max;
+
+                return da - db;
+
+            });
+
+
+            const tabla =
+                document.getElementById(
+                    "radar-table"
+                );
+
+
+            tabla.innerHTML = "";
+
+
+            datos.slice(0, 15)
+                .forEach(function(item, index) {
+
+                    const diferencia =
+                        item.price !== null
+                            ? item.price - item.max
+                            : null;
+
+
+                    const fila =
+                        document.createElement("tr");
+
+
+                    fila.innerHTML = `
+
+                        <td>
+                            <strong>${index + 1}</strong>
+                        </td>
+
+                        <td>
+                            ${item.name}
+                        </td>
+
+                        <td>
+                            ${
+                                item.price !== null
+                                    ? "$" + item.price.toFixed(2)
+                                    : "-"
+                            }
+                        </td>
+
+                        <td>
+                            $${item.max.toFixed(2)}
+                        </td>
+
+                        <td>
+                            ${
+                                diferencia !== null
+                                    ? "$" + diferencia.toFixed(2)
+                                    : "-"
+                            }
+                        </td>
+
+                        <td>
+                            <a
+                                class="steam-button"
+                                href="${item.steam_url}"
+                                target="_blank"
+                            >
+                                ABRIR STEAM
+                            </a>
+                        </td>
+
+                    `;
+
+
+                    tabla.appendChild(fila);
+
+                });
+
+
+        } catch (error) {
+
+            console.error(
+                "Error cargando radar:",
+                error
+            );
+
+        }
+
+    }
+
+
+    /* =========================
+       INICIO
+    ========================= */
+
+    cargarEstado();
+
+    cargarSkins();
+
+    cargarRadar();
+
+
+    /* =========================
+       ACTUALIZACIÓN AUTOMÁTICA
+    ========================= */
+
+    setInterval(function() {
+
+        cargarEstado();
+        cargarSkins();
+        cargarRadar();
+
+    }, 15000);
+
+</script>
+
+</body>
+
+</html>
