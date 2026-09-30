@@ -5,7 +5,7 @@ import os
 import threading
 import re
 import json
-from flask import Flask, jsonify
+from flask import Flask, jsonify, render_template
 from datetime import datetime
 import builtins
 from zoneinfo import ZoneInfo
@@ -1267,14 +1267,7 @@ app = Flask(__name__)
 
 @app.route("/")
 def home():
-    """Endpoint para UptimeRobot"""
-    return jsonify({
-        "status": "ok",
-        "mensaje": "Steam Alert Bot está activo",
-        "ultimo_escaneo": estado_app["ultimo_escaneo"],
-        "errores": estado_app["errores"],
-        "timestamp": datetime.now(ZONA_ARG).isoformat()
-    })
+    return render_template("dashboard.html")
 
 @app.route('/status')
 def status():
@@ -1333,6 +1326,43 @@ def status():
         "timestamp":
             datetime.now(ZONA_ARG).isoformat()
     })
+
+@app.route("/api/skins")
+def api_skins():
+
+    resultado = []
+
+    for skin_name, precio_max in skins_a_vigilar.items():
+
+        datos = price_cache.get(skin_name, {})
+
+        precio = datos.get("price")
+
+        if precio is not None:
+
+            try:
+                precio = float(precio)
+            except (ValueError, TypeError):
+                precio = None
+
+        steam_url = (
+            "steam://openurl/https://steamcommunity.com/market/listings/730/"
+            + requests.utils.quote(
+                datos.get("name", skin_name),
+                safe=""
+            )
+        )
+
+        resultado.append({
+            "name": skin_name,
+            "price": precio,
+            "buy_price": datos.get("buy_price"),
+            "max": float(precio_max),
+            "timestamp": datos.get("timestamp"),
+            "steam_url": steam_url
+        })
+
+    return jsonify(resultado)
 
 def buscar_precio(market_hash_name, session, proxy):
 
