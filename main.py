@@ -5,7 +5,7 @@ import os
 import threading
 import re
 import json
-from flask import Flask, jsonify, render_template
+from flask import Flask, jsonify, render_template, request
 from datetime import datetime
 import builtins
 from zoneinfo import ZoneInfo
@@ -525,8 +525,34 @@ lock = threading.Lock()
 # Cache temporal de precios
 price_cache = {}
 
-# Control de skins problemáticas
-SKIN_MAX_FAILS = 3
+# ==========================================================
+# HISTORIAL DE PRECIOS
+# ==========================================================
+#
+# Guarda únicamente precios obtenidos realmente desde Steam.
+# No guarda los resultados que vienen del cache.
+#
+# Se conservan las últimas 48 horas.
+#
+# Formato:
+#
+# historial_precios = {
+#     "Nombre de skin": [
+#         {
+#             "timestamp": 1234567890,
+#             "sell": 180.50,
+#             "buy": 150.20
+#         }
+#     ]
+# }
+#
+# ==========================================================
+
+historial_precios = {}
+
+HISTORIAL_HORAS = 48
+HISTORIAL_MAX_PUNTOS = 300
+
 SKIN_COOLDOWN = 600  # 10 minutos
 
 SKIN_FAILS = {skin: 0 for skin in skins_a_vigilar}
@@ -681,12 +707,12 @@ def guardar_estado(forzar=False):
             "stats_diarias": stats_diarias,
             "stats_proxies": stats_proxies_guardadas,
             "price_cache": price_cache,
+            "historial_precios": historial_precios,
             "ciclo_numero": ciclo_numero,
             "estado_app": estado_app,
             "skins_revisadas_total": skins_revisadas_total,
             "fecha_estadisticas": fecha_estadisticas.isoformat()
         }
-
         # ====================================================
         # GUARDAR ARCHIVO LOCAL
         # ====================================================
@@ -801,7 +827,7 @@ def cargar_estado():
     global notificados
     global stats_diarias
     global stats_proxies
-    global price_cache
+    global historial_precios
     global ciclo_numero
     global estado_app
     global skins_revisadas_total
@@ -953,6 +979,14 @@ def cargar_estado():
             "price_cache",
             {}
         )
+
+        historial_precios = estado.get(
+            "historial_precios",
+            {}
+        )
+
+        if not isinstance(historial_precios, dict):
+            historial_precios = {}
 
         # ====================================================
         # RECUPERAR CICLO
@@ -1363,6 +1397,177 @@ def api_skins():
         })
 
     return jsonify(resultado)
+
+# ==========================================================
+# API HISTORIAL
+# ==========================================================
+
+@app.route('/api/history')
+def api_history():
+
+    skin_name = request.args.get(
+        "skin",
+        ""
+    ).strip()
+
+    if not skin_name:
+        return jsonify({
+            "error": "Falta el parámetro skin"
+        }), 400
+
+    with lock:
+
+        historial = list(
+            historial_precios.get(
+                skin_name,
+                []
+            )
+        )
+
+    datos_skin = None
+
+    with lock:
+
+        datos_skin = price_cache.get(
+            skin_name
+        )
+
+    precio_max = skins_a_vigilar.get(
+        skin_name
+    )
+
+    puntos = []
+
+    for dato in historial:
+
+        puntos.append({
+            "timestamp": dato.get(
+                "timestamp"
+            ),
+            "sell": dato.get(
+                "sell"
+            ),
+            "buy": dato.get(
+                "buy"
+            )
+        })
+
+    return jsonify({
+        "name": skin_name,
+        "max": precio_max,
+        "points": puntos,
+        "total_points": len(puntos),
+        "current": (
+            datos_skin.get("price")
+            if datos_skin
+            else None
+        ),
+        "current_buy": (
+            datos_skin.get("buy_price")
+            if datos_skin
+            else None
+        )
+    })
+
+def registrar_historial_precio(
+    skin_name,
+    precio_sell,
+    precio_buy
+):
+    """
+    Guarda un punto real de precio obtenido desde Steam.
+
+    No guarda resultados provenientes del cache.
+    Mantiene como máximo las últimas 48 horas.
+    """
+
+    if precio_sell is None:
+        return
+
+    try:
+        precio_sell = float(precio_sell)
+
+    except (ValueError, TypeError):
+        return
+
+    if precio_sell <= 0:
+        return
+
+    if precio_buy is not None:
+
+        try:
+            precio_buy = float(precio_buy)
+
+        except (ValueError, TypeError):
+            precio_buy = None
+
+    ahora = time.time()
+
+    with lock:
+
+        historial = historial_precios.setdefault(
+            skin_name,
+            []
+        )
+
+        # ==================================================
+        # EVITAR DUPLICADOS DEMASIADO CERCANOS
+        # ==================================================
+
+        if historial:
+
+            ultimo = historial[-1]
+
+            ultimo_timestamp = ultimo.get(
+                "timestamp",
+                0
+            )
+
+            ultimo_sell = ultimo.get(
+                "sell"
+            )
+
+            if (
+                ahora - ultimo_timestamp < 30
+                and ultimo_sell == precio_sell
+            ):
+                return
+
+        # ==================================================
+        # AGREGAR NUEVO PUNTO
+        # ==================================================
+
+        historial.append({
+            "timestamp": ahora,
+            "sell": precio_sell,
+            "buy": precio_buy
+        })
+
+        # ==================================================
+        # ELIMINAR DATOS DE MÁS DE 48 HORAS
+        # ==================================================
+
+        limite = ahora - (
+            HISTORIAL_HORAS * 60 * 60
+        )
+
+        historial_precios[skin_name] = [
+            dato
+            for dato in historial
+            if dato.get("timestamp", 0) >= limite
+        ]
+
+        # ==================================================
+        # SEGURIDAD: MÁXIMO 300 PUNTOS
+        # ==================================================
+
+        if len(historial_precios[skin_name]) > HISTORIAL_MAX_PUNTOS:
+
+            historial_precios[skin_name] = (
+                historial_precios[skin_name][
+                    -HISTORIAL_MAX_PUNTOS:
+                ]
+            )
 
 def buscar_precio(market_hash_name, session, proxy):
 
@@ -1797,11 +2002,30 @@ def buscar_precio(market_hash_name, session, proxy):
                 "next_refresh": proximo_refresh
             }
 
+
             # Request exitoso:
             # el proxy vuelve a tener máxima confianza.
             PROXY_FAILS[proxy] = 0
             PROXY_429_FAILS[proxy] = 0
             PROXY_STATUS[proxy] = 0
+
+        # ==================================================
+        # HISTORIAL REAL
+        # ==================================================
+        #
+        # IMPORTANTE:
+        # Esto ocurre únicamente después de una consulta
+        # real a Steam.
+        #
+        # Los CACHE HIT no llegan acá.
+        #
+        # ==================================================
+
+        registrar_historial_precio(
+            market_hash_name,
+            precio,
+            buy_price
+        )
 
         return {
             "price": precio,
