@@ -549,6 +549,7 @@ price_cache = {}
 # ==========================================================
 
 historial_precios = {}
+ESTADO_CARGA_FALLIDA = False
 
 HISTORIAL_HORAS = 48
 HISTORIAL_MAX_PUNTOS = 300
@@ -658,6 +659,16 @@ ULTIMO_GUARDADO_ESTADO = 0
 
 
 def guardar_estado(forzar=False):
+    
+    global ESTADO_CARGA_FALLIDA
+
+    if ESTADO_CARGA_FALLIDA:
+        print(
+            "[GITHUB] Guardado cancelado: "
+            "la recuperación anterior falló. "
+            "Se protege el estado existente."
+        )
+        return
 
     global ULTIMO_GUARDADO_ESTADO
 
@@ -832,6 +843,8 @@ def cargar_estado():
     global estado_app
     global skins_revisadas_total
     global fecha_estadisticas
+    global price_cache
+    global ESTADO_CARGA_FALLIDA
 
     try:
         github_token = os.getenv("GITHUB_TOKEN")
@@ -862,26 +875,67 @@ def cargar_estado():
             return
 
         if respuesta.status_code != 200:
+
+            ESTADO_CARGA_FALLIDA = True
+
             print(
                 f"[GITHUB] Error descargando estado: "
                 f"HTTP {respuesta.status_code}"
             )
-            print("[INFO] Se inicia desde cero.")
+
+            print(
+                "[GITHUB] Se bloquean los guardados "
+                "para proteger el estado anterior."
+            )
+
             return
 
         datos_github = respuesta.json()
 
         import base64
 
+        contenido_base64 = datos_github.get(
+            "content",
+            ""
+        ).strip()
+
+        if not contenido_base64:
+            raise ValueError(
+                "GitHub devolvió bot_state.json vacío."
+            )
+
         contenido = base64.b64decode(
-            datos_github["content"]
+            contenido_base64,
+            validate=True
         ).decode("utf-8")
 
-        with open(ARCHIVO_ESTADO, "w", encoding="utf-8") as f:
-            f.write(contenido)
+        if not contenido.strip():
+            raise ValueError(
+                "El contenido descargado está vacío."
+            )
 
-        with open(ARCHIVO_ESTADO, "r", encoding="utf-8") as f:
-            estado = json.load(f)
+        estado = json.loads(contenido)
+
+        if not isinstance(estado, dict):
+            raise ValueError(
+                "El estado descargado no es un JSON válido."
+            )
+
+        # Guardar localmente solamente después
+        # de comprobar que el JSON es válido.
+
+        with open(
+            ARCHIVO_ESTADO,
+            "w",
+            encoding="utf-8"
+        ) as f:
+
+            json.dump(
+                estado,
+                f,
+                ensure_ascii=False,
+                indent=2
+            )
 
         notificados = estado.get("notificados", {})
 
@@ -1049,8 +1103,21 @@ def cargar_estado():
         )
 
     except Exception as e:
-        print(f"[GITHUB] Error en cargar_estado(): {e}")
-        print("[INFO] Se inicia desde cero.")
+
+        ESTADO_CARGA_FALLIDA = True
+
+        print(
+            f"[GITHUB] Error en cargar_estado(): {e}"
+        )
+
+        print(
+            "[GITHUB] Se bloquean los guardados "
+            "para proteger el estado anterior."
+        )
+
+        print(
+            "[INFO] Se inicia sin recuperar el estado."
+        )
 
 def limpiar_cache():
 
