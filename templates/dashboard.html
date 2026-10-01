@@ -1066,6 +1066,69 @@ select {
 
             </div>
 
+            <div class="history-stat">
+
+                <div class="history-stat-label">
+                    Precio mínimo
+                </div>
+
+                <div
+                    id="historyMin"
+                    class="history-stat-value"
+                >
+                    -
+                </div>
+
+            </div>
+
+
+            <div class="history-stat">
+
+                <div class="history-stat-label">
+                    Precio máximo
+                </div>
+
+                <div
+                    id="historyMaxPrice"
+                    class="history-stat-value"
+                >
+                    -
+                </div>
+
+            </div>
+
+
+            <div class="history-stat">
+
+                <div class="history-stat-label">
+                    Precio promedio
+                </div>
+
+                <div
+                    id="historyAverage"
+                    class="history-stat-value"
+                >
+                    -
+                </div>
+
+            </div>
+
+
+            <div class="history-stat">
+
+                <div class="history-stat-label">
+                    Distancia a tu máximo
+                </div>
+
+                <div
+                    id="historyDistance"
+                    class="history-stat-value"
+                >
+                    -
+                </div>
+
+            </div>
+
         </div>
 
 
@@ -2318,6 +2381,7 @@ function renderHistory(
                     {
                         hour:
                             "2-digit",
+
                         minute:
                             "2-digit"
                     }
@@ -2328,31 +2392,53 @@ function renderHistory(
     const sellData =
         filtered.map(
             point =>
-                point.sell
+                Number(
+                    point.sell
+                )
         );
 
 
     const buyData =
         filtered.map(
             point =>
-                point.buy
+                Number(
+                    point.buy
+                )
         );
 
 
     const maxData =
         filtered.map(
             () =>
-                data.max
+                Number(
+                    data.max
+                )
         );
 
 
     const currentSell =
-        data.current;
+        Number(
+            data.current
+        );
 
 
     const currentBuy =
-        data.current_buy;
+        Number(
+            data.current_buy
+        );
 
+
+    const historyMax =
+        Number(
+            data.max
+        );
+
+
+    /*
+     * =====================================
+     * DATOS ACTUALES
+     * =====================================
+     */
 
     document
         .getElementById(
@@ -2380,9 +2466,197 @@ function renderHistory(
         )
         .textContent =
             money(
-                data.max
+                historyMax
             );
 
+
+    /*
+     * =====================================
+     * ESTADÍSTICAS DEL PERÍODO
+     * =====================================
+     */
+
+    const minElement =
+        document.getElementById(
+            "historyMin"
+        );
+
+
+    const maxElement =
+        document.getElementById(
+            "historyMaxPrice"
+        );
+
+
+    const averageElement =
+        document.getElementById(
+            "historyAverage"
+        );
+
+
+    if (
+        sellData.length > 0
+    ) {
+
+        /*
+         * PRECIO MÍNIMO
+         */
+
+        const minPrice =
+            Math.min(
+                ...sellData
+            );
+
+
+        minElement.textContent =
+            money(
+                minPrice
+            );
+
+
+        /*
+         * PRECIO MÁXIMO
+         */
+
+        const maxPrice =
+            Math.max(
+                ...sellData
+            );
+
+
+        maxElement.textContent =
+            money(
+                maxPrice
+            );
+
+
+        /*
+         * PRECIO PROMEDIO
+         */
+
+        const total =
+            sellData.reduce(
+                (
+                    suma,
+                    precio
+                ) =>
+                    suma + precio,
+                0
+            );
+
+
+        const averagePrice =
+            total /
+            sellData.length;
+
+
+        averageElement.textContent =
+            money(
+                averagePrice
+            );
+
+    }
+
+    else {
+
+        minElement.textContent =
+            "Sin datos";
+
+        maxElement.textContent =
+            "Sin datos";
+
+        averageElement.textContent =
+            "Sin datos";
+
+    }
+
+
+    /*
+     * =====================================
+     * DISTANCIA AL MÁXIMO
+     * =====================================
+     */
+
+    const distanceElement =
+        document.getElementById(
+            "historyDistance"
+        );
+
+
+    if (
+        Number.isFinite(
+            currentSell
+        ) &&
+        Number.isFinite(
+            historyMax
+        ) &&
+        historyMax > 0
+    ) {
+
+        const distance =
+            currentSell -
+            historyMax;
+
+
+        const distancePercent =
+            (
+                distance /
+                historyMax
+            ) *
+            100;
+
+
+        const sign =
+            distance >= 0
+                ? "+"
+                : "";
+
+
+        const percentSign =
+            distancePercent >= 0
+                ? "+"
+                : "";
+
+
+        distanceElement.textContent =
+            sign +
+            money(
+                distance
+            ) +
+            " (" +
+            percentSign +
+            distancePercent.toFixed(
+                2
+            ) +
+            "%)";
+
+
+        distanceElement.className =
+            "history-stat-value " +
+            (
+                distance <= 0
+                    ? "good"
+                    : "danger"
+            );
+
+    }
+
+    else {
+
+        distanceElement.textContent =
+            "Sin datos";
+
+        distanceElement.className =
+            "history-stat-value";
+
+    }
+
+
+    /*
+     * =====================================
+     * VARIACIÓN
+     * =====================================
+     */
 
     let variation = null;
 
@@ -2396,6 +2670,7 @@ function renderHistory(
                 filtered[0].sell
             );
 
+
         const last =
             Number(
                 filtered[
@@ -2405,7 +2680,13 @@ function renderHistory(
 
 
         if (
-            first > 0
+            first > 0 &&
+            Number.isFinite(
+                first
+            ) &&
+            Number.isFinite(
+                last
+            )
         ) {
 
             variation =
@@ -2429,37 +2710,48 @@ function renderHistory(
         );
 
 
-    if (variation === null) {
+    if (
+        variation === null
+    ) {
 
-        variationElement
-            .textContent =
-                "Sin datos";
+        variationElement.textContent =
+            "Sin datos";
+
+        variationElement.className =
+            "history-stat-value";
 
     }
 
     else {
 
-        variationElement
-            .textContent =
-                (
-                    variation >= 0
-                        ? "+"
-                        : ""
-                ) +
-                variation.toFixed(2) +
-                "%";
+        variationElement.textContent =
+            (
+                variation >= 0
+                    ? "+"
+                    : ""
+            ) +
+            variation.toFixed(
+                2
+            ) +
+            "%";
 
-        variationElement
-            .className =
-                "history-stat-value " +
-                (
-                    variation >= 0
-                        ? "danger"
-                        : "good"
-                );
+
+        variationElement.className =
+            "history-stat-value " +
+            (
+                variation >= 0
+                    ? "danger"
+                    : "good"
+            );
 
     }
 
+
+    /*
+     * =====================================
+     * MENSAJE
+     * =====================================
+     */
 
     const message =
         document.getElementById(
@@ -2467,7 +2759,9 @@ function renderHistory(
         );
 
 
-    if (!filtered.length) {
+    if (
+        !filtered.length
+    ) {
 
         message.textContent =
             "Todavía no hay suficientes datos para este período.";
@@ -2482,6 +2776,12 @@ function renderHistory(
 
     }
 
+
+    /*
+     * =====================================
+     * GRÁFICO
+     * =====================================
+     */
 
     const ctx =
         document
@@ -2506,13 +2806,15 @@ function renderHistory(
 
                 data: {
 
-                    labels: labels,
+                    labels:
+                        labels,
 
                     datasets: [
 
                         {
+
                             label:
-                                "Precio de Venta",
+                                "Precio de venta",
 
                             data:
                                 sellData,
@@ -2522,11 +2824,14 @@ function renderHistory(
 
                             pointRadius:
                                 2
+
                         },
 
+
                         {
+
                             label:
-                                "Pedido de Compra",
+                                "Pedido de compra",
 
                             data:
                                 buyData,
@@ -2536,9 +2841,12 @@ function renderHistory(
 
                             pointRadius:
                                 2
+
                         },
 
+
                         {
+
                             label:
                                 "Tu máximo",
 
@@ -2553,6 +2861,7 @@ function renderHistory(
 
                             tension:
                                 0
+
                         }
 
                     ]
@@ -2655,8 +2964,6 @@ function renderHistory(
         );
 
 }
-
-
 /* ========================================
    SEGURIDAD HTML
 ======================================== */
