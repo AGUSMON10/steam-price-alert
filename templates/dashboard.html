@@ -1790,11 +1790,9 @@ async function updateAll() {
     await loadStatus();
     await loadSkins();
 
-    const selectedSkin = document.getElementById("historySkin").value;
-
-    if (selectedSkin) {
-        await loadHistory();
-    }
+    // No actualizar el gráfico automáticamente.
+    // El historial solo se carga al seleccionar una skin
+    // o cambiar el período.
 }
 
 /* INICIO */
