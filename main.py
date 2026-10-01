@@ -711,6 +711,10 @@ def guardar_estado(forzar=False):
                 "request": datos.get("request", 0),
                 "tiempo_total": datos.get("tiempo_total", 0.0),
                 "cooldowns": datos.get("cooldowns", 0),
+
+                # Momento de la última utilización del proxy.
+                # Se guarda solamente el timestamp, nunca la URL.
+                "ultimo_uso": datos.get("ultimo_uso", 0),
             })
 
         estado = {
@@ -1034,8 +1038,40 @@ def cargar_estado():
 
                 "cooldowns":
                     datos.get("cooldowns", 0),
+
+                "ultimo_uso":
+                    datos.get("ultimo_uso", 0),
             }
 
+            # Recuperar el último uso directamente
+            # en la estructura que utiliza obtener_proxy().
+
+            try:
+
+                PROXY_LAST_USED[proxy] = float(
+                    datos.get("ultimo_uso", 0)
+                )
+
+            except (TypeError, ValueError):
+
+                PROXY_LAST_USED[proxy] = 0
+
+        # ====================================================
+        # RECUPERAR ÚLTIMO USO DE CADA PROXY
+        # ====================================================
+
+        if "ultimo_uso" in datos:
+
+            try:
+
+                PROXY_LAST_USED[proxy] = float(
+                    datos.get("ultimo_uso", 0)
+                )
+
+            except (TypeError, ValueError):
+
+                PROXY_LAST_USED[proxy] = 0
+        
         price_cache = estado.get(
             "price_cache",
             {}
@@ -1328,11 +1364,26 @@ def obtener_proxy():
 
             score, proxy_elegido, tiempo_sin_uso = disponibles[0]
 
+            # Si el proxy nunca fue utilizado, no mostramos
+            # un tiempo gigantesco calculado desde timestamp 0.
+            if PROXY_LAST_USED[proxy_elegido] <= 0:
+                tiempo_sin_uso = None
+
             PROXY_LAST_USED[proxy_elegido] = ahora
+
+            if tiempo_sin_uso is None:
+
+                texto_sin_uso = "Sin uso todavía"
+
+            else:
+
+                texto_sin_uso = (
+                    f"Sin uso: {tiempo_sin_uso:.1f}s"
+                )
 
             print(
                 f"[PROXY] {nombre_proxy(proxy_elegido)} | "
-                f"Sin uso: {tiempo_sin_uso:.1f}s | "
+                f"{texto_sin_uso} | "
                 f"Fallos: {PROXY_FAILS[proxy_elegido]} | "
                 f"Score: {score:.1f}"
             )
