@@ -1,1453 +1,1207 @@
+
 <!DOCTYPE html>
 <html lang="es">
 
 <head>
-
 <meta charset="UTF-8">
-
-<meta
-    name="viewport"
-    content="width=device-width, initial-scale=1.0"
->
-
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Steam Market Radar</title>
 
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
 
 <style>
-
-* {
-    box-sizing: border-box;
+:root {
+    --bg: #080d14;
+    --panel: #101824;
+    --panel2: #141f2d;
+    --panel3: #0c131d;
+    --border: rgba(148,163,184,.12);
+    --text: #edf4fc;
+    --muted: #8292a7;
+    --green: #39df9b;
+    --red: #ff687d;
+    --yellow: #f8c65c;
+    --blue: #57a9ff;
+    --purple: #a78bfa;
+    --radius: 16px;
 }
+
+* { box-sizing: border-box; }
 
 body {
-
     margin: 0;
-
-    font-family:
-        Arial,
-        Helvetica,
-        sans-serif;
-
-    background: #0b0f14;
-
-    color: #e8edf3;
+    background:
+        radial-gradient(ellipse at 75% -15%, rgba(38,103,157,.16), transparent 40%),
+        var(--bg);
+    color: var(--text);
+    font-family: 'DM Sans', Arial, sans-serif;
+    min-height: 100vh;
 }
 
-header {
+button, select { font: inherit; }
+button { cursor: pointer; }
 
-    background: #111821;
-
-    border-bottom:
-        1px solid #26313d;
-
-    padding: 18px 24px;
-}
-
-.header-top {
-
+.app {
     display: flex;
+    min-height: 100vh;
+}
 
-    justify-content:
-        space-between;
+/* SIDEBAR */
 
+.sidebar {
+    width: 248px;
+    flex-shrink: 0;
+    background: rgba(12,19,29,.96);
+    border-right: 1px solid var(--border);
+    padding: 25px 16px;
+    display: flex;
+    flex-direction: column;
+    position: fixed;
+    inset: 0 auto 0 0;
+    z-index: 10;
+}
+
+.brand {
+    display: flex;
     align-items: center;
-
-    gap: 20px;
+    gap: 12px;
+    padding: 0 10px 30px;
 }
 
-.logo {
-
-    font-size: 24px;
-
-    font-weight: bold;
+.brand-icon {
+    width: 42px;
+    height: 42px;
+    border-radius: 13px;
+    display: grid;
+    place-items: center;
+    background: linear-gradient(135deg,#176d65,#174b78);
+    font-size: 21px;
+    box-shadow: 0 5px 25px rgba(36,190,153,.15);
 }
 
-.subtitle {
-
-    color: #8d9aaa;
-
-    font-size: 13px;
-
-    margin-top: 5px;
+.brand-name {
+    font-family: 'Space Grotesk', sans-serif;
+    font-weight: 700;
+    font-size: 15px;
+    letter-spacing: .5px;
 }
 
-#lastUpdate {
+.brand-sub {
+    color: var(--muted);
+    font-size: 10px;
+    margin-top: 3px;
+    letter-spacing: 1.4px;
+}
 
-    color: #8d9aaa;
-
-    font-size: 12px;
+.nav-label {
+    color: #607187;
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 1.5px;
+    padding: 12px 12px 9px;
 }
 
 nav {
-
     display: flex;
-
-    gap: 8px;
-
-    padding: 14px 24px;
-
-    background: #0e141b;
-
-    border-bottom:
-        1px solid #26313d;
-
-    overflow-x: auto;
+    flex-direction: column;
+    gap: 5px;
 }
 
 .tab {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    width: 100%;
+    border: 1px solid transparent;
+    border-radius: 10px;
+    background: transparent;
+    color: #91a1b5;
+    padding: 12px 13px;
+    text-align: left;
+    font-size: 13px;
+    font-weight: 600;
+    transition: .2s;
+}
 
-    border:
-        1px solid #293542;
-
-    background: #151d26;
-
-    color: #b8c2ce;
-
-    padding:
-        9px 15px;
-
-    border-radius: 8px;
-
-    cursor: pointer;
-
-    white-space: nowrap;
+.tab .nav-icon {
+    width: 20px;
+    text-align: center;
+    font-size: 16px;
 }
 
 .tab:hover {
-
-    background: #1b2632;
-}
-
-.tab.active {
-
-    background: #243343;
-
+    background: rgba(255,255,255,.04);
     color: white;
 }
 
-main {
-
-    max-width: 1500px;
-
-    margin: auto;
-
-    padding: 24px;
+.tab.active {
+    color: #72e5bd;
+    background: rgba(57,223,155,.09);
+    border-color: rgba(57,223,155,.16);
 }
 
-.section {
-
-    display: none;
+.sidebar-bottom {
+    margin-top: auto;
+    padding: 14px 10px 0;
 }
 
-.section.active {
+.sidebar-note {
+    background: #111d29;
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 13px;
+    font-size: 11px;
+    color: var(--muted);
+    line-height: 1.6;
+}
 
+.sidebar-note strong {
     display: block;
+    color: #c8d5e4;
+    font-size: 12px;
+    margin-bottom: 4px;
+}
+
+/* MAIN */
+
+.main-area {
+    margin-left: 248px;
+    width: calc(100% - 248px);
+    min-width: 0;
+}
+
+.topbar {
+    min-height: 76px;
+    padding: 16px 32px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 15px;
+    border-bottom: 1px solid var(--border);
+    background: rgba(9,15,23,.72);
+    backdrop-filter: blur(16px);
+    position: sticky;
+    top: 0;
+    z-index: 5;
+}
+
+.topbar-title {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 17px;
+    font-weight: 700;
+}
+
+.topbar-sub {
+    font-size: 11px;
+    color: var(--muted);
+    margin-top: 4px;
+}
+
+.topbar-right {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+}
+
+.connection {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: rgba(57,223,155,.08);
+    border: 1px solid rgba(57,223,155,.17);
+    color: var(--green);
+    border-radius: 30px;
+    padding: 8px 12px;
+    font-size: 11px;
+    font-weight: 700;
+}
+
+.connection.offline {
+    color: var(--red);
+    background: rgba(255,104,125,.08);
+    border-color: rgba(255,104,125,.2);
+}
+
+.connection-dot {
+    width: 7px;
+    height: 7px;
+    background: currentColor;
+    border-radius: 50%;
+    box-shadow: 0 0 10px currentColor;
+}
+
+#lastUpdate {
+    color: var(--muted);
+    font-size: 11px;
+}
+
+main {
+    max-width: 1650px;
+    padding: 30px 32px 50px;
+    margin: auto;
+}
+
+.section { display: none; }
+.section.active { display: block; }
+
+.page-heading {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    gap: 15px;
+    margin-bottom: 25px;
 }
 
 h2 {
-
-    margin-top: 0;
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 25px;
+    margin: 0;
+    letter-spacing: -.6px;
 }
 
 .description {
-
-    color: #8996a5;
-
-    margin-bottom: 20px;
+    color: var(--muted);
+    font-size: 12px;
+    margin-top: 7px;
+    line-height: 1.6;
 }
 
+.eyebrow {
+    color: var(--green);
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 1.7px;
+    margin-bottom: 8px;
+}
+
+/* CARDS */
+
 .cards {
-
     display: grid;
-
-    grid-template-columns:
-        repeat(4, 1fr);
-
-    gap: 14px;
-
-    margin-bottom: 24px;
+    grid-template-columns: repeat(4,minmax(0,1fr));
+    gap: 15px;
+    margin-bottom: 27px;
 }
 
 .card {
+    position: relative;
+    overflow: hidden;
+    background: linear-gradient(145deg,#131e2b,#0f1722);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 20px;
+    min-width: 0;
+    box-shadow: 0 8px 25px rgba(0,0,0,.12);
+}
 
-    background: #121922;
+.card::after {
+    content: "";
+    position: absolute;
+    width: 95px;
+    height: 95px;
+    border-radius: 50%;
+    background: var(--glow,rgba(87,169,255,.08));
+    filter: blur(30px);
+    right: -35px;
+    top: -40px;
+    pointer-events: none;
+}
 
-    border:
-        1px solid #26313d;
-
-    border-radius: 12px;
-
-    padding: 18px;
+.card-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 10px;
 }
 
 .card-title {
+    color: #91a1b5;
+    font-size: 11px;
+    font-weight: 600;
+}
 
-    color: #8996a5;
-
-    font-size: 13px;
-
-    margin-bottom: 10px;
+.card-icon {
+    width: 31px;
+    height: 31px;
+    display: grid;
+    place-items: center;
+    background: rgba(255,255,255,.05);
+    border-radius: 9px;
+    font-size: 15px;
 }
 
 .card-value {
-
-    font-size: 27px;
-
-    font-weight: bold;
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 29px;
+    font-weight: 700;
+    margin-top: 15px;
+    letter-spacing: -.8px;
 }
 
-.online {
-
-    color: #4ade80;
+.card-foot {
+    color: #66788e;
+    font-size: 10px;
+    margin-top: 7px;
 }
 
-.warning {
+.online, .good { color: var(--green); }
+.warning { color: var(--yellow); }
+.danger { color: var(--red); }
 
-    color: #fbbf24;
+/* PANELS */
+
+.panel {
+    background: linear-gradient(145deg,#111b28,#0e1621);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    overflow: hidden;
+    margin-bottom: 22px;
 }
 
-.danger {
-
-    color: #f87171;
+.panel-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 15px;
+    padding: 19px 21px;
+    border-bottom: 1px solid var(--border);
 }
 
-.good {
-
-    color: #4ade80;
+.panel-title {
+    font-family: 'Space Grotesk', sans-serif;
+    font-weight: 700;
+    font-size: 14px;
 }
+
+.panel-sub {
+    color: var(--muted);
+    font-size: 11px;
+    margin-top: 4px;
+}
+
+.panel-body { padding: 18px 21px; }
+
+.pill {
+    color: var(--green);
+    background: rgba(57,223,155,.08);
+    border: 1px solid rgba(57,223,155,.16);
+    border-radius: 20px;
+    padding: 6px 10px;
+    font-size: 10px;
+    font-weight: 700;
+}
+
+/* TABLES */
 
 .table-container {
-
     overflow-x: auto;
-
-    background: #121922;
-
-    border:
-        1px solid #26313d;
-
-    border-radius: 12px;
+    background: #101925;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
 }
 
 table {
-
     width: 100%;
-
-    border-collapse:
-        collapse;
-
+    border-collapse: collapse;
     min-width: 850px;
 }
 
 th {
-
     text-align: left;
-
-    color: #8996a5;
-
-    font-size: 12px;
-
-    text-transform:
-        uppercase;
-
-    padding: 14px;
-
-    border-bottom:
-        1px solid #26313d;
+    color: #74869b;
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    padding: 15px 16px;
+    background: rgba(255,255,255,.018);
+    border-bottom: 1px solid var(--border);
 }
 
 td {
-
-    padding:
-        13px 14px;
-
-    border-bottom:
-        1px solid #1e2833;
-
-    font-size: 14px;
+    padding: 14px 16px;
+    border-bottom: 1px solid rgba(148,163,184,.07);
+    font-size: 12px;
+    color: #c4d0df;
 }
 
-tr:hover {
-
-    background: #161f29;
-}
+tbody tr { transition: background .15s; }
+tbody tr:hover { background: rgba(87,169,255,.045); }
+tbody tr:last-child td { border-bottom: none; }
 
 .skin-name {
-
     font-weight: 600;
-
-    color: #edf2f7;
+    color: #edf4fc;
+    min-width: 240px;
 }
 
 .price {
-
-    font-weight: bold;
+    font-family: 'Space Grotesk',sans-serif;
+    font-weight: 700;
+    color: #eaf2fc;
 }
 
-.diff-positive {
-
-    color: #f87171;
-}
-
-.diff-negative {
-
-    color: #4ade80;
-}
+.diff-positive { color: var(--red); }
+.diff-negative { color: var(--green); }
 
 .badge {
-
-    display: inline-block;
-
-    padding:
-        5px 9px;
-
-    border-radius:
-        999px;
-
-    font-size: 11px;
-
-    font-weight: bold;
+    display: inline-flex;
+    align-items: center;
+    white-space: nowrap;
+    padding: 6px 9px;
+    border-radius: 7px;
+    font-size: 9px;
+    font-weight: 800;
+    letter-spacing: .2px;
 }
 
 .badge-good {
-
-    background:
-        rgba(74,222,128,.12);
-
-    color: #4ade80;
+    color: var(--green);
+    background: rgba(57,223,155,.10);
+    border: 1px solid rgba(57,223,155,.15);
 }
 
 .badge-super {
-
-    background:
-        rgba(56,189,248,.16);
-
-    color: #38bdf8;
-
-    border:
-        1px solid rgba(56,189,248,.35);
+    color: #62c7ff;
+    background: rgba(56,189,248,.12);
+    border: 1px solid rgba(56,189,248,.25);
 }
-    
+
 .badge-close {
-
-    background:
-        rgba(251,191,36,.12);
-
-    color: #fbbf24;
+    color: var(--yellow);
+    background: rgba(248,198,92,.09);
+    border: 1px solid rgba(248,198,92,.14);
 }
 
 .badge-far {
-
-    background:
-        rgba(248,113,113,.12);
-
-    color: #f87171;
+    color: var(--red);
+    background: rgba(255,104,125,.08);
+    border: 1px solid rgba(255,104,125,.13);
 }
 
 .button {
-
     display: inline-block;
-
-    padding:
-        7px 11px;
-
+    padding: 7px 11px;
+    border: 1px solid rgba(87,169,255,.2);
     border-radius: 7px;
-
-    background: #26384a;
-
-    color: white;
-
-    text-decoration:
-        none;
-
-    font-size: 12px;
+    background: rgba(87,169,255,.09);
+    color: #83c2ff;
+    text-decoration: none;
+    font-size: 10px;
+    font-weight: 700;
 }
 
-.button:hover {
+.button:hover { background: rgba(87,169,255,.17); }
 
-    background: #34516b;
-}
+/* RADAR */
 
 .radar-grid {
-
     display: grid;
-
-    gap: 14px;
+    grid-template-columns: repeat(2,minmax(0,1fr));
+    gap: 13px;
 }
 
 .radar-card {
-
-    background: #121922;
-
-    border:
-        1px solid #26313d;
-
-    border-radius: 12px;
-
+    background: linear-gradient(145deg,#131e2b,#0f1722);
+    border: 1px solid var(--border);
+    border-radius: 14px;
     padding: 17px;
-
     display: grid;
-
-    grid-template-columns:
-        55px 1fr 130px 130px 130px 110px;
-
-    align-items: center;
-
-    gap: 15px;
+    grid-template-columns: 32px minmax(0,1fr);
+    gap: 12px;
+    transition: .2s;
 }
 
+.radar-card:hover {
+    border-color: rgba(87,169,255,.3);
+    transform: translateY(-2px);
+}
 
-/* ========================================
-   HISTORIAL
-======================================== */
+.radar-rank {
+    color: #70849a;
+    font-family: 'Space Grotesk',sans-serif;
+    font-size: 12px;
+    font-weight: 700;
+    padding-top: 2px;
+}
+
+.radar-name {
+    font-size: 12px;
+    font-weight: 700;
+    line-height: 1.5;
+    overflow-wrap: anywhere;
+}
+
+.radar-values {
+    display: grid;
+    grid-template-columns: repeat(3,minmax(0,1fr));
+    gap: 8px;
+    margin: 15px 0;
+}
+
+.radar-value-label {
+    color: var(--muted);
+    font-size: 9px;
+    margin-bottom: 5px;
+}
+
+.radar-value {
+    font-family: 'Space Grotesk',sans-serif;
+    font-size: 13px;
+    font-weight: 700;
+}
+
+.radar-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 10px;
+}
+
+/* HISTORY */
 
 .history-panel {
-
-    background: #121922;
-
-    border:
-        1px solid #26313d;
-
-    border-radius: 12px;
-
+    background: linear-gradient(145deg,#111b28,#0e1621);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
     padding: 20px;
-
-    margin-bottom: 20px;
 }
 
 .history-controls {
-
     display: grid;
-
-    grid-template-columns:
-        1fr auto;
-
+    grid-template-columns: minmax(180px,1fr) auto;
     gap: 12px;
-
     margin-bottom: 20px;
 }
 
 select {
-
     width: 100%;
-
-    background: #0e141b;
-
-    color: white;
-
-    border:
-        1px solid #33404e;
-
-    border-radius: 8px;
-
-    padding:
-        11px 12px;
-
-    font-size: 14px;
+    background: #0b131e;
+    color: #e8edf3;
+    border: 1px solid #29394b;
+    border-radius: 9px;
+    padding: 11px 13px;
+    font-size: 12px;
+    outline: none;
 }
 
+select:focus { border-color: var(--blue); }
+
 .period-buttons {
-
     display: flex;
-
-    gap: 7px;
-
+    gap: 6px;
     flex-wrap: wrap;
 }
 
 .period-button {
-
-    background: #18222d;
-
-    border:
-        1px solid #33404e;
-
-    color: #aeb9c6;
-
-    padding:
-        9px 12px;
-
-    border-radius: 7px;
-
-    cursor: pointer;
+    background: #162231;
+    border: 1px solid #29394b;
+    color: #94a5b9;
+    padding: 9px 12px;
+    border-radius: 8px;
+    font-size: 11px;
+    font-weight: 700;
 }
+
+.period-button:hover { color: white; }
 
 .period-button.active {
-
-    background: #2b4054;
-
-    color: white;
-}
-
-.chart-wrapper {
-
-    position: relative;
-
-    height: 430px;
-
-    width: 100%;
+    color: #75e6bd;
+    background: rgba(57,223,155,.10);
+    border-color: rgba(57,223,155,.28);
 }
 
 .history-info {
-
     display: grid;
-
-    grid-template-columns:
-        repeat(4, 1fr);
-
-    gap: 12px;
-
+    grid-template-columns: repeat(4,minmax(0,1fr));
+    gap: 11px;
     margin-bottom: 20px;
 }
 
 .history-stat {
-
-    background: #0e141b;
-
-    border:
-        1px solid #26313d;
-
-    border-radius: 8px;
-
+    background: #0b131e;
+    border: 1px solid var(--border);
+    border-radius: 11px;
     padding: 14px;
+    min-width: 0;
 }
 
 .history-stat-label {
-
-    color: #8996a5;
-
-    font-size: 12px;
-
-    margin-bottom: 6px;
+    color: var(--muted);
+    font-size: 10px;
+    margin-bottom: 8px;
 }
 
 .history-stat-value {
+    font-family: 'Space Grotesk',sans-serif;
+    font-size: 17px;
+    font-weight: 700;
+    overflow-wrap: anywhere;
+}
 
-    font-size: 18px;
-
-    font-weight: bold;
+.chart-wrapper {
+    position: relative;
+    height: 390px;
+    width: 100%;
 }
 
 .empty {
-
     text-align: center;
-
-    padding: 35px;
-
-    color: #7f8b99;
+    padding: 25px;
+    color: var(--muted);
+    font-size: 11px;
 }
 
+/* BOT STATUS */
+
 .status-box {
-
-    background: #121922;
-
-    border:
-        1px solid #26313d;
-
-    border-radius: 12px;
-
-    padding: 20px;
+    background: #111b28;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 5px 22px;
 }
 
 .status-row {
-
     display: flex;
-
-    justify-content:
-        space-between;
-
-    padding: 12px 0;
-
-    border-bottom:
-        1px solid #1e2833;
+    justify-content: space-between;
+    align-items: center;
+    gap: 15px;
+    padding: 16px 0;
+    border-bottom: 1px solid rgba(148,163,184,.08);
+    font-size: 12px;
+    color: var(--muted);
 }
 
-.status-row:last-child {
+.status-row:last-child { border-bottom: none; }
+.status-row strong { color: #e7eff9; font-size: 12px; text-align: right; }
 
-    border-bottom: none;
+/* RESPONSIVE */
+
+@media (max-width: 1150px) {
+    .cards { grid-template-columns: repeat(2,minmax(0,1fr)); }
+    .radar-grid { grid-template-columns: 1fr; }
 }
 
-
-/* ========================================
-   RESPONSIVE
-======================================== */
-
-@media (max-width: 900px) {
-
-    .cards {
-
-        grid-template-columns:
-            repeat(2, 1fr);
+@media (max-width: 760px) {
+    .sidebar {
+        position: sticky;
+        top: 0;
+        inset: auto;
+        width: 100%;
+        height: auto;
+        padding: 10px 12px;
+        border-right: none;
+        border-bottom: 1px solid var(--border);
     }
 
-    .history-info {
-
-        grid-template-columns:
-            repeat(2, 1fr);
-    }
-
-    .radar-card {
-
-        grid-template-columns:
-            45px 1fr 1fr;
-    }
-}
-
-@media (max-width: 600px) {
-
-    main {
-
-        padding: 14px;
-    }
-
-    header {
-
-        padding: 15px;
-    }
+    .app { display: block; }
+    .brand { padding: 0 5px 10px; }
+    .brand-icon { width: 34px; height: 34px; }
+    .brand-name { font-size: 13px; }
+    .brand-sub { font-size: 9px; }
+    .nav-label, .sidebar-bottom { display: none; }
 
     nav {
-
-        padding: 10px;
+        flex-direction: row;
+        overflow-x: auto;
+        gap: 5px;
+        padding-bottom: 2px;
     }
 
-    .cards {
-
-        grid-template-columns:
-            1fr;
+    .tab {
+        width: auto;
+        flex-shrink: 0;
+        padding: 9px 11px;
+        font-size: 11px;
     }
 
-    .header-top {
+    .tab .nav-icon { width: auto; }
+    .main-area { width: 100%; margin-left: 0; }
 
-        flex-direction:
-            column;
-
-        align-items:
-            flex-start;
+    .topbar {
+        position: static;
+        padding: 14px 17px;
+        min-height: 65px;
     }
 
-    .history-controls {
-
-        grid-template-columns:
-            1fr;
-    }
-
-    .history-info {
-
-        grid-template-columns:
-            1fr 1fr;
-    }
+    main { padding: 22px 15px 35px; }
+    h2 { font-size: 22px; }
+    .topbar-sub { display: none; }
+    #lastUpdate { display: none; }
+    .history-info { grid-template-columns: repeat(2,minmax(0,1fr)); }
+    .history-controls { grid-template-columns: 1fr; }
+    .chart-wrapper { height: 300px; }
 }
 
+@media (max-width: 430px) {
+    .cards { grid-template-columns: repeat(2,minmax(0,1fr)); gap: 9px; }
+    .card { padding: 14px; }
+    .card-value { font-size: 22px; }
+    .card-title { font-size: 10px; }
+    .card-foot { font-size: 9px; }
+    .card-icon { width: 27px; height: 27px; }
+    .history-panel { padding: 12px; }
+    .history-stat { padding: 11px; }
+    .history-stat-value { font-size: 14px; }
+    .history-stat-label { font-size: 9px; }
+    .period-button { padding: 8px 10px; }
+    .radar-values { gap: 5px; }
+    .radar-value { font-size: 11px; }
+    .page-heading { align-items: flex-start; }
+}
 </style>
-
 </head>
-
 
 <body>
 
+<div class="app">
 
-<header>
+    <aside class="sidebar">
 
-    <div class="header-top">
-
-        <div>
-
-            <div class="logo">
-                🎯 STEAM RADAR
+        <div class="brand">
+            <div class="brand-icon">🎯</div>
+            <div>
+                <div class="brand-name">STEAM RADAR</div>
+                <div class="brand-sub">MARKET INTELLIGENCE</div>
             </div>
-
-            <div class="subtitle">
-                Steam Market monitoring dashboard
-            </div>
-
         </div>
 
-        <div id="lastUpdate">
-            Actualizando...
+        <div class="nav-label">MENÚ PRINCIPAL</div>
+
+        <nav>
+            <button class="tab active" onclick="showTab('dashboard',this)">
+                <span class="nav-icon">◈</span> Dashboard
+            </button>
+
+            <button class="tab" onclick="showTab('skins',this)">
+                <span class="nav-icon">◉</span> Skins
+            </button>
+
+            <button class="tab" onclick="showTab('radar',this)">
+                <span class="nav-icon">⌁</span> Radar
+            </button>
+
+            <button class="tab" onclick="showTab('historial',this)">
+                <span class="nav-icon">⌁</span> Historial
+            </button>
+
+            <button class="tab" onclick="showTab('estadisticas',this)">
+                <span class="nav-icon">▥</span> Estadísticas
+            </button>
+
+            <button class="tab" onclick="showTab('bot',this)">
+                <span class="nav-icon">⚙</span> Estado del bot
+            </button>
+        </nav>
+
+        <div class="sidebar-bottom">
+            <div class="sidebar-note">
+                <strong>Steam Market Radar</strong>
+                Monitoreo automático de precios y oportunidades del mercado.
+            </div>
         </div>
 
+    </aside>
+
+    <div class="main-area">
+
+        <header class="topbar">
+            <div>
+                <div class="topbar-title">Centro de monitoreo</div>
+                <div class="topbar-sub">Análisis y seguimiento del mercado de CS2</div>
+            </div>
+
+            <div class="topbar-right">
+                <div id="headerConnection" class="connection">
+                    <span class="connection-dot"></span>
+                    <span id="headerConnectionText">CONECTANDO</span>
+                </div>
+                <div id="lastUpdate">Actualizando...</div>
+            </div>
+        </header>
+
+        <main>
+
+            <!-- DASHBOARD -->
+
+            <section id="dashboard" class="section active">
+
+                <div class="page-heading">
+                    <div>
+                        <div class="eyebrow">OVERVIEW</div>
+                        <h2>Dashboard</h2>
+                        <div class="description">Resumen general de tu sistema de monitoreo.</div>
+                    </div>
+                    <span class="pill">● Actualización automática</span>
+                </div>
+
+                <div class="cards">
+
+                    <div class="card" style="--glow:rgba(57,223,155,.16)">
+                        <div class="card-head">
+                            <div class="card-title">Estado del sistema</div>
+                            <div class="card-icon">◉</div>
+                        </div>
+                        <div id="cardStatus" class="card-value">-</div>
+                        <div class="card-foot">Conexión del bot</div>
+                    </div>
+
+                    <div class="card" style="--glow:rgba(87,169,255,.16)">
+                        <div class="card-head">
+                            <div class="card-title">Skins vigiladas</div>
+                            <div class="card-icon">🎯</div>
+                        </div>
+                        <div id="cardSkins" class="card-value">-</div>
+                        <div class="card-foot">Elementos en seguimiento</div>
+                    </div>
+
+                    <div class="card" style="--glow:rgba(167,139,250,.16)">
+                        <div class="card-head">
+                            <div class="card-title">Cache</div>
+                            <div class="card-icon">◫</div>
+                        </div>
+                        <div id="cardCache" class="card-value">-</div>
+                        <div class="card-foot">Datos almacenados</div>
+                    </div>
+
+                    <div class="card" style="--glow:rgba(255,104,125,.15)">
+                        <div class="card-head">
+                            <div class="card-title">Errores registrados</div>
+                            <div class="card-icon">⚠</div>
+                        </div>
+                        <div id="cardErrors" class="card-value">-</div>
+                        <div class="card-foot">Contador de errores</div>
+                    </div>
+
+                </div>
+
+                <div class="panel">
+                    <div class="panel-header">
+                        <div>
+                            <div class="panel-title">🔥 Skins más cercanas a tu objetivo</div>
+                            <div class="panel-sub">Las 10 oportunidades más próximas a tu precio máximo</div>
+                        </div>
+                        <span class="pill">TOP 10</span>
+                    </div>
+
+                    <div class="table-container" style="border:0;border-radius:0">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Skin</th>
+                                    <th>Precio de venta</th>
+                                    <th>Objetivo</th>
+                                    <th>Diferencia</th>
+                                    <th>Estado</th>
+                                </tr>
+                            </thead>
+                            <tbody id="dashboardTable"></tbody>
+                        </table>
+                    </div>
+                </div>
+
+            </section>
+
+            <!-- SKINS -->
+
+            <section id="skins" class="section">
+
+                <div class="page-heading">
+                    <div>
+                        <div class="eyebrow">WATCHLIST</div>
+                        <h2>Tus skins</h2>
+                        <div class="description">Todos los artículos que estás monitoreando.</div>
+                    </div>
+                </div>
+
+                <div class="table-container">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Skin</th>
+                                <th>Precio de venta</th>
+                                <th>Pedido de compra</th>
+                                <th>Tu máximo</th>
+                                <th>Diferencia</th>
+                                <th>Estado</th>
+                                <th>Steam</th>
+                            </tr>
+                        </thead>
+                        <tbody id="skinsTable"></tbody>
+                    </table>
+                </div>
+
+            </section>
+
+            <!-- RADAR -->
+
+            <section id="radar" class="section">
+
+                <div class="page-heading">
+                    <div>
+                        <div class="eyebrow">OPPORTUNITY SCANNER</div>
+                        <h2>Radar de oportunidades</h2>
+                        <div class="description">Skins ordenadas según su distancia a tu precio máximo.</div>
+                    </div>
+                    <span class="pill">TOP 15</span>
+                </div>
+
+                <div id="radarContainer" class="radar-grid"></div>
+
+            </section>
+
+            <!-- HISTORIAL -->
+
+            <section id="historial" class="section">
+
+                <div class="page-heading">
+                    <div>
+                        <div class="eyebrow">PRICE ANALYTICS</div>
+                        <h2>Historial de precios</h2>
+                        <div class="description">Evolución del precio de venta y los pedidos de compra registrados desde Steam.</div>
+                    </div>
+                </div>
+
+                <div class="history-panel">
+
+                    <div class="history-controls">
+                        <select id="historySkin" onchange="loadHistory()">
+                            <option value="">Seleccioná una skin...</option>
+                        </select>
+
+                        <div class="period-buttons">
+                            <button class="period-button active" data-hours="1" onclick="setPeriod(1,this)">1H</button>
+                            <button class="period-button" data-hours="3" onclick="setPeriod(3,this)">3H</button>
+                            <button class="period-button" data-hours="6" onclick="setPeriod(6,this)">6H</button>
+                            <button class="period-button" data-hours="24" onclick="setPeriod(24,this)">24H</button>
+                            <button class="period-button" data-hours="48" onclick="setPeriod(48,this)">48H</button>
+                        </div>
+                    </div>
+
+                    <div id="historyInfo" class="history-info">
+
+                        <div class="history-stat">
+                            <div class="history-stat-label">Precio de venta actual</div>
+                            <div id="historyCurrentSell" class="history-stat-value">-</div>
+                        </div>
+
+                        <div class="history-stat">
+                            <div class="history-stat-label">Pedido de compra actual</div>
+                            <div id="historyCurrentBuy" class="history-stat-value">-</div>
+                        </div>
+
+                        <div class="history-stat">
+                            <div class="history-stat-label">Tu máximo</div>
+                            <div id="historyMax" class="history-stat-value">-</div>
+                        </div>
+
+                        <div class="history-stat">
+                            <div class="history-stat-label">Variación</div>
+                            <div id="historyVariation" class="history-stat-value">-</div>
+                        </div>
+
+                        <div class="history-stat">
+                            <div class="history-stat-label">Precio mínimo</div>
+                            <div id="historyMin" class="history-stat-value">-</div>
+                        </div>
+
+                        <div class="history-stat">
+                            <div class="history-stat-label">Precio máximo</div>
+                            <div id="historyMaxPrice" class="history-stat-value">-</div>
+                        </div>
+
+                        <div class="history-stat">
+                            <div class="history-stat-label">Precio promedio</div>
+                            <div id="historyAverage" class="history-stat-value">-</div>
+                        </div>
+
+                        <div class="history-stat">
+                            <div class="history-stat-label">Distancia a tu máximo</div>
+                            <div id="historyDistance" class="history-stat-value">-</div>
+                        </div>
+
+                    </div>
+
+                    <div class="chart-wrapper">
+                        <canvas id="priceChart"></canvas>
+                    </div>
+
+                    <div id="historyMessage" class="empty">
+                        Seleccioná una skin para ver su historial.
+                    </div>
+
+                </div>
+
+            </section>
+
+            <!-- ESTADISTICAS -->
+
+            <section id="estadisticas" class="section">
+
+                <div class="page-heading">
+                    <div>
+                        <div class="eyebrow">SYSTEM ANALYTICS</div>
+                        <h2>Estadísticas</h2>
+                        <div class="description">Indicadores generales de actividad y rendimiento.</div>
+                    </div>
+                </div>
+
+                <div class="cards">
+
+                    <div class="card">
+                        <div class="card-head">
+                            <div class="card-title">Alertas enviadas</div>
+                            <div class="card-icon">✉</div>
+                        </div>
+                        <div id="statsAlerts" class="card-value">-</div>
+                        <div class="card-foot">Notificaciones de oportunidades</div>
+                    </div>
+
+                    <div class="card">
+                        <div class="card-head">
+                            <div class="card-title">Errores</div>
+                            <div class="card-icon">⚠</div>
+                        </div>
+                        <div id="statsErrors" class="card-value">-</div>
+                        <div class="card-foot">Errores registrados</div>
+                    </div>
+
+                    <div class="card">
+                        <div class="card-head">
+                            <div class="card-title">Proxies totales</div>
+                            <div class="card-icon">◈</div>
+                        </div>
+                        <div id="statsProxies" class="card-value">-</div>
+                        <div class="card-foot">Conexiones configuradas</div>
+                    </div>
+
+                    <div class="card">
+                        <div class="card-head">
+                            <div class="card-title">Steam 429</div>
+                            <div class="card-icon">↻</div>
+                        </div>
+                        <div id="stats429" class="card-value">-</div>
+                        <div class="card-foot">Respuestas consecutivas</div>
+                    </div>
+
+                </div>
+
+            </section>
+
+            <!-- BOT -->
+
+            <section id="bot" class="section">
+
+                <div class="page-heading">
+                    <div>
+                        <div class="eyebrow">LIVE SYSTEM STATUS</div>
+                        <h2>Estado del bot</h2>
+                        <div class="description">Información operativa reportada por el backend.</div>
+                    </div>
+                </div>
+
+                <div class="status-box">
+
+                    <div class="status-row">
+                        <span>Estado</span>
+                        <strong id="botStatus">-</strong>
+                    </div>
+
+                    <div class="status-row">
+                        <span>Proxies totales</span>
+                        <strong id="botProxies">-</strong>
+                    </div>
+
+                    <div class="status-row">
+                        <span>Proxies en cooldown</span>
+                        <strong id="botProxyCooldown">-</strong>
+                    </div>
+
+                    <div class="status-row">
+                        <span>Skins en cooldown</span>
+                        <strong id="botSkinCooldown">-</strong>
+                    </div>
+
+                    <div class="status-row">
+                        <span>Steam 429 consecutivos</span>
+                        <strong id="bot429">-</strong>
+                    </div>
+
+                    <div class="status-row">
+                        <span>Pausa Steam</span>
+                        <strong id="botPause">-</strong>
+                    </div>
+
+                    <div class="status-row">
+                        <span>Último escaneo</span>
+                        <strong id="botLastScan">-</strong>
+                    </div>
+
+                </div>
+
+            </section>
+
+        </main>
     </div>
-
-</header>
-
-
-<nav>
-
-    <button
-        class="tab active"
-        onclick="showTab('dashboard', this)"
-    >
-        🏠 Dashboard
-    </button>
-
-    <button
-        class="tab"
-        onclick="showTab('skins', this)"
-    >
-        🎯 Skins
-    </button>
-
-    <button
-        class="tab"
-        onclick="showTab('radar', this)"
-    >
-        📡 Radar
-    </button>
-
-    <button
-        class="tab"
-        onclick="showTab('historial', this)"
-    >
-        📈 Historial
-    </button>
-
-    <button
-        class="tab"
-        onclick="showTab('estadisticas', this)"
-    >
-        📊 Estadísticas
-    </button>
-
-    <button
-        class="tab"
-        onclick="showTab('bot', this)"
-    >
-        ⚙️ Bot
-    </button>
-
-</nav>
-
-
-<main>
-
-
-<!-- ========================================
-     DASHBOARD
-======================================== -->
-
-<section
-    id="dashboard"
-    class="section active"
->
-
-    <h2>Dashboard</h2>
-
-    <div class="description">
-        Vista general del Steam Market Radar.
-    </div>
-
-
-    <div class="cards">
-
-        <div class="card">
-
-            <div class="card-title">
-                Estado
-            </div>
-
-            <div
-                id="cardStatus"
-                class="card-value"
-            >
-                -
-            </div>
-
-        </div>
-
-
-        <div class="card">
-
-            <div class="card-title">
-                Skins vigiladas
-            </div>
-
-            <div
-                id="cardSkins"
-                class="card-value"
-            >
-                -
-            </div>
-
-        </div>
-
-
-        <div class="card">
-
-            <div class="card-title">
-                Cache
-            </div>
-
-            <div
-                id="cardCache"
-                class="card-value"
-            >
-                -
-            </div>
-
-        </div>
-
-
-        <div class="card">
-
-            <div class="card-title">
-                Errores
-            </div>
-
-            <div
-                id="cardErrors"
-                class="card-value"
-            >
-                -
-            </div>
-
-        </div>
-
-    </div>
-
-
-    <h3>
-        🔥 Más cercanas a tu objetivo
-    </h3>
-
-
-    <div class="table-container">
-
-        <table>
-
-            <thead>
-
-                <tr>
-
-                    <th>Skin</th>
-
-                    <th>Precio de venta</th>
-
-                    <th>Objetivo</th>
-
-                    <th>Diferencia</th>
-
-                    <th>Estado</th>
-
-                </tr>
-
-            </thead>
-
-            <tbody id="dashboardTable">
-            </tbody>
-
-        </table>
-
-    </div>
-
-</section>
-
-
-<!-- ========================================
-     SKINS
-======================================== -->
-
-<section
-    id="skins"
-    class="section"
->
-
-    <h2>Skins</h2>
-
-    <div class="description">
-        Todas las skins que estás vigilando.
-    </div>
-
-
-    <div class="table-container">
-
-        <table>
-
-            <thead>
-
-                <tr>
-
-                    <th>Skin</th>
-                    <th>Precio de venta</th>
-                    <th>Pedido de compra</th>
-                    <th>Tu máximo</th>
-                    <th>Diferencia</th>
-                    <th>Estado</th>
-                    <th>Steam</th>
-
-                </tr>
-
-            </thead>
-
-            <tbody id="skinsTable">
-            </tbody>
-
-        </table>
-
-    </div>
-
-</section>
-
-
-<!-- ========================================
-     RADAR
-======================================== -->
-
-<section
-    id="radar"
-    class="section"
->
-
-    <h2>📡 Radar</h2>
-
-    <div class="description">
-        Las skins ordenadas según qué tan cerca
-        están de tu precio máximo.
-    </div>
-
-    <div
-        id="radarContainer"
-        class="radar-grid"
-    >
-    </div>
-
-</section>
-
-
-<!-- ========================================
-     HISTORIAL
-======================================== -->
-
-<section
-    id="historial"
-    class="section"
->
-
-    <h2>📈 Historial de precios</h2>
-
-    <div class="description">
-
-        Evolución real del precio de venta y los pedidos de compra
-        obtenidos desde Steam.
-
-    </div>
-
-
-    <div class="history-panel">
-
-
-        <div class="history-controls">
-
-            <select
-                id="historySkin"
-                onchange="loadHistory()"
-            >
-
-                <option value="">
-                    Seleccioná una skin...
-                </option>
-
-            </select>
-
-
-            <div
-                class="period-buttons"
-            >
-
-                <button
-                    class="period-button active"
-                    data-hours="1"
-                    onclick="setPeriod(1, this)"
-                >
-                    1H
-                </button>
-
-                <button
-                    class="period-button"
-                    data-hours="3"
-                    onclick="setPeriod(3, this)"
-                >
-                    3H
-                </button>
-
-                <button
-                    class="period-button"
-                    data-hours="6"
-                    onclick="setPeriod(6, this)"
-                >
-                    6H
-                </button>
-
-                <button
-                    class="period-button"
-                    data-hours="24"
-                    onclick="setPeriod(24, this)"
-                >
-                    24H
-                </button>
-
-                <button
-                    class="period-button"
-                    data-hours="48"
-                    onclick="setPeriod(48, this)"
-                >
-                    48H
-                </button>
-
-            </div>
-
-        </div>
-
-
-        <div
-            id="historyInfo"
-            class="history-info"
-        >
-
-            <div class="history-stat">
-
-                <div class="history-stat-label">
-                    Precio de Venta Actual
-                </div>
-
-                <div
-                    id="historyCurrentSell"
-                    class="history-stat-value"
-                >
-                    -
-                </div>
-
-            </div>
-
-
-            <div class="history-stat">
-
-                <div class="history-stat-label">
-                    Pedido de Compra Actual
-                </div>
-
-                <div
-                    id="historyCurrentBuy"
-                    class="history-stat-value"
-                >
-                    -
-                </div>
-
-            </div>
-
-
-            <div class="history-stat">
-
-                <div class="history-stat-label">
-                    Tu máximo
-                </div>
-
-                <div
-                    id="historyMax"
-                    class="history-stat-value"
-                >
-                    -
-                </div>
-
-            </div>
-
-
-            <div class="history-stat">
-
-                <div class="history-stat-label">
-                    Variación
-                </div>
-
-                <div
-                    id="historyVariation"
-                    class="history-stat-value"
-                >
-                    -
-                </div>
-
-            </div>
-
-            <div class="history-stat">
-
-                <div class="history-stat-label">
-                    Precio mínimo
-                </div>
-
-                <div
-                    id="historyMin"
-                    class="history-stat-value"
-                >
-                    -
-                </div>
-
-            </div>
-
-
-            <div class="history-stat">
-
-                <div class="history-stat-label">
-                    Precio máximo
-                </div>
-
-                <div
-                    id="historyMaxPrice"
-                    class="history-stat-value"
-                >
-                    -
-                </div>
-
-            </div>
-
-
-            <div class="history-stat">
-
-                <div class="history-stat-label">
-                    Precio promedio
-                </div>
-
-                <div
-                    id="historyAverage"
-                    class="history-stat-value"
-                >
-                    -
-                </div>
-
-            </div>
-
-
-            <div class="history-stat">
-
-                <div class="history-stat-label">
-                    Distancia a tu máximo
-                </div>
-
-                <div
-                    id="historyDistance"
-                    class="history-stat-value"
-                >
-                    -
-                </div>
-
-            </div>
-
-        </div>
-
-
-        <div class="chart-wrapper">
-
-            <canvas id="priceChart">
-            </canvas>
-
-        </div>
-
-
-        <div
-            id="historyMessage"
-            class="empty"
-        >
-            Seleccioná una skin para ver su historial.
-        </div>
-
-    </div>
-
-</section>
-
-
-<!-- ========================================
-     ESTADISTICAS
-======================================== -->
-
-<section
-    id="estadisticas"
-    class="section"
->
-
-    <h2>📊 Estadísticas</h2>
-
-
-    <div class="cards">
-
-
-        <div class="card">
-
-            <div class="card-title">
-                Alertas enviadas
-            </div>
-
-            <div
-                id="statsAlerts"
-                class="card-value"
-            >
-                -
-            </div>
-
-        </div>
-
-
-        <div class="card">
-
-            <div class="card-title">
-                Errores
-            </div>
-
-            <div
-                id="statsErrors"
-                class="card-value"
-            >
-                -
-            </div>
-
-        </div>
-
-
-        <div class="card">
-
-            <div class="card-title">
-                Proxies
-            </div>
-
-            <div
-                id="statsProxies"
-                class="card-value"
-            >
-                -
-            </div>
-
-        </div>
-
-
-        <div class="card">
-
-            <div class="card-title">
-                Steam 429
-            </div>
-
-            <div
-                id="stats429"
-                class="card-value"
-            >
-                -
-            </div>
-
-        </div>
-
-
-    </div>
-
-</section>
-
-
-<!-- ========================================
-     BOT
-======================================== -->
-
-<section
-    id="bot"
-    class="section"
->
-
-    <h2>⚙️ Estado del Bot</h2>
-
-
-    <div class="status-box">
-
-
-        <div class="status-row">
-
-            <span>Estado</span>
-
-            <strong id="botStatus">
-                -
-            </strong>
-
-        </div>
-
-
-        <div class="status-row">
-
-            <span>Proxies totales</span>
-
-            <strong id="botProxies">
-                -
-            </strong>
-
-        </div>
-
-
-        <div class="status-row">
-
-            <span>Proxies en cooldown</span>
-
-            <strong id="botProxyCooldown">
-                -
-            </strong>
-
-        </div>
-
-
-        <div class="status-row">
-
-            <span>Skins en cooldown</span>
-
-            <strong id="botSkinCooldown">
-                -
-            </strong>
-
-        </div>
-
-
-        <div class="status-row">
-
-            <span>Steam 429 consecutivos</span>
-
-            <strong id="bot429">
-                -
-            </strong>
-
-        </div>
-
-
-        <div class="status-row">
-
-            <span>Pausa Steam</span>
-
-            <strong id="botPause">
-                -
-            </strong>
-
-        </div>
-
-
-        <div class="status-row">
-
-            <span>Último escaneo</span>
-
-            <strong id="botLastScan">
-                -
-            </strong>
-
-        </div>
-
-
-    </div>
-
-</section>
-
-
-</main>
-
+</div>
 
 <script>
-
 let skinsData = [];
-
 let statusData = {};
-
 let priceChart = null;
-
 let historyPeriod = 24;
 
+/* TABS */
 
-/* ========================================
-   TABS
-======================================== */
+function showTab(tabName, button) {
+    document.querySelectorAll(".section").forEach(section => {
+        section.classList.remove("active");
+    });
 
-function showTab(
-    tabName,
-    button
-) {
+    document.querySelectorAll(".tab").forEach(tab => {
+        tab.classList.remove("active");
+    });
 
-    document
-        .querySelectorAll(".section")
-        .forEach(section => {
+    document.getElementById(tabName).classList.add("active");
 
-            section.classList.remove(
-                "active"
-            );
+    if (button) button.classList.add("active");
 
-        });
-
-
-    document
-        .querySelectorAll(".tab")
-        .forEach(tab => {
-
-            tab.classList.remove(
-                "active"
-            );
-
-        });
-
-
-    document
-        .getElementById(tabName)
-        .classList.add("active");
-
-
-    if (button) {
-
-        button.classList.add(
-            "active"
-        );
-
+    if (tabName === "historial" && document.getElementById("historySkin").value) {
+        loadHistory();
     }
-
 }
 
-
-/* ========================================
-   DINERO
-======================================== */
+/* DINERO */
 
 function money(value) {
-
-    if (
-        value === null ||
-        value === undefined ||
-        isNaN(value)
-    ) {
-
+    if (value === null || value === undefined || value === "" || !Number.isFinite(Number(value))) {
         return "-";
-
     }
 
-    return "$" +
-        Number(value).toFixed(2);
-
+    return "$" + Number(value).toFixed(2);
 }
 
+/* DIFERENCIA */
 
-/* ========================================
-   DIFERENCIA
-======================================== */
-
-function difference(
-    price,
-    max
-) {
-
+function difference(price, max) {
     if (
-        price === null ||
-        price === undefined ||
-        max === null ||
-        max === undefined
+        price === null || price === undefined ||
+        max === null || max === undefined ||
+        !Number.isFinite(Number(price)) ||
+        !Number.isFinite(Number(max))
     ) {
-
         return null;
-
     }
 
-    return Number(price) -
-        Number(max);
-
+    return Number(price) - Number(max);
 }
 
-
-/* ========================================
-   ESTADO
-======================================== */
+/* ESTADO */
 
 function getStatus(price, max) {
-
     const precio = Number(price);
     const objetivo = Number(max);
 
@@ -1458,1606 +1212,597 @@ function getStatus(price, max) {
         !Number.isFinite(objetivo) ||
         objetivo <= 0
     ) {
-        return {
-            text: "SIN DATOS",
-            className: "badge-far"
-        };
+        return { text: "SIN DATOS", className: "badge-far" };
     }
 
-    const porcentaje =
-        ((precio - objetivo) / objetivo) * 100;
+    const porcentaje = ((precio - objetivo) / objetivo) * 100;
 
-    // 13,3% o más por debajo del máximo
     if (porcentaje <= -13.3) {
-        return {
-            text: "🔥 OFERTA MUY BUENA",
-            className: "badge-super"
-        };
+        return { text: "🔥 OFERTA MUY BUENA", className: "badge-super" };
     }
 
-    // Llegó al máximo o está por debajo
     if (porcentaje <= 0) {
-        return {
-            text: "🟢 OBJETIVO ALCANZADO",
-            className: "badge-good"
-        };
+        return { text: "🟢 OBJETIVO ALCANZADO", className: "badge-good" };
     }
 
-    // Hasta 5% por encima
     if (porcentaje <= 5) {
-        return {
-            text: "🟡 MUY CERCA",
-            className: "badge-close"
-        };
+        return { text: "🟡 MUY CERCA", className: "badge-close" };
     }
 
-    // Hasta 15% por encima
     if (porcentaje <= 15) {
-        return {
-            text: "🟠 CERCA",
-            className: "badge-close"
-        };
+        return { text: "🟠 CERCA", className: "badge-close" };
     }
 
-    return {
-        text: "🔴 LEJOS",
-        className: "badge-far"
-    };
-
+    return { text: "🔴 LEJOS", className: "badge-far" };
 }
 
+/* FECHA */
 
-/* ========================================
-   HORA
-======================================== */
+function formatDate(timestamp) {
+    if (!timestamp) return "-";
 
-function formatDate(
-    timestamp
-) {
+    const date = new Date(Number(timestamp) * 1000);
 
-    if (!timestamp) {
+    if (isNaN(date.getTime())) return "-";
 
-        return "-";
-
-    }
-
-
-    const date =
-        new Date(
-            Number(timestamp) * 1000
-        );
-
-
-    if (
-        isNaN(
-            date.getTime()
-        )
-    ) {
-
-        return "-";
-
-    }
-
-
-    return date.toLocaleTimeString(
-        "es-AR",
-        {
-            hour: "2-digit",
-            minute: "2-digit",
-            second: "2-digit"
-        }
-    );
-
+    return date.toLocaleTimeString("es-AR", {
+        hour: "2-digit",
+        minute: "2-digit",
+        second: "2-digit"
+    });
 }
 
-
-/* ========================================
-   STATUS
-======================================== */
+/* STATUS */
 
 async function loadStatus() {
-
     try {
+        const response = await fetch("/status?x=" + Date.now());
 
-        const response =
-            await fetch(
-                "/status?x=" +
-                Date.now()
-            );
+        if (!response.ok) throw new Error("HTTP " + response.status);
 
-
-        if (!response.ok) {
-
-            throw new Error(
-                "HTTP " +
-                response.status
-            );
-
-        }
-
-
-        statusData =
-            await response.json();
-
-
+        statusData = await response.json();
         updateStatus();
 
+    } catch (error) {
+        console.error("Error /status:", error);
+
+        document.getElementById("headerConnection").classList.add("offline");
+        document.getElementById("headerConnectionText").textContent = "SIN CONEXIÓN";
     }
-
-    catch (error) {
-
-        console.error(
-            "Error /status:",
-            error
-        );
-
-    }
-
 }
-
 
 function updateStatus() {
+    const activo = statusData.activo === true;
 
-    const activo =
-        statusData.activo === true;
+    document.getElementById("cardStatus").textContent = activo ? "ONLINE" : "OFFLINE";
 
+    document.getElementById("cardStatus").className =
+        "card-value " + (activo ? "online" : "danger");
 
-    document
-        .getElementById(
-            "cardStatus"
-        )
-        .textContent =
-            activo
-                ? "ONLINE"
-                : "OFFLINE";
+    document.getElementById("headerConnection").classList.toggle("offline", !activo);
 
+    document.getElementById("headerConnectionText").textContent =
+        activo ? "SISTEMA ONLINE" : "SISTEMA OFFLINE";
 
-    document
-        .getElementById(
-            "cardStatus"
-        )
-        .className =
-            "card-value " +
-            (
-                activo
-                    ? "online"
-                    : "danger"
-            );
+    document.getElementById("cardSkins").textContent =
+        statusData.items_vigilados ?? "-";
 
+    document.getElementById("cardCache").textContent =
+        statusData.cache ?? "-";
 
-    document
-        .getElementById(
-            "cardSkins"
-        )
-        .textContent =
-            statusData.items_vigilados
-            ?? "-";
+    document.getElementById("cardErrors").textContent =
+        statusData.errores_totales ?? "-";
 
+    document.getElementById("statsAlerts").textContent =
+        statusData.notificaciones_enviadas ?? "-";
 
-    document
-        .getElementById(
-            "cardCache"
-        )
-        .textContent =
-            statusData.cache
-            ?? "-";
+    document.getElementById("statsErrors").textContent =
+        statusData.errores_totales ?? "-";
 
+    document.getElementById("statsProxies").textContent =
+        statusData.proxies_totales ?? "-";
 
-    document
-        .getElementById(
-            "cardErrors"
-        )
-        .textContent =
-            statusData.errores_totales
-            ?? "-";
+    document.getElementById("stats429").textContent =
+        statusData.steam_429_consecutivos ?? "-";
 
+    document.getElementById("botStatus").textContent =
+        activo ? "🟢 ONLINE" : "🔴 OFFLINE";
 
-    document
-        .getElementById(
-            "statsAlerts"
-        )
-        .textContent =
-            statusData.notificaciones_enviadas
-            ?? "-";
+    document.getElementById("botProxies").textContent =
+        statusData.proxies_totales ?? "-";
 
+    document.getElementById("botProxyCooldown").textContent =
+        statusData.proxies_cooldown ?? "-";
 
-    document
-        .getElementById(
-            "statsErrors"
-        )
-        .textContent =
-            statusData.errores_totales
-            ?? "-";
+    document.getElementById("botSkinCooldown").textContent =
+        statusData.skins_cooldown ?? "-";
 
+    document.getElementById("bot429").textContent =
+        statusData.steam_429_consecutivos ?? "-";
 
-    document
-        .getElementById(
-            "statsProxies"
-        )
-        .textContent =
-            statusData.proxies_totales
-            ?? "-";
+    const pausa = statusData.steam_pausa_restante_segundos ?? 0;
 
+    document.getElementById("botPause").textContent =
+        pausa > 0 ? pausa + " segundos" : "Sin pausa";
 
-    document
-        .getElementById(
-            "stats429"
-        )
-        .textContent =
-            statusData.steam_429_consecutivos
-            ?? "-";
+    document.getElementById("botLastScan").textContent =
+        statusData.ultimo_escaneo
+            ? formatDate(new Date(statusData.ultimo_escaneo).getTime() / 1000)
+            : "-";
 
-
-    document
-        .getElementById(
-            "botStatus"
-        )
-        .textContent =
-            activo
-                ? "🟢 ONLINE"
-                : "🔴 OFFLINE";
-
-
-    document
-        .getElementById(
-            "botProxies"
-        )
-        .textContent =
-            statusData.proxies_totales
-            ?? "-";
-
-
-    document
-        .getElementById(
-            "botProxyCooldown"
-        )
-        .textContent =
-            statusData.proxies_cooldown
-            ?? "-";
-
-
-    document
-        .getElementById(
-            "botSkinCooldown"
-        )
-        .textContent =
-            statusData.skins_cooldown
-            ?? "-";
-
-
-    document
-        .getElementById(
-            "bot429"
-        )
-        .textContent =
-            statusData.steam_429_consecutivos
-            ?? "-";
-
-
-    const pausa =
-        statusData
-            .steam_pausa_restante_segundos
-        ?? 0;
-
-
-    document
-        .getElementById(
-            "botPause"
-        )
-        .textContent =
-            pausa > 0
-                ? pausa + " segundos"
-                : "Sin pausa";
-
-
-    document
-        .getElementById(
-            "botLastScan"
-        )
-        .textContent =
-            formatDate(
-                new Date(
-                    statusData
-                        .ultimo_escaneo
-                ).getTime() / 1000
-            );
-
-
-    document
-        .getElementById(
-            "lastUpdate"
-        )
-        .textContent =
-            "Última actualización: " +
-            formatDate(
-                new Date(
-                    statusData.timestamp
-                ).getTime() / 1000
-            );
-
+    document.getElementById("lastUpdate").textContent =
+        "Actualizado: " +
+        (statusData.timestamp
+            ? formatDate(new Date(statusData.timestamp).getTime() / 1000)
+            : "-");
 }
 
-
-/* ========================================
-   SKINS
-======================================== */
+/* SKINS */
 
 async function loadSkins() {
-
     try {
+        const response = await fetch("/api/skins?x=" + Date.now());
 
-        const response =
-            await fetch(
-                "/api/skins?x=" +
-                Date.now()
-            );
+        if (!response.ok) throw new Error("HTTP " + response.status);
 
-
-        if (!response.ok) {
-
-            throw new Error(
-                "HTTP " +
-                response.status
-            );
-
-        }
-
-
-        skinsData =
-            await response.json();
-
+        skinsData = await response.json();
 
         renderSkins();
-
         renderDashboard();
-
         renderRadar();
-
         populateHistorySelect();
 
+    } catch (error) {
+        console.error("Error /api/skins:", error);
     }
-
-    catch (error) {
-
-        console.error(
-            "Error /api/skins:",
-            error
-        );
-
-    }
-
 }
 
-
-/* ========================================
-   TABLA SKINS
-======================================== */
+/* TABLA SKINS */
 
 function renderSkins() {
+    const table = document.getElementById("skinsTable");
 
-    const table =
-        document.getElementById(
-            "skinsTable"
-        );
+    table.innerHTML = skinsData.map(skin => {
+        const price = Number(skin.price);
+        const max = Number(skin.max);
+        const buy = Number(skin.buy_price);
 
+        const diff = difference(skin.price, skin.max);
+        const status = getStatus(skin.price, skin.max);
 
-    table.innerHTML =
-        skinsData.map(
-            skin => {
-
-                const price =
-                    Number(
-                        skin.price
-                    );
-
-                const max =
-                    Number(
-                        skin.max
-                    );
-
-                const buy =
-                    Number(
-                        skin.buy_price
-                    );
-
-                const diff =
-                    difference(
-                        price,
-                        max
-                    );
-
-                const status =
-                    getStatus(
-                        price,
-                        max
-                    );
-
-
-                return `
-                    <tr>
-
-                        <td class="skin-name">
-                            ${escapeHtml(
-                                skin.name
-                            )}
-                        </td>
-
-                        <td class="price">
-                            ${money(price)}
-                        </td>
-
-                        <td>
-                            ${money(buy)}
-                        </td>
-
-                        <td>
-                            ${money(max)}
-                        </td>
-
-                        <td class="${
-                            diff <= 0
-                                ? "diff-negative"
-                                : "diff-positive"
-                        }">
-                            ${
-                                diff >= 0
-                                    ? "+"
-                                    : ""
-                            }${money(diff)}
-                        </td>
-
-                        <td>
-                            <span
-                                class="badge ${
-                                    status.className
-                                }"
-                            >
-                                ${status.text}
-                            </span>
-                        </td>
-
-                        <td>
-                            <a
-                                class="button"
-                                href="${skin.steam_url}"
-                            >
-                                Steam
-                            </a>
-                        </td>
-
-                    </tr>
-                `;
-
-            }
-        ).join("");
-
+        return `
+            <tr>
+                <td class="skin-name">${escapeHtml(skin.name)}</td>
+                <td class="price">${money(price)}</td>
+                <td>${money(buy)}</td>
+                <td>${money(max)}</td>
+                <td class="${diff === null ? "" : diff <= 0 ? "diff-negative" : "diff-positive"}">
+                    ${diff === null ? "-" : (diff >= 0 ? "+" : "") + money(diff)}
+                </td>
+                <td>
+                    <span class="badge ${status.className}">${status.text}</span>
+                </td>
+                <td>
+                    <a class="button" href="${escapeAttribute(skin.steam_url)}" target="_blank" rel="noopener noreferrer">Steam ↗</a>
+                </td>
+            </tr>
+        `;
+    }).join("");
 }
 
-
-/* ========================================
-   DASHBOARD
-======================================== */
+/* DASHBOARD */
 
 function renderDashboard() {
+    const table = document.getElementById("dashboardTable");
 
-    const table =
-        document.getElementById(
-            "dashboardTable"
-        );
-
-
-    const sorted =
-        [...skinsData]
-        .filter(
-            skin =>
-                skin.price !== null &&
-                skin.max !== null
+    const sorted = [...skinsData]
+        .filter(skin =>
+            skin.price !== null &&
+            skin.price !== undefined &&
+            skin.max !== null &&
+            skin.max !== undefined
         )
-        .sort(
-            (a, b) =>
-                Number(a.price) -
-                Number(a.max) -
-                (
-                    Number(b.price) -
-                    Number(b.max)
-                )
+        .sort((a, b) =>
+            (Number(a.price) - Number(a.max)) -
+            (Number(b.price) - Number(b.max))
         )
         .slice(0, 10);
 
+    table.innerHTML = sorted.map(skin => {
+        const price = Number(skin.price);
+        const max = Number(skin.max);
+        const diff = difference(skin.price, skin.max);
+        const status = getStatus(skin.price, skin.max);
 
-    table.innerHTML =
-        sorted.map(
-            skin => {
-
-                const price =
-                    Number(
-                        skin.price
-                    );
-
-                const max =
-                    Number(
-                        skin.max
-                    );
-
-                const diff =
-                    difference(
-                        price,
-                        max
-                    );
-
-                const status =
-                    getStatus(
-                        price,
-                        max
-                    );
-
-
-                return `
-                    <tr>
-
-                        <td class="skin-name">
-                            ${escapeHtml(
-                                skin.name
-                            )}
-                        </td>
-
-                        <td>
-                            ${money(price)}
-                        </td>
-
-                        <td>
-                            ${money(max)}
-                        </td>
-
-                        <td class="${
-                            diff <= 0
-                                ? "diff-negative"
-                                : "diff-positive"
-                        }">
-                            ${
-                                diff >= 0
-                                    ? "+"
-                                    : ""
-                            }${money(diff)}
-                        </td>
-
-                        <td>
-                            <span
-                                class="badge ${
-                                    status.className
-                                }"
-                            >
-                                ${status.text}
-                            </span>
-                        </td>
-
-                    </tr>
-                `;
-
-            }
-        ).join("");
-
+        return `
+            <tr>
+                <td class="skin-name">${escapeHtml(skin.name)}</td>
+                <td class="price">${money(price)}</td>
+                <td>${money(max)}</td>
+                <td class="${diff <= 0 ? "diff-negative" : "diff-positive"}">
+                    ${(diff >= 0 ? "+" : "") + money(diff)}
+                </td>
+                <td><span class="badge ${status.className}">${status.text}</span></td>
+            </tr>
+        `;
+    }).join("");
 }
 
-
-/* ========================================
-   RADAR
-======================================== */
+/* RADAR */
 
 function renderRadar() {
+    const container = document.getElementById("radarContainer");
 
-    const container =
-        document.getElementById(
-            "radarContainer"
-        );
-
-
-    const sorted =
-        [...skinsData]
-        .filter(
-            skin =>
-                skin.price !== null &&
-                skin.max !== null
+    const sorted = [...skinsData]
+        .filter(skin =>
+            skin.price !== null &&
+            skin.price !== undefined &&
+            skin.max !== null &&
+            skin.max !== undefined
         )
-        .sort(
-            (a, b) =>
-                (
-                    Number(a.price) -
-                    Number(a.max)
-                ) -
-                (
-                    Number(b.price) -
-                    Number(b.max)
-                )
+        .sort((a, b) =>
+            (Number(a.price) - Number(a.max)) -
+            (Number(b.price) - Number(b.max))
         )
         .slice(0, 15);
 
+    container.innerHTML = sorted.map((skin, index) => {
+        const price = Number(skin.price);
+        const max = Number(skin.max);
+        const buy = Number(skin.buy_price);
+        const diff = difference(skin.price, skin.max);
+        const status = getStatus(skin.price, skin.max);
 
-    container.innerHTML =
-        sorted.map(
-            (skin, index) => {
+        return `
+            <div class="radar-card">
+                <div class="radar-rank">#${index + 1}</div>
 
-                const price =
-                    Number(
-                        skin.price
-                    );
+                <div>
+                    <div class="radar-name">${escapeHtml(skin.name)}</div>
 
-                const max =
-                    Number(
-                        skin.max
-                    );
-
-                const buy =
-                    Number(
-                        skin.buy_price
-                    );
-
-                const diff =
-                    difference(
-                        price,
-                        max
-                    );
-
-                const status =
-                    getStatus(
-                        price,
-                        max
-                    );
-
-
-                return `
-                    <div class="radar-card">
-
+                    <div class="radar-values">
                         <div>
-                            #${index + 1}
+                            <div class="radar-value-label">PRECIO DE VENTA</div>
+                            <div class="radar-value">${money(price)}</div>
                         </div>
 
                         <div>
-                            <strong>
-                                ${escapeHtml(
-                                    skin.name
-                                )}
-                            </strong>
+                            <div class="radar-value-label">PEDIDO DE COMPRA</div>
+                            <div class="radar-value">${money(buy)}</div>
                         </div>
 
                         <div>
-                            <small>
-                                Precio de Venta
-                            </small>
-                            <br>
-                            ${money(price)}
+                            <div class="radar-value-label">TU MÁXIMO</div>
+                            <div class="radar-value">${money(max)}</div>
                         </div>
-
-                        <div>
-                            <small>
-                                BUY
-                            </small>
-                            <br>
-                            ${money(buy)}
-                        </div>
-
-                        <div>
-                            <small>
-                                TU MÁXIMO
-                            </small>
-                            <br>
-                            ${money(max)}
-                            <br>
-                            ${
-                                diff >= 0
-                                    ? "+"
-                                    : ""
-                            }${money(diff)}
-                        </div>
-
-                        <div>
-
-                            <span
-                                class="badge ${
-                                    status.className
-                                }"
-                            >
-                                ${status.text}
-                            </span>
-
-                            <br><br>
-
-                            <a
-                                class="button"
-                                href="${skin.steam_url}"
-                            >
-                                Steam
-                            </a>
-
-                        </div>
-
                     </div>
-                `;
 
-            }
-        ).join("");
+                    <div class="radar-footer">
+                        <div>
+                            <span class="badge ${status.className}">${status.text}</span>
+                            <span style="font-size:10px;color:var(--muted);margin-left:7px">
+                                Diferencia: ${diff === null ? "-" : (diff >= 0 ? "+" : "") + money(diff)}
+                            </span>
+                        </div>
 
+                        <a class="button" href="${escapeAttribute(skin.steam_url)}" target="_blank" rel="noopener noreferrer">Ver en Steam ↗</a>
+                    </div>
+                </div>
+            </div>
+        `;
+    }).join("");
 }
 
-
-/* ========================================
-   HISTORIAL — SELECTOR
-======================================== */
+/* HISTORIAL - SELECTOR */
 
 function populateHistorySelect() {
-
-    const select =
-        document.getElementById(
-            "historySkin"
-        );
-
-
-    const current =
-        select.value;
-
+    const select = document.getElementById("historySkin");
+    const current = select.value;
 
     select.innerHTML = `
-        <option value="">
-            Seleccioná una skin...
-        </option>
+        <option value="">Seleccioná una skin...</option>
     `;
 
+    skinsData.forEach(skin => {
+        const option = document.createElement("option");
+        option.value = skin.name;
+        option.textContent = skin.name;
+        select.appendChild(option);
+    });
 
-    skinsData.forEach(
-        skin => {
-
-            const option =
-                document.createElement(
-                    "option"
-                );
-
-            option.value =
-                skin.name;
-
-            option.textContent =
-                skin.name;
-
-            select.appendChild(
-                option
-            );
-
-        }
-    );
-
-
-    if (current) {
-
-        select.value =
-            current;
-
-    }
-
+    if (current) select.value = current;
 }
 
+/* HISTORIAL - PERÍODO */
 
-/* ========================================
-   HISTORIAL — PERÍODO
-======================================== */
+function setPeriod(hours, button) {
+    historyPeriod = hours;
 
-function setPeriod(
-    hours,
-    button
-) {
+    document.querySelectorAll(".period-button").forEach(item => {
+        item.classList.remove("active");
+    });
 
-    historyPeriod =
-        hours;
-
-
-    document
-        .querySelectorAll(
-            ".period-button"
-        )
-        .forEach(
-            item =>
-                item.classList.remove(
-                    "active"
-                )
-        );
-
-
-    button.classList.add(
-        "active"
-    );
-
-
+    button.classList.add("active");
     loadHistory();
-
 }
 
-
-/* ========================================
-   HISTORIAL — CARGAR
-======================================== */
+/* HISTORIAL - CARGAR */
 
 async function loadHistory() {
+    const skin = document.getElementById("historySkin").value;
 
-    const skin =
-        document.getElementById(
-            "historySkin"
-        ).value;
-
-
-    if (!skin) {
-
-        return;
-
-    }
-
+    if (!skin) return;
 
     try {
-
-        const response =
-            await fetch(
-                "/api/history?skin=" +
-                encodeURIComponent(
-                    skin
-                ) +
-                "&x=" +
-                Date.now()
-            );
-
-
-        if (!response.ok) {
-
-            throw new Error(
-                "HTTP " +
-                response.status
-            );
-
-        }
-
-
-        const data =
-            await response.json();
-
-
-        renderHistory(
-            data
+        const response = await fetch(
+            "/api/history?skin=" +
+            encodeURIComponent(skin) +
+            "&x=" +
+            Date.now()
         );
 
+        if (!response.ok) throw new Error("HTTP " + response.status);
+
+        const data = await response.json();
+        renderHistory(data);
+
+    } catch (error) {
+        console.error("Error /api/history:", error);
+
+        document.getElementById("historyMessage").textContent =
+            "Error cargando el historial.";
     }
-
-    catch (error) {
-
-        console.error(
-            "Error /api/history:",
-            error
-        );
-
-        document
-            .getElementById(
-                "historyMessage"
-            )
-            .textContent =
-                "Error cargando el historial.";
-
-    }
-
 }
 
+/* HISTORIAL - GRÁFICO */
 
-/* ========================================
-   HISTORIAL — GRÁFICO
-======================================== */
+function renderHistory(data) {
+    const points = data.points || [];
 
-function renderHistory(
-    data
-) {
+    const cutoff = Date.now() / 1000 - (historyPeriod * 60 * 60);
 
-    const points =
-        data.points || [];
+    const filtered = points.filter(point =>
+        Number(point.timestamp) >= cutoff
+    );
 
+    const labels = filtered.map(point =>
+        new Date(point.timestamp * 1000).toLocaleTimeString("es-AR", {
+            hour: "2-digit",
+            minute: "2-digit"
+        })
+    );
 
-    const cutoff =
-        Date.now() / 1000 -
-        (
-            historyPeriod *
-            60 *
-            60
-        );
+    const sellData = filtered.map(point => Number(point.sell));
+    const buyData = filtered.map(point =>
+        point.buy === null || point.buy === undefined ? null : Number(point.buy)
+    );
 
+    const maxValue = Number(data.max);
+    const maxData = filtered.map(() => maxValue);
 
-    const filtered =
-        points.filter(
-            point =>
-                point.timestamp >=
-                cutoff
-        );
+    const currentSell = data.current === null || data.current === undefined ? null : Number(data.current);
+    const currentBuy = data.current_buy === null || data.current_buy === undefined ? null : Number(data.current_buy);
 
+    const historyMax = maxValue;
 
-    const labels =
-        filtered.map(
-            point =>
-                new Date(
-                    point.timestamp *
-                    1000
-                ).toLocaleTimeString(
-                    "es-AR",
-                    {
-                        hour:
-                            "2-digit",
+    document.getElementById("historyCurrentSell").textContent = money(currentSell);
+    document.getElementById("historyCurrentBuy").textContent = money(currentBuy);
+    document.getElementById("historyMax").textContent = money(historyMax);
 
-                        minute:
-                            "2-digit"
-                    }
-                )
-        );
+    const minElement = document.getElementById("historyMin");
+    const maxElement = document.getElementById("historyMaxPrice");
+    const averageElement = document.getElementById("historyAverage");
 
+    const validSellData = sellData.filter(value => Number.isFinite(value));
 
-    const sellData =
-        filtered.map(
-            point =>
-                Number(
-                    point.sell
-                )
-        );
+    if (validSellData.length > 0) {
+        minElement.textContent = money(Math.min(...validSellData));
+        maxElement.textContent = money(Math.max(...validSellData));
 
-
-    const buyData =
-        filtered.map(
-            point =>
-                Number(
-                    point.buy
-                )
-        );
-
-
-    const maxData =
-        filtered.map(
-            () =>
-                Number(
-                    data.max
-                )
-        );
-
-
-    const currentSell =
-        Number(
-            data.current
-        );
-
-
-    const currentBuy =
-        Number(
-            data.current_buy
-        );
-
-
-    const historyMax =
-        Number(
-            data.max
-        );
-
-
-    /*
-     * =====================================
-     * DATOS ACTUALES
-     * =====================================
-     */
-
-    document
-        .getElementById(
-            "historyCurrentSell"
-        )
-        .textContent =
-            money(
-                currentSell
-            );
-
-
-    document
-        .getElementById(
-            "historyCurrentBuy"
-        )
-        .textContent =
-            money(
-                currentBuy
-            );
-
-
-    document
-        .getElementById(
-            "historyMax"
-        )
-        .textContent =
-            money(
-                historyMax
-            );
-
-
-    /*
-     * =====================================
-     * ESTADÍSTICAS DEL PERÍODO
-     * =====================================
-     */
-
-    const minElement =
-        document.getElementById(
-            "historyMin"
-        );
-
-
-    const maxElement =
-        document.getElementById(
-            "historyMaxPrice"
-        );
-
-
-    const averageElement =
-        document.getElementById(
-            "historyAverage"
-        );
-
-
-    if (
-        sellData.length > 0
-    ) {
-
-        /*
-         * PRECIO MÍNIMO
-         */
-
-        const minPrice =
-            Math.min(
-                ...sellData
-            );
-
-
-        minElement.textContent =
-            money(
-                minPrice
-            );
-
-
-        /*
-         * PRECIO MÁXIMO
-         */
-
-        const maxPrice =
-            Math.max(
-                ...sellData
-            );
-
-
-        maxElement.textContent =
-            money(
-                maxPrice
-            );
-
-
-        /*
-         * PRECIO PROMEDIO
-         */
-
-        const total =
-            sellData.reduce(
-                (
-                    suma,
-                    precio
-                ) =>
-                    suma + precio,
-                0
-            );
-
-
-        const averagePrice =
-            total /
-            sellData.length;
-
-
-        averageElement.textContent =
-            money(
-                averagePrice
-            );
-
+        const total = validSellData.reduce((sum, value) => sum + value, 0);
+        averageElement.textContent = money(total / validSellData.length);
+    } else {
+        minElement.textContent = "Sin datos";
+        maxElement.textContent = "Sin datos";
+        averageElement.textContent = "Sin datos";
     }
 
-    else {
-
-        minElement.textContent =
-            "Sin datos";
-
-        maxElement.textContent =
-            "Sin datos";
-
-        averageElement.textContent =
-            "Sin datos";
-
-    }
-
-
-    /*
-     * =====================================
-     * DISTANCIA AL MÁXIMO
-     * =====================================
-     */
-
-    const distanceElement =
-        document.getElementById(
-            "historyDistance"
-        );
-
+    const distanceElement = document.getElementById("historyDistance");
 
     if (
-        Number.isFinite(
-            currentSell
-        ) &&
-        Number.isFinite(
-            historyMax
-        ) &&
+        Number.isFinite(currentSell) &&
+        Number.isFinite(historyMax) &&
         historyMax > 0
     ) {
-
-        const distance =
-            currentSell -
-            historyMax;
-
-
-        const distancePercent =
-            (
-                distance /
-                historyMax
-            ) *
-            100;
-
-
-        const sign =
-            distance >= 0
-                ? "+"
-                : "";
-
-
-        const percentSign =
-            distancePercent >= 0
-                ? "+"
-                : "";
-
+        const distance = currentSell - historyMax;
+        const distancePercent = (distance / historyMax) * 100;
 
         distanceElement.textContent =
-            sign +
-            money(
-                distance
-            ) +
+            (distance >= 0 ? "+" : "") +
+            money(distance) +
             " (" +
-            percentSign +
-            distancePercent.toFixed(
-                2
-            ) +
+            (distancePercent >= 0 ? "+" : "") +
+            distancePercent.toFixed(2) +
             "%)";
 
-
         distanceElement.className =
-            "history-stat-value " +
-            (
-                distance <= 0
-                    ? "good"
-                    : "danger"
-            );
-
+            "history-stat-value " + (distance <= 0 ? "good" : "danger");
+    } else {
+        distanceElement.textContent = "Sin datos";
+        distanceElement.className = "history-stat-value";
     }
-
-    else {
-
-        distanceElement.textContent =
-            "Sin datos";
-
-        distanceElement.className =
-            "history-stat-value";
-
-    }
-
-
-    /*
-     * =====================================
-     * VARIACIÓN
-     * =====================================
-     */
 
     let variation = null;
 
+    if (validSellData.length >= 2) {
+        const first = validSellData[0];
+        const last = validSellData[validSellData.length - 1];
 
-    if (
-        filtered.length >= 2
-    ) {
-
-        const first =
-            Number(
-                filtered[0].sell
-            );
-
-
-        const last =
-            Number(
-                filtered[
-                    filtered.length - 1
-                ].sell
-            );
-
-
-        if (
-            first > 0 &&
-            Number.isFinite(
-                first
-            ) &&
-            Number.isFinite(
-                last
-            )
-        ) {
-
-            variation =
-                (
-                    (
-                        last -
-                        first
-                    ) /
-                    first
-                ) *
-                100;
-
+        if (first > 0) {
+            variation = ((last - first) / first) * 100;
         }
-
     }
 
+    const variationElement = document.getElementById("historyVariation");
 
-    const variationElement =
-        document.getElementById(
-            "historyVariation"
-        );
-
-
-    if (
-        variation === null
-    ) {
-
+    if (variation === null) {
+        variationElement.textContent = "Sin datos";
+        variationElement.className = "history-stat-value";
+    } else {
         variationElement.textContent =
-            "Sin datos";
+            (variation >= 0 ? "+" : "") + variation.toFixed(2) + "%";
 
         variationElement.className =
-            "history-stat-value";
-
+            "history-stat-value " + (variation >= 0 ? "danger" : "good");
     }
 
-    else {
+    const message = document.getElementById("historyMessage");
 
-        variationElement.textContent =
-            (
-                variation >= 0
-                    ? "+"
-                    : ""
-            ) +
-            variation.toFixed(
-                2
-            ) +
-            "%";
+    message.textContent = !filtered.length
+        ? "Todavía no hay suficientes datos para este período."
+        : filtered.length + " puntos históricos registrados.";
 
+    const ctx = document.getElementById("priceChart");
 
-        variationElement.className =
-            "history-stat-value " +
-            (
-                variation >= 0
-                    ? "danger"
-                    : "good"
-            );
+    if (priceChart) priceChart.destroy();
 
-    }
+    priceChart = new Chart(ctx, {
+        type: "line",
 
+        data: {
+            labels: labels,
 
-    /*
-     * =====================================
-     * MENSAJE
-     * =====================================
-     */
+            datasets: [
+                {
+                    label: "Precio de venta",
+                    data: sellData,
+                    borderColor: "#57a9ff",
+                    backgroundColor: "rgba(87,169,255,.10)",
+                    fill: true,
+                    tension: .35,
+                    pointRadius: 2,
+                    pointHoverRadius: 5,
+                    borderWidth: 2
+                },
+                {
+                    label: "Pedido de compra",
+                    data: buyData,
+                    borderColor: "#39df9b",
+                    backgroundColor: "transparent",
+                    tension: .35,
+                    pointRadius: 2,
+                    pointHoverRadius: 5,
+                    borderWidth: 2
+                },
+                {
+                    label: "Tu máximo",
+                    data: maxData,
+                    borderColor: "#f8c65c",
+                    backgroundColor: "transparent",
+                    borderDash: [6, 6],
+                    pointRadius: 0,
+                    tension: 0,
+                    borderWidth: 1.5
+                }
+            ]
+        },
 
-    const message =
-        document.getElementById(
-            "historyMessage"
-        );
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
 
+            interaction: {
+                mode: "index",
+                intersect: false
+            },
 
-    if (
-        !filtered.length
-    ) {
-
-        message.textContent =
-            "Todavía no hay suficientes datos para este período.";
-
-    }
-
-    else {
-
-        message.textContent =
-            filtered.length +
-            " puntos históricos registrados.";
-
-    }
-
-
-    /*
-     * =====================================
-     * GRÁFICO
-     * =====================================
-     */
-
-    const ctx =
-        document
-            .getElementById(
-                "priceChart"
-            );
-
-
-    if (priceChart) {
-
-        priceChart.destroy();
-
-    }
-
-
-    priceChart =
-        new Chart(
-            ctx,
-            {
-
-                type: "line",
-
-                data: {
-
-                    labels:
-                        labels,
-
-                    datasets: [
-
-                        {
-
-                            label:
-                                "Precio de venta",
-
-                            data:
-                                sellData,
-
-                            tension:
-                                0.25,
-
-                            pointRadius:
-                                2
-
-                        },
-
-
-                        {
-
-                            label:
-                                "Pedido de compra",
-
-                            data:
-                                buyData,
-
-                            tension:
-                                0.25,
-
-                            pointRadius:
-                                2
-
-                        },
-
-
-                        {
-
-                            label:
-                                "Tu máximo",
-
-                            data:
-                                maxData,
-
-                            borderDash:
-                                [6, 6],
-
-                            pointRadius:
-                                0,
-
-                            tension:
-                                0
-
-                        }
-
-                    ]
-
+            plugins: {
+                legend: {
+                    position: "top",
+                    align: "start",
+                    labels: {
+                        color: "#a9b8ca",
+                        usePointStyle: true,
+                        pointStyle: "circle",
+                        boxWidth: 7,
+                        padding: 18,
+                        font: { size: 10 }
+                    }
                 },
 
-                options: {
-
-                    responsive:
-                        true,
-
-                    maintainAspectRatio:
-                        false,
-
-                    interaction: {
-
-                        mode:
-                            "index",
-
-                        intersect:
-                            false
-
-                    },
-
-                    plugins: {
-
-                        legend: {
-
-                            labels: {
-
-                                color:
-                                    "#cbd5e1"
-
-                            }
-
-                        }
-
-                    },
-
-                    scales: {
-
-                        x: {
-
-                            ticks: {
-
-                                color:
-                                    "#8996a5",
-
-                                maxTicksLimit:
-                                    12
-
-                            },
-
-                            grid: {
-
-                                color:
-                                    "rgba(255,255,255,.05)"
-
-                            }
-
-                        },
-
-                        y: {
-
-                            ticks: {
-
-                                color:
-                                    "#8996a5",
-
-                                callback:
-                                    function(
-                                        value
-                                    ) {
-
-                                        return "$" +
-                                            Number(
-                                                value
-                                            ).toFixed(
-                                                0
-                                            );
-
-                                    }
-
-                            },
-
-                            grid: {
-
-                                color:
-                                    "rgba(255,255,255,.05)"
-
-                            }
-
-                        }
-
-                    }
-
+                tooltip: {
+                    backgroundColor: "#101b29",
+                    borderColor: "rgba(148,163,184,.2)",
+                    borderWidth: 1,
+                    titleColor: "#fff",
+                    bodyColor: "#cbd5e1",
+                    padding: 12
                 }
+            },
 
+            scales: {
+                x: {
+                    ticks: {
+                        color: "#71839a",
+                        maxTicksLimit: 12,
+                        font: { size: 10 }
+                    },
+                    grid: {
+                        color: "rgba(255,255,255,.035)"
+                    }
+                },
+
+                y: {
+                    ticks: {
+                        color: "#71839a",
+                        font: { size: 10 },
+                        callback: value => "$" + Number(value).toFixed(0)
+                    },
+                    grid: {
+                        color: "rgba(255,255,255,.045)"
+                    }
+                }
             }
-        );
-
+        }
+    });
 }
-/* ========================================
-   SEGURIDAD HTML
-======================================== */
 
-function escapeHtml(
-    text
-) {
+/* SEGURIDAD HTML */
 
-    if (
-        text === null ||
-        text === undefined
-    ) {
-
-        return "";
-
-    }
-
+function escapeHtml(text) {
+    if (text === null || text === undefined) return "";
 
     return String(text)
-
-        .replace(
-            /&/g,
-            "&amp;"
-        )
-
-        .replace(
-            /</g,
-            "&lt;"
-        )
-
-        .replace(
-            />/g,
-            "&gt;"
-        )
-
-        .replace(
-            /"/g,
-            "&quot;"
-        )
-
-        .replace(
-            /'/g,
-            "&#039;"
-        );
-
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#039;");
 }
 
+function escapeAttribute(text) {
+    return escapeHtml(text);
+}
 
-/* ========================================
-   ACTUALIZAR TODO
-======================================== */
+/* ACTUALIZAR TODO */
 
 async function updateAll() {
-
     await loadStatus();
-
     await loadSkins();
 
-
-    const selectedSkin =
-        document
-            .getElementById(
-                "historySkin"
-            )
-            .value;
-
+    const selectedSkin = document.getElementById("historySkin").value;
 
     if (selectedSkin) {
-
         await loadHistory();
-
     }
-
 }
 
-
-/* ========================================
-   INICIO
-======================================== */
+/* INICIO */
 
 updateAll();
 
-
-/* ========================================
-   ACTUALIZACIÓN
-======================================== */
-
-setInterval(
-    updateAll,
-    15000
-);
-
+setInterval(updateAll, 15000);
 </script>
 
 </body>
-
 </html>
