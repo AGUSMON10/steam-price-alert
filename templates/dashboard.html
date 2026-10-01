@@ -317,6 +317,17 @@ tr:hover {
     color: #4ade80;
 }
 
+.badge-super {
+
+    background:
+        rgba(56,189,248,.16);
+
+    color: #38bdf8;
+
+    border:
+        1px solid rgba(56,189,248,.35);
+}
+    
 .badge-close {
 
     background:
@@ -1372,62 +1383,58 @@ function difference(
    ESTADO
 ======================================== */
 
-function getStatus(
-    price,
-    max
-) {
+function getStatus(price, max) {
+
+    const precio = Number(price);
+    const objetivo = Number(max);
 
     if (
         price === null ||
-        price === undefined
+        price === undefined ||
+        !Number.isFinite(precio) ||
+        !Number.isFinite(objetivo) ||
+        objetivo <= 0
     ) {
-
         return {
             text: "SIN DATOS",
             className: "badge-far"
         };
-
     }
-
-
-    const diff =
-        Number(price) -
-        Number(max);
-
-
-    if (diff <= 0) {
-
-        return {
-            text: "🔥 OFERTA",
-            className: "badge-good"
-        };
-
-    }
-
 
     const porcentaje =
-        (diff / Number(max)) * 100;
+        ((precio - objetivo) / objetivo) * 100;
 
+    // 13,3% o más por debajo del máximo
+    if (porcentaje <= -13.3) {
+        return {
+            text: "🔥 OFERTA MUY BUENA",
+            className: "badge-super"
+        };
+    }
 
+    // Llegó al máximo o está por debajo
+    if (porcentaje <= 0) {
+        return {
+            text: "🟢 OBJETIVO ALCANZADO",
+            className: "badge-good"
+        };
+    }
+
+    // Hasta 5% por encima
     if (porcentaje <= 5) {
-
         return {
             text: "🟡 MUY CERCA",
             className: "badge-close"
         };
-
     }
 
-
+    // Hasta 15% por encima
     if (porcentaje <= 15) {
-
         return {
             text: "🟠 CERCA",
             className: "badge-close"
         };
-
     }
-
 
     return {
         text: "🔴 LEJOS",
