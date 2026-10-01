@@ -897,7 +897,14 @@ def cargar_estado():
         contenido_base64 = datos_github.get(
             "content",
             ""
-        ).strip()
+        )
+
+        # Eliminar saltos de línea y espacios
+        # que puede devolver la API de GitHub.
+
+        contenido_base64 = "".join(
+            contenido_base64.split()
+        )
 
         if not contenido_base64:
             raise ValueError(
