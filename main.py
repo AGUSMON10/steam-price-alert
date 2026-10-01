@@ -1237,10 +1237,10 @@ def registrar_error_skin(skin_name, error):
             f"[SKIN ERROR] {skin_name} | "
             f"Motivo: {error} | "
             f"Fallos consecutivos: "
-            f"{fallos}/{SKIN_MAX_FAILS}"
+            f"{fallos}/{SKIN_FAILS}"
         )
 
-        if fallos >= SKIN_MAX_FAILS:
+        if fallos >= SKIN_FAILS:
             SKIN_COOLDOWN_UNTIL[skin_name] = time.time() + SKIN_COOLDOWN
 
             print(
