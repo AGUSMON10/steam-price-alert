@@ -1,5 +1,5 @@
-
 <!DOCTYPE html>
+
 <html lang="es">
 
 <head>
@@ -8,11 +8,13 @@
 <title>Steam Market Radar</title>
 
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
 
 <style>
+
 :root {
     --bg: #080d14;
     --panel: #101824;
@@ -29,27 +31,41 @@
     --radius: 16px;
 }
 
-* { box-sizing: border-box; }
+* {
+    box-sizing: border-box;
+}
 
 body {
     margin: 0;
     background:
-        radial-gradient(ellipse at 75% -15%, rgba(38,103,157,.16), transparent 40%),
+        radial-gradient(
+            ellipse at 75% -15%,
+            rgba(38,103,157,.16),
+            transparent 40%
+        ),
         var(--bg);
     color: var(--text);
     font-family: 'DM Sans', Arial, sans-serif;
     min-height: 100vh;
 }
 
-button, select { font: inherit; }
-button { cursor: pointer; }
+button,
+select {
+    font: inherit;
+}
+
+button {
+    cursor: pointer;
+}
 
 .app {
     display: flex;
     min-height: 100vh;
 }
 
-/* SIDEBAR */
+/* =========================================================
+   SIDEBAR
+========================================================= */
 
 .sidebar {
     width: 248px;
@@ -165,7 +181,9 @@ nav {
     margin-bottom: 4px;
 }
 
-/* MAIN */
+/* =========================================================
+   MAIN
+========================================================= */
 
 .main-area {
     margin-left: 248px;
@@ -244,8 +262,13 @@ main {
     margin: auto;
 }
 
-.section { display: none; }
-.section.active { display: block; }
+.section {
+    display: none;
+}
+
+.section.active {
+    display: block;
+}
 
 .page-heading {
     display: flex;
@@ -277,7 +300,9 @@ h2 {
     margin-bottom: 8px;
 }
 
-/* CARDS */
+/* =========================================================
+   CARDS
+========================================================= */
 
 .cards {
     display: grid;
@@ -347,11 +372,22 @@ h2 {
     margin-top: 7px;
 }
 
-.online, .good { color: var(--green); }
-.warning { color: var(--yellow); }
-.danger { color: var(--red); }
+.online,
+.good {
+    color: var(--green);
+}
 
-/* PANELS */
+.warning {
+    color: var(--yellow);
+}
+
+.danger {
+    color: var(--red);
+}
+
+/* =========================================================
+   PANELS
+========================================================= */
 
 .panel {
     background: linear-gradient(145deg,#111b28,#0e1621);
@@ -382,7 +418,9 @@ h2 {
     margin-top: 4px;
 }
 
-.panel-body { padding: 18px 21px; }
+.panel-body {
+    padding: 18px 21px;
+}
 
 .pill {
     color: var(--green);
@@ -394,7 +432,9 @@ h2 {
     font-weight: 700;
 }
 
-/* TABLES */
+/* =========================================================
+   TABLES
+========================================================= */
 
 .table-container {
     overflow-x: auto;
@@ -428,9 +468,17 @@ td {
     color: #c4d0df;
 }
 
-tbody tr { transition: background .15s; }
-tbody tr:hover { background: rgba(87,169,255,.045); }
-tbody tr:last-child td { border-bottom: none; }
+tbody tr {
+    transition: background .15s;
+}
+
+tbody tr:hover {
+    background: rgba(87,169,255,.045);
+}
+
+tbody tr:last-child td {
+    border-bottom: none;
+}
 
 .skin-name {
     font-weight: 600;
@@ -444,8 +492,13 @@ tbody tr:last-child td { border-bottom: none; }
     color: #eaf2fc;
 }
 
-.diff-positive { color: var(--red); }
-.diff-negative { color: var(--green); }
+.diff-positive {
+    color: var(--red);
+}
+
+.diff-negative {
+    color: var(--green);
+}
 
 .badge {
     display: inline-flex;
@@ -494,9 +547,13 @@ tbody tr:last-child td { border-bottom: none; }
     font-weight: 700;
 }
 
-.button:hover { background: rgba(87,169,255,.17); }
+.button:hover {
+    background: rgba(87,169,255,.17);
+}
 
-/* RADAR */
+/* =========================================================
+   RADAR
+========================================================= */
 
 .radar-grid {
     display: grid;
@@ -561,7 +618,9 @@ tbody tr:last-child td { border-bottom: none; }
     gap: 10px;
 }
 
-/* HISTORY */
+/* =========================================================
+   HISTORIAL
+========================================================= */
 
 .history-panel {
     background: linear-gradient(145deg,#111b28,#0e1621);
@@ -588,7 +647,9 @@ select {
     outline: none;
 }
 
-select:focus { border-color: var(--blue); }
+select:focus {
+    border-color: var(--blue);
+}
 
 .period-buttons {
     display: flex;
@@ -606,7 +667,9 @@ select:focus { border-color: var(--blue); }
     font-weight: 700;
 }
 
-.period-button:hover { color: white; }
+.period-button:hover {
+    color: white;
+}
 
 .period-button.active {
     color: #75e6bd;
@@ -655,7 +718,165 @@ select:focus { border-color: var(--blue); }
     font-size: 11px;
 }
 
-/* BOT STATUS */
+/* =========================================================
+   MONITOR
+========================================================= */
+
+.monitor-grid {
+    display: grid;
+    grid-template-columns: repeat(4,minmax(0,1fr));
+    gap: 15px;
+    margin-bottom: 22px;
+}
+
+.monitor-card {
+    background: linear-gradient(145deg,#131e2b,#0f1722);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 17px;
+    min-width: 0;
+}
+
+.monitor-card-title {
+    color: var(--muted);
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: .8px;
+}
+
+.monitor-card-value {
+    font-family: 'Space Grotesk',sans-serif;
+    font-size: 22px;
+    font-weight: 700;
+    margin-top: 10px;
+    overflow-wrap: anywhere;
+}
+
+.monitor-card-sub {
+    color: #66788e;
+    font-size: 10px;
+    margin-top: 5px;
+}
+
+.monitor-status {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+}
+
+.monitor-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: currentColor;
+    box-shadow: 0 0 9px currentColor;
+}
+
+.monitor-table td,
+.monitor-table th {
+    white-space: nowrap;
+}
+
+.monitor-value-good {
+    color: var(--green);
+}
+
+.monitor-value-warning {
+    color: var(--yellow);
+}
+
+.monitor-value-danger {
+    color: var(--red);
+}
+
+.monitor-value-blue {
+    color: var(--blue);
+}
+
+/* =========================================================
+   PROXIES
+========================================================= */
+
+.proxy-summary {
+    display: grid;
+    grid-template-columns: repeat(4,minmax(0,1fr));
+    gap: 15px;
+    margin-bottom: 22px;
+}
+
+.proxy-card {
+    background: linear-gradient(145deg,#131e2b,#0f1722);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 17px;
+}
+
+.proxy-card-title {
+    color: var(--muted);
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: .8px;
+}
+
+.proxy-card-value {
+    font-family: 'Space Grotesk',sans-serif;
+    font-size: 25px;
+    font-weight: 700;
+    margin-top: 10px;
+}
+
+.proxy-status {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 10px;
+    font-weight: 800;
+}
+
+.proxy-status-dot {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: currentColor;
+}
+
+.proxy-online {
+    color: var(--green);
+}
+
+.proxy-cooldown {
+    color: var(--yellow);
+}
+
+.proxy-error {
+    color: var(--red);
+}
+
+.proxy-neutral {
+    color: var(--muted);
+}
+
+.rate-bar {
+    width: 100%;
+    height: 5px;
+    border-radius: 20px;
+    background: rgba(255,255,255,.06);
+    overflow: hidden;
+    margin-top: 7px;
+}
+
+.rate-bar-inner {
+    height: 100%;
+    border-radius: 20px;
+    background: var(--green);
+    transition: width .3s;
+}
+
+/* =========================================================
+   BOT STATUS
+========================================================= */
 
 .status-box {
     background: #111b28;
@@ -675,17 +896,35 @@ select:focus { border-color: var(--blue); }
     color: var(--muted);
 }
 
-.status-row:last-child { border-bottom: none; }
-.status-row strong { color: #e7eff9; font-size: 12px; text-align: right; }
+.status-row:last-child {
+    border-bottom: none;
+}
 
-/* RESPONSIVE */
+.status-row strong {
+    color: #e7eff9;
+    font-size: 12px;
+    text-align: right;
+}
+
+/* =========================================================
+   RESPONSIVE
+========================================================= */
 
 @media (max-width: 1150px) {
-    .cards { grid-template-columns: repeat(2,minmax(0,1fr)); }
-    .radar-grid { grid-template-columns: 1fr; }
+
+    .cards,
+    .monitor-grid,
+    .proxy-summary {
+        grid-template-columns: repeat(2,minmax(0,1fr));
+    }
+
+    .radar-grid {
+        grid-template-columns: 1fr;
+    }
 }
 
 @media (max-width: 760px) {
+
     .sidebar {
         position: sticky;
         top: 0;
@@ -697,12 +936,31 @@ select:focus { border-color: var(--blue); }
         border-bottom: 1px solid var(--border);
     }
 
-    .app { display: block; }
-    .brand { padding: 0 5px 10px; }
-    .brand-icon { width: 34px; height: 34px; }
-    .brand-name { font-size: 13px; }
-    .brand-sub { font-size: 9px; }
-    .nav-label, .sidebar-bottom { display: none; }
+    .app {
+        display: block;
+    }
+
+    .brand {
+        padding: 0 5px 10px;
+    }
+
+    .brand-icon {
+        width: 34px;
+        height: 34px;
+    }
+
+    .brand-name {
+        font-size: 13px;
+    }
+
+    .brand-sub {
+        font-size: 9px;
+    }
+
+    .nav-label,
+    .sidebar-bottom {
+        display: none;
+    }
 
     nav {
         flex-direction: row;
@@ -718,8 +976,14 @@ select:focus { border-color: var(--blue); }
         font-size: 11px;
     }
 
-    .tab .nav-icon { width: auto; }
-    .main-area { width: 100%; margin-left: 0; }
+    .tab .nav-icon {
+        width: auto;
+    }
+
+    .main-area {
+        width: 100%;
+        margin-left: 0;
+    }
 
     .topbar {
         position: static;
@@ -727,436 +991,1507 @@ select:focus { border-color: var(--blue); }
         min-height: 65px;
     }
 
-    main { padding: 22px 15px 35px; }
-    h2 { font-size: 22px; }
-    .topbar-sub { display: none; }
-    #lastUpdate { display: none; }
-    .history-info { grid-template-columns: repeat(2,minmax(0,1fr)); }
-    .history-controls { grid-template-columns: 1fr; }
-    .chart-wrapper { height: 300px; }
+    main {
+        padding: 22px 15px 35px;
+    }
+
+    h2 {
+        font-size: 22px;
+    }
+
+    .topbar-sub {
+        display: none;
+    }
+
+    #lastUpdate {
+        display: none;
+    }
+
+    .history-info {
+        grid-template-columns: repeat(2,minmax(0,1fr));
+    }
+
+    .history-controls {
+        grid-template-columns: 1fr;
+    }
+
+    .chart-wrapper {
+        height: 300px;
+    }
+
+    .monitor-grid,
+    .proxy-summary {
+        grid-template-columns: repeat(2,minmax(0,1fr));
+    }
 }
 
 @media (max-width: 430px) {
-    .cards { grid-template-columns: repeat(2,minmax(0,1fr)); gap: 9px; }
-    .card { padding: 14px; }
-    .card-value { font-size: 22px; }
-    .card-title { font-size: 10px; }
-    .card-foot { font-size: 9px; }
-    .card-icon { width: 27px; height: 27px; }
-    .history-panel { padding: 12px; }
-    .history-stat { padding: 11px; }
-    .history-stat-value { font-size: 14px; }
-    .history-stat-label { font-size: 9px; }
-    .period-button { padding: 8px 10px; }
-    .radar-values { gap: 5px; }
-    .radar-value { font-size: 11px; }
-    .page-heading { align-items: flex-start; }
+
+    .cards,
+    .monitor-grid,
+    .proxy-summary {
+        grid-template-columns: repeat(2,minmax(0,1fr));
+        gap: 9px;
+    }
+
+    .card {
+        padding: 14px;
+    }
+
+    .card-value {
+        font-size: 22px;
+    }
+
+    .card-title {
+        font-size: 10px;
+    }
+
+    .card-foot {
+        font-size: 9px;
+    }
+
+    .card-icon {
+        width: 27px;
+        height: 27px;
+    }
+
+    .history-panel {
+        padding: 12px;
+    }
+
+    .history-stat {
+        padding: 11px;
+    }
+
+    .history-stat-value {
+        font-size: 14px;
+    }
+
+    .history-stat-label {
+        font-size: 9px;
+    }
+
+    .period-button {
+        padding: 8px 10px;
+    }
+
+    .radar-values {
+        gap: 5px;
+    }
+
+    .radar-value {
+        font-size: 11px;
+    }
+
+    .page-heading {
+        align-items: flex-start;
+    }
+
+    .monitor-card,
+    .proxy-card {
+        padding: 13px;
+    }
+
+    .monitor-card-value,
+    .proxy-card-value {
+        font-size: 18px;
+    }
 }
+
 </style>
+
 </head>
 
 <body>
 
 <div class="app">
 
-    <aside class="sidebar">
+```
+<!-- =====================================================
+     SIDEBAR
+====================================================== -->
 
-        <div class="brand">
-            <div class="brand-icon">🎯</div>
-            <div>
-                <div class="brand-name">STEAM RADAR</div>
-                <div class="brand-sub">MARKET INTELLIGENCE</div>
+<aside class="sidebar">
+
+    <div class="brand">
+
+        <div class="brand-icon">
+            🎯
+        </div>
+
+        <div>
+            <div class="brand-name">
+                STEAM RADAR
+            </div>
+
+            <div class="brand-sub">
+                MARKET INTELLIGENCE
             </div>
         </div>
 
-        <div class="nav-label">MENÚ PRINCIPAL</div>
+    </div>
 
-        <nav>
-            <button class="tab active" onclick="showTab('dashboard',this)">
-                <span class="nav-icon">◈</span> Dashboard
-            </button>
+    <div class="nav-label">
+        MENÚ PRINCIPAL
+    </div>
 
-            <button class="tab" onclick="showTab('skins',this)">
-                <span class="nav-icon">◉</span> Skins
-            </button>
+    <nav>
 
-            <button class="tab" onclick="showTab('radar',this)">
-                <span class="nav-icon">⌁</span> Radar
-            </button>
+        <button class="tab active"
+                onclick="showTab('dashboard',this)">
+            <span class="nav-icon">◈</span>
+            Dashboard
+        </button>
 
-            <button class="tab" onclick="showTab('historial',this)">
-                <span class="nav-icon">⌁</span> Historial
-            </button>
+        <button class="tab"
+                onclick="showTab('skins',this)">
+            <span class="nav-icon">◉</span>
+            Skins
+        </button>
 
-            <button class="tab" onclick="showTab('estadisticas',this)">
-                <span class="nav-icon">▥</span> Estadísticas
-            </button>
+        <button class="tab"
+                onclick="showTab('radar',this)">
+            <span class="nav-icon">⌁</span>
+            Radar
+        </button>
 
-            <button class="tab" onclick="showTab('bot',this)">
-                <span class="nav-icon">⚙</span> Estado del bot
-            </button>
-        </nav>
+        <button class="tab"
+                onclick="showTab('historial',this)">
+            <span class="nav-icon">⌁</span>
+            Historial
+        </button>
 
-        <div class="sidebar-bottom">
-            <div class="sidebar-note">
-                <strong>Steam Market Radar</strong>
-                Monitoreo automático de precios y oportunidades del mercado.
-            </div>
+        <button class="tab"
+                onclick="showTab('estadisticas',this)">
+            <span class="nav-icon">▥</span>
+            Estadísticas
+        </button>
+
+        <button class="tab"
+                onclick="showTab('monitor',this)">
+            <span class="nav-icon">◉</span>
+            Monitor
+        </button>
+
+        <button class="tab"
+                onclick="showTab('proxies',this)">
+            <span class="nav-icon">◇</span>
+            Proxies
+        </button>
+
+        <button class="tab"
+                onclick="showTab('bot',this)">
+            <span class="nav-icon">⚙</span>
+            Estado del bot
+        </button>
+
+    </nav>
+
+    <div class="sidebar-bottom">
+
+        <div class="sidebar-note">
+
+            <strong>
+                Steam Market Radar
+            </strong>
+
+            Monitoreo automático de precios,
+            oportunidades y funcionamiento
+            del sistema.
+
         </div>
 
-    </aside>
+    </div>
 
-    <div class="main-area">
+</aside>
 
-        <header class="topbar">
-            <div>
-                <div class="topbar-title">Centro de monitoreo</div>
-                <div class="topbar-sub">Análisis y seguimiento del mercado de CS2</div>
+
+<div class="main-area">
+
+    <!-- =================================================
+         TOPBAR
+    ================================================== -->
+
+    <header class="topbar">
+
+        <div>
+
+            <div class="topbar-title">
+                Centro de monitoreo
             </div>
 
-            <div class="topbar-right">
-                <div id="headerConnection" class="connection">
-                    <span class="connection-dot"></span>
-                    <span id="headerConnectionText">CONECTANDO</span>
-                </div>
-                <div id="lastUpdate">Actualizando...</div>
+            <div class="topbar-sub">
+                Análisis y seguimiento del mercado de CS2
             </div>
-        </header>
 
-        <main>
+        </div>
 
-            <!-- DASHBOARD -->
+        <div class="topbar-right">
 
-            <section id="dashboard" class="section active">
+            <div id="headerConnection"
+                 class="connection">
 
-                <div class="page-heading">
+                <span class="connection-dot"></span>
+
+                <span id="headerConnectionText">
+                    CONECTANDO
+                </span>
+
+            </div>
+
+            <div id="lastUpdate">
+                Actualizando...
+            </div>
+
+        </div>
+
+    </header>
+
+
+    <main>
+
+        <!-- =================================================
+             DASHBOARD
+        ================================================== -->
+
+        <section id="dashboard"
+                 class="section active">
+
+            <div class="page-heading">
+
+                <div>
+
+                    <div class="eyebrow">
+                        OVERVIEW
+                    </div>
+
+                    <h2>
+                        Dashboard
+                    </h2>
+
+                    <div class="description">
+                        Resumen general de tu sistema de monitoreo.
+                    </div>
+
+                </div>
+
+                <span class="pill">
+                    ● Actualización automática
+                </span>
+
+            </div>
+
+
+            <div class="cards">
+
+                <div class="card"
+                     style="--glow:rgba(57,223,155,.16)">
+
+                    <div class="card-head">
+
+                        <div class="card-title">
+                            Estado del sistema
+                        </div>
+
+                        <div class="card-icon">
+                            ◉
+                        </div>
+
+                    </div>
+
+                    <div id="cardStatus"
+                         class="card-value">
+                        -
+                    </div>
+
+                    <div class="card-foot">
+                        Conexión del bot
+                    </div>
+
+                </div>
+
+
+                <div class="card"
+                     style="--glow:rgba(87,169,255,.16)">
+
+                    <div class="card-head">
+
+                        <div class="card-title">
+                            Skins vigiladas
+                        </div>
+
+                        <div class="card-icon">
+                            🎯
+                        </div>
+
+                    </div>
+
+                    <div id="cardSkins"
+                         class="card-value">
+                        -
+                    </div>
+
+                    <div class="card-foot">
+                        Elementos en seguimiento
+                    </div>
+
+                </div>
+
+
+                <div class="card"
+                     style="--glow:rgba(167,139,250,.16)">
+
+                    <div class="card-head">
+
+                        <div class="card-title">
+                            Cache
+                        </div>
+
+                        <div class="card-icon">
+                            ◫
+                        </div>
+
+                    </div>
+
+                    <div id="cardCache"
+                         class="card-value">
+                        -
+                    </div>
+
+                    <div class="card-foot">
+                        Datos almacenados
+                    </div>
+
+                </div>
+
+
+                <div class="card"
+                     style="--glow:rgba(255,104,125,.15)">
+
+                    <div class="card-head">
+
+                        <div class="card-title">
+                            Errores registrados
+                        </div>
+
+                        <div class="card-icon">
+                            ⚠
+                        </div>
+
+                    </div>
+
+                    <div id="cardErrors"
+                         class="card-value">
+                        -
+                    </div>
+
+                    <div class="card-foot">
+                        Contador de errores
+                    </div>
+
+                </div>
+
+            </div>
+
+
+            <div class="panel">
+
+                <div class="panel-header">
+
                     <div>
-                        <div class="eyebrow">OVERVIEW</div>
-                        <h2>Dashboard</h2>
-                        <div class="description">Resumen general de tu sistema de monitoreo.</div>
-                    </div>
-                    <span class="pill">● Actualización automática</span>
-                </div>
 
-                <div class="cards">
-
-                    <div class="card" style="--glow:rgba(57,223,155,.16)">
-                        <div class="card-head">
-                            <div class="card-title">Estado del sistema</div>
-                            <div class="card-icon">◉</div>
+                        <div class="panel-title">
+                            🔥 Skins más cercanas a tu objetivo
                         </div>
-                        <div id="cardStatus" class="card-value">-</div>
-                        <div class="card-foot">Conexión del bot</div>
+
+                        <div class="panel-sub">
+                            Las 10 oportunidades más próximas a tu precio máximo
+                        </div>
+
                     </div>
 
-                    <div class="card" style="--glow:rgba(87,169,255,.16)">
-                        <div class="card-head">
-                            <div class="card-title">Skins vigiladas</div>
-                            <div class="card-icon">🎯</div>
-                        </div>
-                        <div id="cardSkins" class="card-value">-</div>
-                        <div class="card-foot">Elementos en seguimiento</div>
-                    </div>
-
-                    <div class="card" style="--glow:rgba(167,139,250,.16)">
-                        <div class="card-head">
-                            <div class="card-title">Cache</div>
-                            <div class="card-icon">◫</div>
-                        </div>
-                        <div id="cardCache" class="card-value">-</div>
-                        <div class="card-foot">Datos almacenados</div>
-                    </div>
-
-                    <div class="card" style="--glow:rgba(255,104,125,.15)">
-                        <div class="card-head">
-                            <div class="card-title">Errores registrados</div>
-                            <div class="card-icon">⚠</div>
-                        </div>
-                        <div id="cardErrors" class="card-value">-</div>
-                        <div class="card-foot">Contador de errores</div>
-                    </div>
+                    <span class="pill">
+                        TOP 10
+                    </span>
 
                 </div>
 
-                <div class="panel">
-                    <div class="panel-header">
-                        <div>
-                            <div class="panel-title">🔥 Skins más cercanas a tu objetivo</div>
-                            <div class="panel-sub">Las 10 oportunidades más próximas a tu precio máximo</div>
-                        </div>
-                        <span class="pill">TOP 10</span>
-                    </div>
 
-                    <div class="table-container" style="border:0;border-radius:0">
-                        <table>
-                            <thead>
-                                <tr>
-                                    <th>Skin</th>
-                                    <th>Precio de venta</th>
-                                    <th>Objetivo</th>
-                                    <th>Diferencia</th>
-                                    <th>Estado</th>
-                                </tr>
-                            </thead>
-                            <tbody id="dashboardTable"></tbody>
-                        </table>
-                    </div>
-                </div>
+                <div class="table-container"
+                     style="border:0;border-radius:0">
 
-            </section>
-
-            <!-- SKINS -->
-
-            <section id="skins" class="section">
-
-                <div class="page-heading">
-                    <div>
-                        <div class="eyebrow">WATCHLIST</div>
-                        <h2>Tus skins</h2>
-                        <div class="description">Todos los artículos que estás monitoreando.</div>
-                    </div>
-                </div>
-
-                <div class="table-container">
                     <table>
+
                         <thead>
+
                             <tr>
                                 <th>Skin</th>
                                 <th>Precio de venta</th>
-                                <th>Pedido de compra</th>
-                                <th>Tu máximo</th>
+                                <th>Objetivo</th>
                                 <th>Diferencia</th>
                                 <th>Estado</th>
-                                <th>Steam</th>
                             </tr>
+
                         </thead>
-                        <tbody id="skinsTable"></tbody>
+
+                        <tbody id="dashboardTable">
+                        </tbody>
+
                     </table>
+
                 </div>
 
-            </section>
+            </div>
 
-            <!-- RADAR -->
+        </section>
 
-            <section id="radar" class="section">
 
-                <div class="page-heading">
+        <!-- =================================================
+             SKINS
+        ================================================== -->
+
+        <section id="skins"
+                 class="section">
+
+            <div class="page-heading">
+
+                <div>
+
+                    <div class="eyebrow">
+                        WATCHLIST
+                    </div>
+
+                    <h2>
+                        Tus skins
+                    </h2>
+
+                    <div class="description">
+                        Todos los artículos que estás monitoreando.
+                    </div>
+
+                </div>
+
+            </div>
+
+
+            <div class="table-container">
+
+                <table>
+
+                    <thead>
+
+                        <tr>
+                            <th>Skin</th>
+                            <th>Precio de venta</th>
+                            <th>Pedido de compra</th>
+                            <th>Tu máximo</th>
+                            <th>Diferencia</th>
+                            <th>Estado</th>
+                            <th>Steam</th>
+                        </tr>
+
+                    </thead>
+
+                    <tbody id="skinsTable">
+                    </tbody>
+
+                </table>
+
+            </div>
+
+        </section>
+
+
+        <!-- =================================================
+             RADAR
+        ================================================== -->
+
+        <section id="radar"
+                 class="section">
+
+            <div class="page-heading">
+
+                <div>
+
+                    <div class="eyebrow">
+                        OPPORTUNITY SCANNER
+                    </div>
+
+                    <h2>
+                        Radar de oportunidades
+                    </h2>
+
+                    <div class="description">
+                        Skins ordenadas según su distancia a tu precio máximo.
+                    </div>
+
+                </div>
+
+                <span class="pill">
+                    TOP 15
+                </span>
+
+            </div>
+
+
+            <div id="radarContainer"
+                 class="radar-grid">
+            </div>
+
+        </section>
+
+
+        <!-- =================================================
+             HISTORIAL
+        ================================================== -->
+
+        <section id="historial"
+                 class="section">
+
+            <div class="page-heading">
+
+                <div>
+
+                    <div class="eyebrow">
+                        PRICE ANALYTICS
+                    </div>
+
+                    <h2>
+                        Historial de precios
+                    </h2>
+
+                    <div class="description">
+                        Evolución del precio de venta y los pedidos de compra registrados desde Steam.
+                    </div>
+
+                </div>
+
+            </div>
+
+
+            <div class="history-panel">
+
+                <div class="history-controls">
+
+                    <select id="historySkin"
+                            onchange="loadHistory()">
+
+                        <option value="">
+                            Seleccioná una skin...
+                        </option>
+
+                    </select>
+
+
+                    <div class="period-buttons">
+
+                        <button class="period-button active"
+                                data-hours="1"
+                                onclick="setPeriod(1,this)">
+                            1H
+                        </button>
+
+                        <button class="period-button"
+                                data-hours="3"
+                                onclick="setPeriod(3,this)">
+                            3H
+                        </button>
+
+                        <button class="period-button"
+                                data-hours="6"
+                                onclick="setPeriod(6,this)">
+                            6H
+                        </button>
+
+                        <button class="period-button"
+                                data-hours="24"
+                                onclick="setPeriod(24,this)">
+                            24H
+                        </button>
+
+                        <button class="period-button"
+                                data-hours="48"
+                                onclick="setPeriod(48,this)">
+                            48H
+                        </button>
+
+                    </div>
+
+                </div>
+
+
+                <div id="historyInfo"
+                     class="history-info">
+
+                    <div class="history-stat">
+
+                        <div class="history-stat-label">
+                            Precio de venta actual
+                        </div>
+
+                        <div id="historyCurrentSell"
+                             class="history-stat-value">
+                            -
+                        </div>
+
+                    </div>
+
+
+                    <div class="history-stat">
+
+                        <div class="history-stat-label">
+                            Pedido de compra actual
+                        </div>
+
+                        <div id="historyCurrentBuy"
+                             class="history-stat-value">
+                            -
+                        </div>
+
+                    </div>
+
+
+                    <div class="history-stat">
+
+                        <div class="history-stat-label">
+                            Tu máximo
+                        </div>
+
+                        <div id="historyMax"
+                             class="history-stat-value">
+                            -
+                        </div>
+
+                    </div>
+
+
+                    <div class="history-stat">
+
+                        <div class="history-stat-label">
+                            Variación
+                        </div>
+
+                        <div id="historyVariation"
+                             class="history-stat-value">
+                            -
+                        </div>
+
+                    </div>
+
+
+                    <div class="history-stat">
+
+                        <div class="history-stat-label">
+                            Precio mínimo
+                        </div>
+
+                        <div id="historyMin"
+                             class="history-stat-value">
+                            -
+                        </div>
+
+                    </div>
+
+
+                    <div class="history-stat">
+
+                        <div class="history-stat-label">
+                            Precio máximo
+                        </div>
+
+                        <div id="historyMaxPrice"
+                             class="history-stat-value">
+                            -
+                        </div>
+
+                    </div>
+
+
+                    <div class="history-stat">
+
+                        <div class="history-stat-label">
+                            Precio promedio
+                        </div>
+
+                        <div id="historyAverage"
+                             class="history-stat-value">
+                            -
+                        </div>
+
+                    </div>
+
+
+                    <div class="history-stat">
+
+                        <div class="history-stat-label">
+                            Distancia a tu máximo
+                        </div>
+
+                        <div id="historyDistance"
+                             class="history-stat-value">
+                            -
+                        </div>
+
+                    </div>
+
+                </div>
+
+
+                <div class="chart-wrapper">
+
+                    <canvas id="priceChart"></canvas>
+
+                </div>
+
+
+                <div id="historyMessage"
+                     class="empty">
+
+                    Seleccioná una skin para ver su historial.
+
+                </div>
+
+            </div>
+
+        </section>
+
+
+        <!-- =================================================
+             ESTADISTICAS
+        ================================================== -->
+
+        <section id="estadisticas"
+                 class="section">
+
+            <div class="page-heading">
+
+                <div>
+
+                    <div class="eyebrow">
+                        SYSTEM ANALYTICS
+                    </div>
+
+                    <h2>
+                        Estadísticas
+                    </h2>
+
+                    <div class="description">
+                        Indicadores generales de actividad y rendimiento.
+                    </div>
+
+                </div>
+
+            </div>
+
+
+            <div class="cards">
+
+                <div class="card">
+
+                    <div class="card-head">
+
+                        <div class="card-title">
+                            Alertas enviadas
+                        </div>
+
+                        <div class="card-icon">
+                            ✉
+                        </div>
+
+                    </div>
+
+                    <div id="statsAlerts"
+                         class="card-value">
+                        -
+                    </div>
+
+                    <div class="card-foot">
+                        Notificaciones de oportunidades
+                    </div>
+
+                </div>
+
+
+                <div class="card">
+
+                    <div class="card-head">
+
+                        <div class="card-title">
+                            Errores
+                        </div>
+
+                        <div class="card-icon">
+                            ⚠
+                        </div>
+
+                    </div>
+
+                    <div id="statsErrors"
+                         class="card-value">
+                        -
+                    </div>
+
+                    <div class="card-foot">
+                        Errores registrados
+                    </div>
+
+                </div>
+
+
+                <div class="card">
+
+                    <div class="card-head">
+
+                        <div class="card-title">
+                            Proxies totales
+                        </div>
+
+                        <div class="card-icon">
+                            ◈
+                        </div>
+
+                    </div>
+
+                    <div id="statsProxies"
+                         class="card-value">
+                        -
+                    </div>
+
+                    <div class="card-foot">
+                        Conexiones configuradas
+                    </div>
+
+                </div>
+
+
+                <div class="card">
+
+                    <div class="card-head">
+
+                        <div class="card-title">
+                            Steam 429
+                        </div>
+
+                        <div class="card-icon">
+                            ↻
+                        </div>
+
+                    </div>
+
+                    <div id="stats429"
+                         class="card-value">
+                        -
+                    </div>
+
+                    <div class="card-foot">
+                        Respuestas consecutivas
+                    </div>
+
+                </div>
+
+            </div>
+
+        </section>
+
+
+        <!-- =================================================
+             MONITOR DE FUNCIONAMIENTO
+        ================================================== -->
+
+        <section id="monitor"
+                 class="section">
+
+            <div class="page-heading">
+
+                <div>
+
+                    <div class="eyebrow">
+                        SYSTEM MONITOR
+                    </div>
+
+                    <h2>
+                        Monitor de funcionamiento
+                    </h2>
+
+                    <div class="description">
+                        Control en tiempo real de la actividad interna del bot.
+                    </div>
+
+                </div>
+
+                <span id="monitorBadge"
+                      class="pill">
+                    ● ESPERANDO DATOS
+                </span>
+
+            </div>
+
+
+            <div class="monitor-grid">
+
+                <div class="monitor-card">
+
+                    <div class="monitor-card-title">
+                        Estado del bot
+                    </div>
+
+                    <div id="monitorStatus"
+                         class="monitor-card-value">
+                        -
+                    </div>
+
+                    <div class="monitor-card-sub">
+                        Estado operativo
+                    </div>
+
+                </div>
+
+
+                <div class="monitor-card">
+
+                    <div class="monitor-card-title">
+                        Workers
+                    </div>
+
+                    <div id="monitorWorkers"
+                         class="monitor-card-value">
+                        -
+                    </div>
+
+                    <div class="monitor-card-sub">
+                        Procesos activos
+                    </div>
+
+                </div>
+
+
+                <div class="monitor-card">
+
+                    <div class="monitor-card-title">
+                        Última consulta Steam
+                    </div>
+
+                    <div id="monitorLastSteam"
+                         class="monitor-card-value">
+                        -
+                    </div>
+
+                    <div class="monitor-card-sub">
+                        Tiempo desde la última petición
+                    </div>
+
+                </div>
+
+
+                <div class="monitor-card">
+
+                    <div class="monitor-card-title">
+                        Último ciclo
+                    </div>
+
+                    <div id="monitorLastCycle"
+                         class="monitor-card-value">
+                        -
+                    </div>
+
+                    <div class="monitor-card-sub">
+                        Última actividad registrada
+                    </div>
+
+                </div>
+
+            </div>
+
+
+            <div class="panel">
+
+                <div class="panel-header">
+
                     <div>
-                        <div class="eyebrow">OPPORTUNITY SCANNER</div>
-                        <h2>Radar de oportunidades</h2>
-                        <div class="description">Skins ordenadas según su distancia a tu precio máximo.</div>
+
+                        <div class="panel-title">
+                            Actividad del sistema
+                        </div>
+
+                        <div class="panel-sub">
+                            Información de ejecución y comunicación del bot.
+                        </div>
+
                     </div>
-                    <span class="pill">TOP 15</span>
+
                 </div>
 
-                <div id="radarContainer" class="radar-grid"></div>
 
-            </section>
+                <div class="table-container"
+                     style="border:0;border-radius:0">
 
-            <!-- HISTORIAL -->
+                    <table class="monitor-table">
 
-            <section id="historial" class="section">
+                        <thead>
 
-                <div class="page-heading">
+                            <tr>
+                                <th>Indicador</th>
+                                <th>Valor</th>
+                                <th>Estado</th>
+                            </tr>
+
+                        </thead>
+
+                        <tbody>
+
+                            <tr>
+
+                                <td>
+                                    Ciclos realizados
+                                </td>
+
+                                <td id="monitorCycles">
+                                    -
+                                </td>
+
+                                <td id="monitorCyclesStatus">
+                                    -
+                                </td>
+
+                            </tr>
+
+
+                            <tr>
+
+                                <td>
+                                    Requests a Steam
+                                </td>
+
+                                <td id="monitorRequests">
+                                    -
+                                </td>
+
+                                <td id="monitorRequestsStatus">
+                                    -
+                                </td>
+
+                            </tr>
+
+
+                            <tr>
+
+                                <td>
+                                    Requests exitosas
+                                </td>
+
+                                <td id="monitorSuccess">
+                                    -
+                                </td>
+
+                                <td id="monitorSuccessStatus">
+                                    -
+                                </td>
+
+                            </tr>
+
+
+                            <tr>
+
+                                <td>
+                                    Requests fallidas
+                                </td>
+
+                                <td id="monitorFailed">
+                                    -
+                                </td>
+
+                                <td id="monitorFailedStatus">
+                                    -
+                                </td>
+
+                            </tr>
+
+
+                            <tr>
+
+                                <td>
+                                    Uptime
+                                </td>
+
+                                <td id="monitorUptime">
+                                    -
+                                </td>
+
+                                <td>
+                                    <span class="monitor-value-blue">
+                                        ● INFORMACIÓN
+                                    </span>
+                                </td>
+
+                            </tr>
+
+
+                            <tr>
+
+                                <td>
+                                    GitHub
+                                </td>
+
+                                <td id="monitorGithub">
+                                    -
+                                </td>
+
+                                <td id="monitorGithubStatus">
+                                    -
+                                </td>
+
+                            </tr>
+
+
+                            <tr>
+
+                                <td>
+                                    Último guardado
+                                </td>
+
+                                <td id="monitorLastSave">
+                                    -
+                                </td>
+
+                                <td>
+                                    <span class="monitor-value-blue">
+                                        ● INFORMACIÓN
+                                    </span>
+                                </td>
+
+                            </tr>
+
+
+                            <tr>
+
+                                <td>
+                                    Último escaneo
+                                </td>
+
+                                <td id="monitorScan">
+                                    -
+                                </td>
+
+                                <td>
+                                    <span class="monitor-value-blue">
+                                        ● INFORMACIÓN
+                                    </span>
+                                </td>
+
+                            </tr>
+
+                        </tbody>
+
+                    </table>
+
+                </div>
+
+            </div>
+
+        </section>
+
+
+        <!-- =================================================
+             PROXIES
+        ================================================== -->
+
+        <section id="proxies"
+                 class="section">
+
+            <div class="page-heading">
+
+                <div>
+
+                    <div class="eyebrow">
+                        NETWORK MONITOR
+                    </div>
+
+                    <h2>
+                        Proxies y errores
+                    </h2>
+
+                    <div class="description">
+                        Rendimiento de cada conexión sin mostrar URLs ni credenciales.
+                    </div>
+
+                </div>
+
+                <span id="proxyBadge"
+                      class="pill">
+                    ● ESPERANDO DATOS
+                </span>
+
+            </div>
+
+
+            <div class="proxy-summary">
+
+                <div class="proxy-card">
+
+                    <div class="proxy-card-title">
+                        Proxies totales
+                    </div>
+
+                    <div id="proxyTotal"
+                         class="proxy-card-value">
+                        -
+                    </div>
+
+                </div>
+
+
+                <div class="proxy-card">
+
+                    <div class="proxy-card-title">
+                        Funcionando
+                    </div>
+
+                    <div id="proxyWorking"
+                         class="proxy-card-value good">
+                        -
+                    </div>
+
+                </div>
+
+
+                <div class="proxy-card">
+
+                    <div class="proxy-card-title">
+                        En cooldown
+                    </div>
+
+                    <div id="proxyCooldown"
+                         class="proxy-card-value warning">
+                        -
+                    </div>
+
+                </div>
+
+
+                <div class="proxy-card">
+
+                    <div class="proxy-card-title">
+                        Con errores
+                    </div>
+
+                    <div id="proxyErrors"
+                         class="proxy-card-value danger">
+                        -
+                    </div>
+
+                </div>
+
+            </div>
+
+
+            <div class="panel">
+
+                <div class="panel-header">
+
                     <div>
-                        <div class="eyebrow">PRICE ANALYTICS</div>
-                        <h2>Historial de precios</h2>
-                        <div class="description">Evolución del precio de venta y los pedidos de compra registrados desde Steam.</div>
-                    </div>
-                </div>
 
-                <div class="history-panel">
-
-                    <div class="history-controls">
-                        <select id="historySkin" onchange="loadHistory()">
-                            <option value="">Seleccioná una skin...</option>
-                        </select>
-
-                        <div class="period-buttons">
-                            <button class="period-button active" data-hours="1" onclick="setPeriod(1,this)">1H</button>
-                            <button class="period-button" data-hours="3" onclick="setPeriod(3,this)">3H</button>
-                            <button class="period-button" data-hours="6" onclick="setPeriod(6,this)">6H</button>
-                            <button class="period-button" data-hours="24" onclick="setPeriod(24,this)">24H</button>
-                            <button class="period-button" data-hours="48" onclick="setPeriod(48,this)">48H</button>
-                        </div>
-                    </div>
-
-                    <div id="historyInfo" class="history-info">
-
-                        <div class="history-stat">
-                            <div class="history-stat-label">Precio de venta actual</div>
-                            <div id="historyCurrentSell" class="history-stat-value">-</div>
+                        <div class="panel-title">
+                            Estado de proxies
                         </div>
 
-                        <div class="history-stat">
-                            <div class="history-stat-label">Pedido de compra actual</div>
-                            <div id="historyCurrentBuy" class="history-stat-value">-</div>
+                        <div class="panel-sub">
+                            Estadísticas individuales de cada proxy.
                         </div>
 
-                        <div class="history-stat">
-                            <div class="history-stat-label">Tu máximo</div>
-                            <div id="historyMax" class="history-stat-value">-</div>
-                        </div>
-
-                        <div class="history-stat">
-                            <div class="history-stat-label">Variación</div>
-                            <div id="historyVariation" class="history-stat-value">-</div>
-                        </div>
-
-                        <div class="history-stat">
-                            <div class="history-stat-label">Precio mínimo</div>
-                            <div id="historyMin" class="history-stat-value">-</div>
-                        </div>
-
-                        <div class="history-stat">
-                            <div class="history-stat-label">Precio máximo</div>
-                            <div id="historyMaxPrice" class="history-stat-value">-</div>
-                        </div>
-
-                        <div class="history-stat">
-                            <div class="history-stat-label">Precio promedio</div>
-                            <div id="historyAverage" class="history-stat-value">-</div>
-                        </div>
-
-                        <div class="history-stat">
-                            <div class="history-stat-label">Distancia a tu máximo</div>
-                            <div id="historyDistance" class="history-stat-value">-</div>
-                        </div>
-
-                    </div>
-
-                    <div class="chart-wrapper">
-                        <canvas id="priceChart"></canvas>
-                    </div>
-
-                    <div id="historyMessage" class="empty">
-                        Seleccioná una skin para ver su historial.
                     </div>
 
                 </div>
 
-            </section>
 
-            <!-- ESTADISTICAS -->
+                <div class="table-container"
+                     style="border:0;border-radius:0">
 
-            <section id="estadisticas" class="section">
+                    <table>
 
-                <div class="page-heading">
-                    <div>
-                        <div class="eyebrow">SYSTEM ANALYTICS</div>
-                        <h2>Estadísticas</h2>
-                        <div class="description">Indicadores generales de actividad y rendimiento.</div>
-                    </div>
-                </div>
+                        <thead>
 
-                <div class="cards">
+                            <tr>
+                                <th>Proxy</th>
+                                <th>Estado</th>
+                                <th>Requests</th>
+                                <th>Exitosas</th>
+                                <th>Fallidas</th>
+                                <th>429</th>
+                                <th>Timeout</th>
+                                <th>HTTP</th>
+                                <th>JSON</th>
+                                <th>Steam</th>
+                                <th>Request</th>
+                                <th>Cooldowns</th>
+                                <th>Éxito</th>
+                                <th>Último uso</th>
+                            </tr>
 
-                    <div class="card">
-                        <div class="card-head">
-                            <div class="card-title">Alertas enviadas</div>
-                            <div class="card-icon">✉</div>
-                        </div>
-                        <div id="statsAlerts" class="card-value">-</div>
-                        <div class="card-foot">Notificaciones de oportunidades</div>
-                    </div>
+                        </thead>
 
-                    <div class="card">
-                        <div class="card-head">
-                            <div class="card-title">Errores</div>
-                            <div class="card-icon">⚠</div>
-                        </div>
-                        <div id="statsErrors" class="card-value">-</div>
-                        <div class="card-foot">Errores registrados</div>
-                    </div>
+                        <tbody id="proxiesTable">
+                        </tbody>
 
-                    <div class="card">
-                        <div class="card-head">
-                            <div class="card-title">Proxies totales</div>
-                            <div class="card-icon">◈</div>
-                        </div>
-                        <div id="statsProxies" class="card-value">-</div>
-                        <div class="card-foot">Conexiones configuradas</div>
-                    </div>
-
-                    <div class="card">
-                        <div class="card-head">
-                            <div class="card-title">Steam 429</div>
-                            <div class="card-icon">↻</div>
-                        </div>
-                        <div id="stats429" class="card-value">-</div>
-                        <div class="card-foot">Respuestas consecutivas</div>
-                    </div>
+                    </table>
 
                 </div>
 
-            </section>
+            </div>
 
-            <!-- BOT -->
+        </section>
 
-            <section id="bot" class="section">
 
-                <div class="page-heading">
-                    <div>
-                        <div class="eyebrow">LIVE SYSTEM STATUS</div>
-                        <h2>Estado del bot</h2>
-                        <div class="description">Información operativa reportada por el backend.</div>
-                    </div>
-                </div>
+        <!-- =================================================
+             BOT
+        ================================================== -->
 
-                <div class="status-box">
+        <section id="bot"
+                 class="section">
 
-                    <div class="status-row">
-                        <span>Estado</span>
-                        <strong id="botStatus">-</strong>
-                    </div>
+            <div class="page-heading">
 
-                    <div class="status-row">
-                        <span>Proxies totales</span>
-                        <strong id="botProxies">-</strong>
+                <div>
+
+                    <div class="eyebrow">
+                        LIVE SYSTEM STATUS
                     </div>
 
-                    <div class="status-row">
-                        <span>Proxies en cooldown</span>
-                        <strong id="botProxyCooldown">-</strong>
-                    </div>
+                    <h2>
+                        Estado del bot
+                    </h2>
 
-                    <div class="status-row">
-                        <span>Skins en cooldown</span>
-                        <strong id="botSkinCooldown">-</strong>
-                    </div>
-
-                    <div class="status-row">
-                        <span>Steam 429 consecutivos</span>
-                        <strong id="bot429">-</strong>
-                    </div>
-
-                    <div class="status-row">
-                        <span>Pausa Steam</span>
-                        <strong id="botPause">-</strong>
-                    </div>
-
-                    <div class="status-row">
-                        <span>Último escaneo</span>
-                        <strong id="botLastScan">-</strong>
+                    <div class="description">
+                        Información operativa reportada por el backend.
                     </div>
 
                 </div>
 
-            </section>
+            </div>
 
-        </main>
-    </div>
+
+            <div class="status-box">
+
+                <div class="status-row">
+
+                    <span>
+                        Estado
+                    </span>
+
+                    <strong id="botStatus">
+                        -
+                    </strong>
+
+                </div>
+
+
+                <div class="status-row">
+
+                    <span>
+                        Proxies totales
+                    </span>
+
+                    <strong id="botProxies">
+                        -
+                    </strong>
+
+                </div>
+
+
+                <div class="status-row">
+
+                    <span>
+                        Proxies en cooldown
+                    </span>
+
+                    <strong id="botProxyCooldown">
+                        -
+                    </strong>
+
+                </div>
+
+
+                <div class="status-row">
+
+                    <span>
+                        Skins en cooldown
+                    </span>
+
+                    <strong id="botSkinCooldown">
+                        -
+                    </strong>
+
+                </div>
+
+
+                <div class="status-row">
+
+                    <span>
+                        Steam 429 consecutivos
+                    </span>
+
+                    <strong id="bot429">
+                        -
+                    </strong>
+
+                </div>
+
+
+                <div class="status-row">
+
+                    <span>
+                        Pausa Steam
+                    </span>
+
+                    <strong id="botPause">
+                        -
+                    </strong>
+
+                </div>
+
+
+                <div class="status-row">
+
+                    <span>
+                        Último escaneo
+                    </span>
+
+                    <strong id="botLastScan">
+                        -
+                    </strong>
+
+                </div>
+
+            </div>
+
+        </section>
+
+    </main>
+
+</div>
+```
+
 </div>
 
 <script>
+
+/* =========================================================
+   VARIABLES
+========================================================= */
+
 let skinsData = [];
 let statusData = {};
+let monitorData = {};
+let proxiesData = [];
 let priceChart = null;
 let historyPeriod = 24;
 
-/* TABS */
+
+/* =========================================================
+   TABS
+========================================================= */
 
 function showTab(tabName, button) {
+
     document.querySelectorAll(".section").forEach(section => {
         section.classList.remove("active");
     });
@@ -1167,29 +2502,57 @@ function showTab(tabName, button) {
 
     document.getElementById(tabName).classList.add("active");
 
-    if (button) button.classList.add("active");
+    if (button) {
+        button.classList.add("active");
+    }
 
-    if (tabName === "historial" && document.getElementById("historySkin").value) {
+    if (
+        tabName === "historial" &&
+        document.getElementById("historySkin").value
+    ) {
         loadHistory();
+    }
+
+    if (tabName === "monitor") {
+        loadMonitor();
+    }
+
+    if (tabName === "proxies") {
+        loadProxies();
     }
 }
 
-/* DINERO */
+
+/* =========================================================
+   DINERO
+========================================================= */
 
 function money(value) {
-    if (value === null || value === undefined || value === "" || !Number.isFinite(Number(value))) {
+
+    if (
+        value === null ||
+        value === undefined ||
+        value === "" ||
+        !Number.isFinite(Number(value))
+    ) {
         return "-";
     }
 
     return "$" + Number(value).toFixed(2);
 }
 
-/* DIFERENCIA */
+
+/* =========================================================
+   DIFERENCIA
+========================================================= */
 
 function difference(price, max) {
+
     if (
-        price === null || price === undefined ||
-        max === null || max === undefined ||
+        price === null ||
+        price === undefined ||
+        max === null ||
+        max === undefined ||
         !Number.isFinite(Number(price)) ||
         !Number.isFinite(Number(max))
     ) {
@@ -1199,9 +2562,13 @@ function difference(price, max) {
     return Number(price) - Number(max);
 }
 
-/* ESTADO */
+
+/* =========================================================
+   ESTADO
+========================================================= */
 
 function getStatus(price, max) {
+
     const precio = Number(price);
     const objetivo = Number(max);
 
@@ -1212,140 +2579,344 @@ function getStatus(price, max) {
         !Number.isFinite(objetivo) ||
         objetivo <= 0
     ) {
-        return { text: "SIN DATOS", className: "badge-far" };
+        return {
+            text: "SIN DATOS",
+            className: "badge-far"
+        };
     }
 
-    const porcentaje = ((precio - objetivo) / objetivo) * 100;
+    const porcentaje =
+        ((precio - objetivo) / objetivo) * 100;
 
     if (porcentaje <= -13.3) {
-        return { text: "🔥 OFERTA MUY BUENA", className: "badge-super" };
+
+        return {
+            text: "🔥 OFERTA MUY BUENA",
+            className: "badge-super"
+        };
+
     }
 
     if (porcentaje <= 0) {
-        return { text: "🟢 OBJETIVO ALCANZADO", className: "badge-good" };
+
+        return {
+            text: "🟢 OBJETIVO ALCANZADO",
+            className: "badge-good"
+        };
+
     }
 
     if (porcentaje <= 5) {
-        return { text: "🟡 MUY CERCA", className: "badge-close" };
+
+        return {
+            text: "🟡 MUY CERCA",
+            className: "badge-close"
+        };
+
     }
 
     if (porcentaje <= 15) {
-        return { text: "🟠 CERCA", className: "badge-close" };
+
+        return {
+            text: "🟠 CERCA",
+            className: "badge-close"
+        };
+
     }
 
-    return { text: "🔴 LEJOS", className: "badge-far" };
+    return {
+        text: "🔴 LEJOS",
+        className: "badge-far"
+    };
 }
 
-/* FECHA */
+
+/* =========================================================
+   FECHA
+========================================================= */
 
 function formatDate(timestamp) {
-    if (!timestamp) return "-";
 
-    const date = new Date(Number(timestamp) * 1000);
+    if (!timestamp) {
+        return "-";
+    }
 
-    if (isNaN(date.getTime())) return "-";
+    const date =
+        new Date(Number(timestamp) * 1000);
 
-    return date.toLocaleTimeString("es-AR", {
-        hour: "2-digit",
-        minute: "2-digit",
-        second: "2-digit"
-    });
+    if (isNaN(date.getTime())) {
+        return "-";
+    }
+
+    return date.toLocaleTimeString(
+        "es-AR",
+        {
+            hour: "2-digit",
+            minute: "2-digit",
+            second: "2-digit"
+        }
+    );
 }
 
-/* STATUS */
+
+/* =========================================================
+   FORMATO DE TIEMPO
+========================================================= */
+
+function formatDuration(seconds) {
+
+    const value = Number(seconds);
+
+    if (!Number.isFinite(value) || value < 0) {
+        return "-";
+    }
+
+    const total = Math.floor(value);
+
+    const days =
+        Math.floor(total / 86400);
+
+    const hours =
+        Math.floor((total % 86400) / 3600);
+
+    const minutes =
+        Math.floor((total % 3600) / 60);
+
+    const secs =
+        total % 60;
+
+    if (days > 0) {
+        return days + "d " +
+               hours + "h " +
+               minutes + "m";
+    }
+
+    if (hours > 0) {
+        return hours + "h " +
+               minutes + "m " +
+               secs + "s";
+    }
+
+    if (minutes > 0) {
+        return minutes + "m " +
+               secs + "s";
+    }
+
+    return secs + "s";
+}
+
+
+/* =========================================================
+   ESTADO GENERAL
+========================================================= */
 
 async function loadStatus() {
+
     try {
-        const response = await fetch("/status?x=" + Date.now());
 
-        if (!response.ok) throw new Error("HTTP " + response.status);
+        const response =
+            await fetch(
+                "/status?x=" +
+                Date.now()
+            );
 
-        statusData = await response.json();
+        if (!response.ok) {
+            throw new Error(
+                "HTTP " +
+                response.status
+            );
+        }
+
+        statusData =
+            await response.json();
+
         updateStatus();
 
     } catch (error) {
-        console.error("Error /status:", error);
 
-        document.getElementById("headerConnection").classList.add("offline");
-        document.getElementById("headerConnectionText").textContent = "SIN CONEXIÓN";
+        console.error(
+            "Error /status:",
+            error
+        );
+
+        document
+            .getElementById(
+                "headerConnection"
+            )
+            .classList.add("offline");
+
+        document
+            .getElementById(
+                "headerConnectionText"
+            )
+            .textContent =
+            "SIN CONEXIÓN";
     }
 }
 
+
 function updateStatus() {
-    const activo = statusData.activo === true;
 
-    document.getElementById("cardStatus").textContent = activo ? "ONLINE" : "OFFLINE";
+    const activo =
+        statusData.activo === true;
 
-    document.getElementById("cardStatus").className =
-        "card-value " + (activo ? "online" : "danger");
+    document.getElementById(
+        "cardStatus"
+    ).textContent =
+        activo
+            ? "ONLINE"
+            : "OFFLINE";
 
-    document.getElementById("headerConnection").classList.toggle("offline", !activo);
+    document.getElementById(
+        "cardStatus"
+    ).className =
+        "card-value " +
+        (
+            activo
+                ? "online"
+                : "danger"
+        );
 
-    document.getElementById("headerConnectionText").textContent =
-        activo ? "SISTEMA ONLINE" : "SISTEMA OFFLINE";
+    document
+        .getElementById(
+            "headerConnection"
+        )
+        .classList.toggle(
+            "offline",
+            !activo
+        );
 
-    document.getElementById("cardSkins").textContent =
+    document
+        .getElementById(
+            "headerConnectionText"
+        )
+        .textContent =
+        activo
+            ? "SISTEMA ONLINE"
+            : "SISTEMA OFFLINE";
+
+    document.getElementById(
+        "cardSkins"
+    ).textContent =
         statusData.items_vigilados ?? "-";
 
-    document.getElementById("cardCache").textContent =
+    document.getElementById(
+        "cardCache"
+    ).textContent =
         statusData.cache ?? "-";
 
-    document.getElementById("cardErrors").textContent =
+    document.getElementById(
+        "cardErrors"
+    ).textContent =
         statusData.errores_totales ?? "-";
 
-    document.getElementById("statsAlerts").textContent =
+    document.getElementById(
+        "statsAlerts"
+    ).textContent =
         statusData.notificaciones_enviadas ?? "-";
 
-    document.getElementById("statsErrors").textContent =
+    document.getElementById(
+        "statsErrors"
+    ).textContent =
         statusData.errores_totales ?? "-";
 
-    document.getElementById("statsProxies").textContent =
+    document.getElementById(
+        "statsProxies"
+    ).textContent =
         statusData.proxies_totales ?? "-";
 
-    document.getElementById("stats429").textContent =
+    document.getElementById(
+        "stats429"
+    ).textContent =
         statusData.steam_429_consecutivos ?? "-";
 
-    document.getElementById("botStatus").textContent =
-        activo ? "🟢 ONLINE" : "🔴 OFFLINE";
+    document.getElementById(
+        "botStatus"
+    ).textContent =
+        activo
+            ? "🟢 ONLINE"
+            : "🔴 OFFLINE";
 
-    document.getElementById("botProxies").textContent =
+    document.getElementById(
+        "botProxies"
+    ).textContent =
         statusData.proxies_totales ?? "-";
 
-    document.getElementById("botProxyCooldown").textContent =
+    document.getElementById(
+        "botProxyCooldown"
+    ).textContent =
         statusData.proxies_cooldown ?? "-";
 
-    document.getElementById("botSkinCooldown").textContent =
+    document.getElementById(
+        "botSkinCooldown"
+    ).textContent =
         statusData.skins_cooldown ?? "-";
 
-    document.getElementById("bot429").textContent =
+    document.getElementById(
+        "bot429"
+    ).textContent =
         statusData.steam_429_consecutivos ?? "-";
 
-    const pausa = statusData.steam_pausa_restante_segundos ?? 0;
+    const pausa =
+        statusData.steam_pausa_restante_segundos ?? 0;
 
-    document.getElementById("botPause").textContent =
-        pausa > 0 ? pausa + " segundos" : "Sin pausa";
+    document.getElementById(
+        "botPause"
+    ).textContent =
+        pausa > 0
+            ? pausa + " segundos"
+            : "Sin pausa";
 
-    document.getElementById("botLastScan").textContent =
+    document.getElementById(
+        "botLastScan"
+    ).textContent =
         statusData.ultimo_escaneo
-            ? formatDate(new Date(statusData.ultimo_escaneo).getTime() / 1000)
+            ? formatDate(
+                new Date(
+                    statusData.ultimo_escaneo
+                ).getTime() / 1000
+            )
             : "-";
 
-    document.getElementById("lastUpdate").textContent =
+    document.getElementById(
+        "lastUpdate"
+    ).textContent =
         "Actualizado: " +
-        (statusData.timestamp
-            ? formatDate(new Date(statusData.timestamp).getTime() / 1000)
-            : "-");
+        (
+            statusData.timestamp
+                ? formatDate(
+                    new Date(
+                        statusData.timestamp
+                    ).getTime() / 1000
+                )
+                : "-"
+        );
 }
 
-/* SKINS */
+
+/* =========================================================
+   SKINS
+========================================================= */
 
 async function loadSkins() {
+
     try {
-        const response = await fetch("/api/skins?x=" + Date.now());
 
-        if (!response.ok) throw new Error("HTTP " + response.status);
+        const response =
+            await fetch(
+                "/api/skins?x=" +
+                Date.now()
+            );
 
-        skinsData = await response.json();
+        if (!response.ok) {
+            throw new Error(
+                "HTTP " +
+                response.status
+            );
+        }
+
+        skinsData =
+            await response.json();
 
         renderSkins();
         renderDashboard();
@@ -1353,453 +2924,1785 @@ async function loadSkins() {
         populateHistorySelect();
 
     } catch (error) {
-        console.error("Error /api/skins:", error);
+
+        console.error(
+            "Error /api/skins:",
+            error
+        );
     }
 }
 
-/* TABLA SKINS */
+
+/* =========================================================
+   TABLA SKINS
+========================================================= */
 
 function renderSkins() {
-    const table = document.getElementById("skinsTable");
 
-    table.innerHTML = skinsData.map(skin => {
-        const price = Number(skin.price);
-        const max = Number(skin.max);
-        const buy = Number(skin.buy_price);
+    const table =
+        document.getElementById(
+            "skinsTable"
+        );
 
-        const diff = difference(skin.price, skin.max);
-        const status = getStatus(skin.price, skin.max);
+    table.innerHTML =
+        skinsData.map(
+            skin => {
 
-        return `
-            <tr>
-                <td class="skin-name">${escapeHtml(skin.name)}</td>
-                <td class="price">${money(price)}</td>
-                <td>${money(buy)}</td>
-                <td>${money(max)}</td>
-                <td class="${diff === null ? "" : diff <= 0 ? "diff-negative" : "diff-positive"}">
-                    ${diff === null ? "-" : (diff >= 0 ? "+" : "") + money(diff)}
-                </td>
-                <td>
-                    <span class="badge ${status.className}">${status.text}</span>
-                </td>
-                <td>
-                    <a class="button" href="${escapeAttribute(skin.steam_url)}" target="_blank" rel="noopener noreferrer">Steam ↗</a>
-                </td>
-            </tr>
-        `;
-    }).join("");
+                const price =
+                    Number(skin.price);
+
+                const max =
+                    Number(skin.max);
+
+                const buy =
+                    Number(skin.buy_price);
+
+                const diff =
+                    difference(
+                        skin.price,
+                        skin.max
+                    );
+
+                const status =
+                    getStatus(
+                        skin.price,
+                        skin.max
+                    );
+
+                return `
+                    <tr>
+
+                        <td class="skin-name">
+                            ${escapeHtml(skin.name)}
+                        </td>
+
+                        <td class="price">
+                            ${money(price)}
+                        </td>
+
+                        <td>
+                            ${money(buy)}
+                        </td>
+
+                        <td>
+                            ${money(max)}
+                        </td>
+
+                        <td class="${
+                            diff === null
+                                ? ""
+                                : diff <= 0
+                                    ? "diff-negative"
+                                    : "diff-positive"
+                        }">
+
+                            ${
+                                diff === null
+                                    ? "-"
+                                    : (
+                                        diff >= 0
+                                            ? "+"
+                                            : ""
+                                      ) +
+                                      money(diff)
+                            }
+
+                        </td>
+
+                        <td>
+
+                            <span class="badge ${status.className}">
+                                ${status.text}
+                            </span>
+
+                        </td>
+
+                        <td>
+
+                            <a
+                                class="button"
+                                href="${escapeAttribute(skin.steam_url)}"
+                                target="_blank"
+                                rel="noopener noreferrer"
+                            >
+                                Steam ↗
+                            </a>
+
+                        </td>
+
+                    </tr>
+                `;
+            }
+        ).join("");
 }
 
-/* DASHBOARD */
+
+/* =========================================================
+   DASHBOARD
+========================================================= */
 
 function renderDashboard() {
-    const table = document.getElementById("dashboardTable");
 
-    const sorted = [...skinsData]
-        .filter(skin =>
-            skin.price !== null &&
-            skin.price !== undefined &&
-            skin.max !== null &&
-            skin.max !== undefined
-        )
-        .sort((a, b) =>
-            (Number(a.price) - Number(a.max)) -
-            (Number(b.price) - Number(b.max))
-        )
-        .slice(0, 10);
+    const table =
+        document.getElementById(
+            "dashboardTable"
+        );
 
-    table.innerHTML = sorted.map(skin => {
-        const price = Number(skin.price);
-        const max = Number(skin.max);
-        const diff = difference(skin.price, skin.max);
-        const status = getStatus(skin.price, skin.max);
+    const sorted =
+        [...skinsData]
+            .filter(
+                skin =>
+                    skin.price !== null &&
+                    skin.price !== undefined &&
+                    skin.max !== null &&
+                    skin.max !== undefined
+            )
+            .sort(
+                (a,b) =>
+                    (
+                        Number(a.price) -
+                        Number(a.max)
+                    ) -
+                    (
+                        Number(b.price) -
+                        Number(b.max)
+                    )
+            )
+            .slice(0,10);
 
-        return `
-            <tr>
-                <td class="skin-name">${escapeHtml(skin.name)}</td>
-                <td class="price">${money(price)}</td>
-                <td>${money(max)}</td>
-                <td class="${diff <= 0 ? "diff-negative" : "diff-positive"}">
-                    ${(diff >= 0 ? "+" : "") + money(diff)}
-                </td>
-                <td><span class="badge ${status.className}">${status.text}</span></td>
-            </tr>
-        `;
-    }).join("");
+    table.innerHTML =
+        sorted.map(
+            skin => {
+
+                const price =
+                    Number(skin.price);
+
+                const max =
+                    Number(skin.max);
+
+                const diff =
+                    difference(
+                        skin.price,
+                        skin.max
+                    );
+
+                const status =
+                    getStatus(
+                        skin.price,
+                        skin.max
+                    );
+
+                return `
+                    <tr>
+
+                        <td class="skin-name">
+                            ${escapeHtml(skin.name)}
+                        </td>
+
+                        <td class="price">
+                            ${money(price)}
+                        </td>
+
+                        <td>
+                            ${money(max)}
+                        </td>
+
+                        <td class="${
+                            diff <= 0
+                                ? "diff-negative"
+                                : "diff-positive"
+                        }">
+
+                            ${
+                                diff >= 0
+                                    ? "+"
+                                    : ""
+                            }${money(diff)}
+
+                        </td>
+
+                        <td>
+
+                            <span class="badge ${status.className}">
+                                ${status.text}
+                            </span>
+
+                        </td>
+
+                    </tr>
+                `;
+            }
+        ).join("");
 }
 
-/* RADAR */
+
+/* =========================================================
+   RADAR
+========================================================= */
 
 function renderRadar() {
-    const container = document.getElementById("radarContainer");
 
-    const sorted = [...skinsData]
-        .filter(skin =>
-            skin.price !== null &&
-            skin.price !== undefined &&
-            skin.max !== null &&
-            skin.max !== undefined
-        )
-        .sort((a, b) =>
-            (Number(a.price) - Number(a.max)) -
-            (Number(b.price) - Number(b.max))
-        )
-        .slice(0, 15);
+    const container =
+        document.getElementById(
+            "radarContainer"
+        );
 
-    container.innerHTML = sorted.map((skin, index) => {
-        const price = Number(skin.price);
-        const max = Number(skin.max);
-        const buy = Number(skin.buy_price);
-        const diff = difference(skin.price, skin.max);
-        const status = getStatus(skin.price, skin.max);
+    const sorted =
+        [...skinsData]
+            .filter(
+                skin =>
+                    skin.price !== null &&
+                    skin.price !== undefined &&
+                    skin.max !== null &&
+                    skin.max !== undefined
+            )
+            .sort(
+                (a,b) =>
+                    (
+                        Number(a.price) -
+                        Number(a.max)
+                    ) -
+                    (
+                        Number(b.price) -
+                        Number(b.max)
+                    )
+            )
+            .slice(0,15);
 
-        return `
-            <div class="radar-card">
-                <div class="radar-rank">#${index + 1}</div>
+    container.innerHTML =
+        sorted.map(
+            (skin,index) => {
 
-                <div>
-                    <div class="radar-name">${escapeHtml(skin.name)}</div>
+                const price =
+                    Number(skin.price);
 
-                    <div class="radar-values">
-                        <div>
-                            <div class="radar-value-label">PRECIO DE VENTA</div>
-                            <div class="radar-value">${money(price)}</div>
+                const max =
+                    Number(skin.max);
+
+                const buy =
+                    Number(skin.buy_price);
+
+                const diff =
+                    difference(
+                        skin.price,
+                        skin.max
+                    );
+
+                const status =
+                    getStatus(
+                        skin.price,
+                        skin.max
+                    );
+
+                return `
+
+                    <div class="radar-card">
+
+                        <div class="radar-rank">
+                            #${index + 1}
                         </div>
 
                         <div>
-                            <div class="radar-value-label">PEDIDO DE COMPRA</div>
-                            <div class="radar-value">${money(buy)}</div>
+
+                            <div class="radar-name">
+                                ${escapeHtml(skin.name)}
+                            </div>
+
+                            <div class="radar-values">
+
+                                <div>
+
+                                    <div class="radar-value-label">
+                                        PRECIO DE VENTA
+                                    </div>
+
+                                    <div class="radar-value">
+                                        ${money(price)}
+                                    </div>
+
+                                </div>
+
+
+                                <div>
+
+                                    <div class="radar-value-label">
+                                        PEDIDO DE COMPRA
+                                    </div>
+
+                                    <div class="radar-value">
+                                        ${money(buy)}
+                                    </div>
+
+                                </div>
+
+
+                                <div>
+
+                                    <div class="radar-value-label">
+                                        TU MÁXIMO
+                                    </div>
+
+                                    <div class="radar-value">
+                                        ${money(max)}
+                                    </div>
+
+                                </div>
+
+                            </div>
+
+
+                            <div class="radar-footer">
+
+                                <div>
+
+                                    <span class="badge ${status.className}">
+                                        ${status.text}
+                                    </span>
+
+                                    <span
+                                        style="
+                                            font-size:10px;
+                                            color:var(--muted);
+                                            margin-left:7px
+                                        "
+                                    >
+
+                                        Diferencia:
+                                        ${
+                                            diff === null
+                                                ? "-"
+                                                : (
+                                                    diff >= 0
+                                                        ? "+"
+                                                        : ""
+                                                  ) +
+                                                  money(diff)
+                                        }
+
+                                    </span>
+
+                                </div>
+
+
+                                <a
+                                    class="button"
+                                    href="${escapeAttribute(skin.steam_url)}"
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                >
+                                    Ver en Steam ↗
+                                </a>
+
+                            </div>
+
                         </div>
 
-                        <div>
-                            <div class="radar-value-label">TU MÁXIMO</div>
-                            <div class="radar-value">${money(max)}</div>
-                        </div>
                     </div>
 
-                    <div class="radar-footer">
-                        <div>
-                            <span class="badge ${status.className}">${status.text}</span>
-                            <span style="font-size:10px;color:var(--muted);margin-left:7px">
-                                Diferencia: ${diff === null ? "-" : (diff >= 0 ? "+" : "") + money(diff)}
-                            </span>
-                        </div>
-
-                        <a class="button" href="${escapeAttribute(skin.steam_url)}" target="_blank" rel="noopener noreferrer">Ver en Steam ↗</a>
-                    </div>
-                </div>
-            </div>
-        `;
-    }).join("");
+                `;
+            }
+        ).join("");
 }
 
-/* HISTORIAL - SELECTOR */
+
+/* =========================================================
+   HISTORIAL - SELECTOR
+========================================================= */
 
 function populateHistorySelect() {
-    const select = document.getElementById("historySkin");
-    const current = select.value;
+
+    const select =
+        document.getElementById(
+            "historySkin"
+        );
+
+    const current =
+        select.value;
 
     select.innerHTML = `
-        <option value="">Seleccioná una skin...</option>
+        <option value="">
+            Seleccioná una skin...
+        </option>
     `;
 
-    skinsData.forEach(skin => {
-        const option = document.createElement("option");
-        option.value = skin.name;
-        option.textContent = skin.name;
-        select.appendChild(option);
-    });
+    skinsData.forEach(
+        skin => {
 
-    if (current) select.value = current;
+            const option =
+                document.createElement(
+                    "option"
+                );
+
+            option.value =
+                skin.name;
+
+            option.textContent =
+                skin.name;
+
+            select.appendChild(
+                option
+            );
+        }
+    );
+
+    if (current) {
+        select.value =
+            current;
+    }
 }
 
-/* HISTORIAL - PERÍODO */
 
-function setPeriod(hours, button) {
-    historyPeriod = hours;
+/* =========================================================
+   HISTORIAL - PERÍODO
+========================================================= */
 
-    document.querySelectorAll(".period-button").forEach(item => {
-        item.classList.remove("active");
-    });
+function setPeriod(
+    hours,
+    button
+) {
 
-    button.classList.add("active");
+    historyPeriod =
+        hours;
+
+    document
+        .querySelectorAll(
+            ".period-button"
+        )
+        .forEach(
+            item => {
+                item.classList.remove(
+                    "active"
+                );
+            }
+        );
+
+    button.classList.add(
+        "active"
+    );
+
     loadHistory();
 }
 
-/* HISTORIAL - CARGAR */
+
+/* =========================================================
+   HISTORIAL - CARGAR
+========================================================= */
 
 async function loadHistory() {
-    const skin = document.getElementById("historySkin").value;
 
-    if (!skin) return;
+    const skin =
+        document.getElementById(
+            "historySkin"
+        ).value;
+
+    if (!skin) {
+        return;
+    }
 
     try {
-        const response = await fetch(
-            "/api/history?skin=" +
-            encodeURIComponent(skin) +
-            "&x=" +
-            Date.now()
-        );
 
-        if (!response.ok) throw new Error("HTTP " + response.status);
+        const response =
+            await fetch(
+                "/api/history?skin=" +
+                encodeURIComponent(
+                    skin
+                ) +
+                "&x=" +
+                Date.now()
+            );
 
-        const data = await response.json();
+        if (!response.ok) {
+            throw new Error(
+                "HTTP " +
+                response.status
+            );
+        }
+
+        const data =
+            await response.json();
+
         renderHistory(data);
 
     } catch (error) {
-        console.error("Error /api/history:", error);
 
-        document.getElementById("historyMessage").textContent =
+        console.error(
+            "Error /api/history:",
+            error
+        );
+
+        document.getElementById(
+            "historyMessage"
+        ).textContent =
             "Error cargando el historial.";
     }
 }
 
-/* HISTORIAL - GRÁFICO */
+
+/* =========================================================
+   HISTORIAL - GRÁFICO
+========================================================= */
 
 function renderHistory(data) {
-    const points = data.points || [];
 
-    const cutoff = Date.now() / 1000 - (historyPeriod * 60 * 60);
+    const points =
+        data.points || [];
 
-    const filtered = points.filter(point =>
-        Number(point.timestamp) >= cutoff
-    );
+    const cutoff =
+        Date.now() / 1000 -
+        (
+            historyPeriod *
+            60 *
+            60
+        );
 
-    const labels = filtered.map(point =>
-        new Date(point.timestamp * 1000).toLocaleTimeString("es-AR", {
-            hour: "2-digit",
-            minute: "2-digit"
-        })
-    );
+    const filtered =
+        points.filter(
+            point =>
+                Number(
+                    point.timestamp
+                ) >= cutoff
+        );
 
-    const sellData = filtered.map(point => Number(point.sell));
-    const buyData = filtered.map(point =>
-        point.buy === null || point.buy === undefined ? null : Number(point.buy)
-    );
+    const labels =
+        filtered.map(
+            point =>
+                new Date(
+                    point.timestamp * 1000
+                ).toLocaleTimeString(
+                    "es-AR",
+                    {
+                        hour: "2-digit",
+                        minute: "2-digit"
+                    }
+                )
+        );
 
-    const maxValue = Number(data.max);
-    const maxData = filtered.map(() => maxValue);
+    const sellData =
+        filtered.map(
+            point =>
+                Number(point.sell)
+        );
 
-    const currentSell = data.current === null || data.current === undefined ? null : Number(data.current);
-    const currentBuy = data.current_buy === null || data.current_buy === undefined ? null : Number(data.current_buy);
+    const buyData =
+        filtered.map(
+            point =>
+                point.buy === null ||
+                point.buy === undefined
+                    ? null
+                    : Number(point.buy)
+        );
 
-    const historyMax = maxValue;
+    const maxValue =
+        Number(data.max);
 
-    document.getElementById("historyCurrentSell").textContent = money(currentSell);
-    document.getElementById("historyCurrentBuy").textContent = money(currentBuy);
-    document.getElementById("historyMax").textContent = money(historyMax);
+    const maxData =
+        filtered.map(
+            () => maxValue
+        );
 
-    const minElement = document.getElementById("historyMin");
-    const maxElement = document.getElementById("historyMaxPrice");
-    const averageElement = document.getElementById("historyAverage");
+    const currentSell =
+        data.current === null ||
+        data.current === undefined
+            ? null
+            : Number(data.current);
 
-    const validSellData = sellData.filter(value => Number.isFinite(value));
+    const currentBuy =
+        data.current_buy === null ||
+        data.current_buy === undefined
+            ? null
+            : Number(data.current_buy);
+
+    const historyMax =
+        maxValue;
+
+    document.getElementById(
+        "historyCurrentSell"
+    ).textContent =
+        money(currentSell);
+
+    document.getElementById(
+        "historyCurrentBuy"
+    ).textContent =
+        money(currentBuy);
+
+    document.getElementById(
+        "historyMax"
+    ).textContent =
+        money(historyMax);
+
+    const minElement =
+        document.getElementById(
+            "historyMin"
+        );
+
+    const maxElement =
+        document.getElementById(
+            "historyMaxPrice"
+        );
+
+    const averageElement =
+        document.getElementById(
+            "historyAverage"
+        );
+
+    const validSellData =
+        sellData.filter(
+            value =>
+                Number.isFinite(value)
+        );
 
     if (validSellData.length > 0) {
-        minElement.textContent = money(Math.min(...validSellData));
-        maxElement.textContent = money(Math.max(...validSellData));
 
-        const total = validSellData.reduce((sum, value) => sum + value, 0);
-        averageElement.textContent = money(total / validSellData.length);
+        minElement.textContent =
+            money(
+                Math.min(
+                    ...validSellData
+                )
+            );
+
+        maxElement.textContent =
+            money(
+                Math.max(
+                    ...validSellData
+                )
+            );
+
+        const total =
+            validSellData.reduce(
+                (sum,value) =>
+                    sum + value,
+                0
+            );
+
+        averageElement.textContent =
+            money(
+                total /
+                validSellData.length
+            );
+
     } else {
-        minElement.textContent = "Sin datos";
-        maxElement.textContent = "Sin datos";
-        averageElement.textContent = "Sin datos";
+
+        minElement.textContent =
+            "Sin datos";
+
+        maxElement.textContent =
+            "Sin datos";
+
+        averageElement.textContent =
+            "Sin datos";
     }
 
-    const distanceElement = document.getElementById("historyDistance");
+
+    const distanceElement =
+        document.getElementById(
+            "historyDistance"
+        );
 
     if (
         Number.isFinite(currentSell) &&
         Number.isFinite(historyMax) &&
         historyMax > 0
     ) {
-        const distance = currentSell - historyMax;
-        const distancePercent = (distance / historyMax) * 100;
+
+        const distance =
+            currentSell -
+            historyMax;
+
+        const distancePercent =
+            (
+                distance /
+                historyMax
+            ) * 100;
 
         distanceElement.textContent =
-            (distance >= 0 ? "+" : "") +
+            (
+                distance >= 0
+                    ? "+"
+                    : ""
+            ) +
             money(distance) +
             " (" +
-            (distancePercent >= 0 ? "+" : "") +
+            (
+                distancePercent >= 0
+                    ? "+"
+                    : ""
+            ) +
             distancePercent.toFixed(2) +
             "%)";
 
         distanceElement.className =
-            "history-stat-value " + (distance <= 0 ? "good" : "danger");
+            "history-stat-value " +
+            (
+                distance <= 0
+                    ? "good"
+                    : "danger"
+            );
+
     } else {
-        distanceElement.textContent = "Sin datos";
-        distanceElement.className = "history-stat-value";
+
+        distanceElement.textContent =
+            "Sin datos";
+
+        distanceElement.className =
+            "history-stat-value";
     }
 
-    let variation = null;
 
-    if (validSellData.length >= 2) {
-        const first = validSellData[0];
-        const last = validSellData[validSellData.length - 1];
+    let variation =
+        null;
+
+    if (
+        validSellData.length >= 2
+    ) {
+
+        const first =
+            validSellData[0];
+
+        const last =
+            validSellData[
+                validSellData.length - 1
+            ];
 
         if (first > 0) {
-            variation = ((last - first) / first) * 100;
+
+            variation =
+                (
+                    (last - first) /
+                    first
+                ) * 100;
         }
     }
 
-    const variationElement = document.getElementById("historyVariation");
+
+    const variationElement =
+        document.getElementById(
+            "historyVariation"
+        );
 
     if (variation === null) {
-        variationElement.textContent = "Sin datos";
-        variationElement.className = "history-stat-value";
-    } else {
+
         variationElement.textContent =
-            (variation >= 0 ? "+" : "") + variation.toFixed(2) + "%";
+            "Sin datos";
 
         variationElement.className =
-            "history-stat-value " + (variation >= 0 ? "danger" : "good");
+            "history-stat-value";
+
+    } else {
+
+        variationElement.textContent =
+            (
+                variation >= 0
+                    ? "+"
+                    : ""
+            ) +
+            variation.toFixed(2) +
+            "%";
+
+        variationElement.className =
+            "history-stat-value " +
+            (
+                variation >= 0
+                    ? "danger"
+                    : "good"
+            );
     }
 
-    const message = document.getElementById("historyMessage");
 
-    message.textContent = !filtered.length
-        ? "Todavía no hay suficientes datos para este período."
-        : filtered.length + " puntos históricos registrados.";
+    const message =
+        document.getElementById(
+            "historyMessage"
+        );
 
-    const ctx = document.getElementById("priceChart");
+    message.textContent =
+        !filtered.length
+            ? "Todavía no hay suficientes datos para este período."
+            : filtered.length +
+              " puntos históricos registrados.";
 
-    if (priceChart) priceChart.destroy();
 
-    priceChart = new Chart(ctx, {
-        type: "line",
+    const ctx =
+        document.getElementById(
+            "priceChart"
+        );
 
-        data: {
-            labels: labels,
+    if (priceChart) {
+        priceChart.destroy();
+    }
 
-            datasets: [
-                {
-                    label: "Precio de venta",
-                    data: sellData,
-                    borderColor: "#57a9ff",
-                    backgroundColor: "rgba(87,169,255,.10)",
-                    fill: true,
-                    tension: .35,
-                    pointRadius: 2,
-                    pointHoverRadius: 5,
-                    borderWidth: 2
+
+    priceChart =
+        new Chart(
+            ctx,
+            {
+
+                type: "line",
+
+                data: {
+
+                    labels: labels,
+
+                    datasets: [
+
+                        {
+                            label: "Precio de venta",
+                            data: sellData,
+                            borderColor: "#57a9ff",
+                            backgroundColor: "rgba(87,169,255,.10)",
+                            fill: true,
+                            tension: .35,
+                            pointRadius: 2,
+                            pointHoverRadius: 5,
+                            borderWidth: 2
+                        },
+
+                        {
+                            label: "Pedido de compra",
+                            data: buyData,
+                            borderColor: "#39df9b",
+                            backgroundColor: "transparent",
+                            tension: .35,
+                            pointRadius: 2,
+                            pointHoverRadius: 5,
+                            borderWidth: 2
+                        },
+
+                        {
+                            label: "Tu máximo",
+                            data: maxData,
+                            borderColor: "#f8c65c",
+                            backgroundColor: "transparent",
+                            borderDash: [6,6],
+                            pointRadius: 0,
+                            tension: 0,
+                            borderWidth: 1.5
+                        }
+
+                    ]
                 },
-                {
-                    label: "Pedido de compra",
-                    data: buyData,
-                    borderColor: "#39df9b",
-                    backgroundColor: "transparent",
-                    tension: .35,
-                    pointRadius: 2,
-                    pointHoverRadius: 5,
-                    borderWidth: 2
-                },
-                {
-                    label: "Tu máximo",
-                    data: maxData,
-                    borderColor: "#f8c65c",
-                    backgroundColor: "transparent",
-                    borderDash: [6, 6],
-                    pointRadius: 0,
-                    tension: 0,
-                    borderWidth: 1.5
-                }
-            ]
-        },
 
-        options: {
-            responsive: true,
-            maintainAspectRatio: false,
 
-            interaction: {
-                mode: "index",
-                intersect: false
-            },
+                options: {
 
-            plugins: {
-                legend: {
-                    position: "top",
-                    align: "start",
-                    labels: {
-                        color: "#a9b8ca",
-                        usePointStyle: true,
-                        pointStyle: "circle",
-                        boxWidth: 7,
-                        padding: 18,
-                        font: { size: 10 }
-                    }
-                },
+                    responsive: true,
 
-                tooltip: {
-                    backgroundColor: "#101b29",
-                    borderColor: "rgba(148,163,184,.2)",
-                    borderWidth: 1,
-                    titleColor: "#fff",
-                    bodyColor: "#cbd5e1",
-                    padding: 12
-                }
-            },
+                    maintainAspectRatio: false,
 
-            scales: {
-                x: {
-                    ticks: {
-                        color: "#71839a",
-                        maxTicksLimit: 12,
-                        font: { size: 10 }
+                    interaction: {
+                        mode: "index",
+                        intersect: false
                     },
-                    grid: {
-                        color: "rgba(255,255,255,.035)"
-                    }
-                },
 
-                y: {
-                    ticks: {
-                        color: "#71839a",
-                        font: { size: 10 },
-                        callback: value => "$" + Number(value).toFixed(0)
+                    plugins: {
+
+                        legend: {
+
+                            position: "top",
+                            align: "start",
+
+                            labels: {
+
+                                color: "#a9b8ca",
+                                usePointStyle: true,
+                                pointStyle: "circle",
+                                boxWidth: 7,
+                                padding: 18,
+
+                                font: {
+                                    size: 10
+                                }
+                            }
+                        },
+
+
+                        tooltip: {
+
+                            backgroundColor: "#101b29",
+                            borderColor: "rgba(148,163,184,.2)",
+                            borderWidth: 1,
+                            titleColor: "#fff",
+                            bodyColor: "#cbd5e1",
+                            padding: 12
+                        }
+
                     },
-                    grid: {
-                        color: "rgba(255,255,255,.045)"
+
+
+                    scales: {
+
+                        x: {
+
+                            ticks: {
+
+                                color: "#71839a",
+                                maxTicksLimit: 12,
+
+                                font: {
+                                    size: 10
+                                }
+                            },
+
+                            grid: {
+                                color: "rgba(255,255,255,.035)"
+                            }
+
+                        },
+
+
+                        y: {
+
+                            ticks: {
+
+                                color: "#71839a",
+
+                                font: {
+                                    size: 10
+                                },
+
+                                callback:
+                                    value =>
+                                        "$" +
+                                        Number(value)
+                                            .toFixed(0)
+                            },
+
+                            grid: {
+                                color: "rgba(255,255,255,.045)"
+                            }
+
+                        }
+
                     }
+
                 }
+
             }
-        }
-    });
+        );
 }
 
-/* SEGURIDAD HTML */
+
+/* =========================================================
+   MONITOR
+========================================================= */
+
+async function loadMonitor() {
+
+    try {
+
+        const response =
+            await fetch(
+                "/api/monitor?x=" +
+                Date.now()
+            );
+
+        if (!response.ok) {
+            throw new Error(
+                "HTTP " +
+                response.status
+            );
+        }
+
+        monitorData =
+            await response.json();
+
+        renderMonitor();
+
+    } catch (error) {
+
+        console.error(
+            "Error /api/monitor:",
+            error
+        );
+
+        document.getElementById(
+            "monitorBadge"
+        ).textContent =
+            "⚠ ERROR";
+
+        document.getElementById(
+            "monitorBadge"
+        ).className =
+            "pill danger";
+    }
+}
+
+
+function getMonitorValue(...keys) {
+
+    for (const key of keys) {
+
+        if (
+            monitorData[key] !== undefined &&
+            monitorData[key] !== null
+        ) {
+            return monitorData[key];
+        }
+    }
+
+    return null;
+}
+
+
+function renderMonitor() {
+
+    const activo =
+        getMonitorValue(
+            "activo",
+            "bot_activo",
+            "online"
+        ) === true;
+
+    const workers =
+        getMonitorValue(
+            "workers",
+            "workers_activos",
+            "worker_count"
+        );
+
+    const lastSteam =
+        getMonitorValue(
+            "ultima_consulta_steam",
+            "last_steam_request",
+            "ultimo_request_steam",
+            "segundos_desde_ultima_consulta"
+        );
+
+    const lastCycle =
+        getMonitorValue(
+            "ultimo_ciclo",
+            "last_cycle",
+            "ultimo_ciclo_timestamp"
+        );
+
+    const cycles =
+        getMonitorValue(
+            "ciclos",
+            "ciclos_realizados",
+            "cycle_count"
+        );
+
+    const requests =
+        getMonitorValue(
+            "requests_steam",
+            "requests",
+            "steam_requests"
+        );
+
+    const success =
+        getMonitorValue(
+            "requests_exitosas",
+            "requests_success",
+            "successful_requests"
+        );
+
+    const failed =
+        getMonitorValue(
+            "requests_fallidas",
+            "requests_failed",
+            "failed_requests"
+        );
+
+    const uptime =
+        getMonitorValue(
+            "uptime",
+            "uptime_segundos",
+            "uptime_seconds"
+        );
+
+    const github =
+        getMonitorValue(
+            "github",
+            "github_estado",
+            "estado_github"
+        );
+
+    const lastSave =
+        getMonitorValue(
+            "ultimo_guardado",
+            "last_save"
+        );
+
+    const scan =
+        getMonitorValue(
+            "ultimo_escaneo",
+            "last_scan"
+        );
+
+
+    document.getElementById(
+        "monitorStatus"
+    ).innerHTML =
+        `
+        <span class="monitor-status ${
+            activo
+                ? "monitor-value-good"
+                : "monitor-value-danger"
+        }">
+
+            <span class="monitor-dot"></span>
+
+            ${
+                activo
+                    ? "ONLINE"
+                    : "OFFLINE"
+            }
+
+        </span>
+        `;
+
+
+    document.getElementById(
+        "monitorWorkers"
+    ).textContent =
+        workers !== null
+            ? workers
+            : "-";
+
+
+    if (
+        typeof lastSteam === "number"
+    ) {
+
+        document.getElementById(
+            "monitorLastSteam"
+        ).textContent =
+            formatDuration(
+                lastSteam
+            );
+
+    } else {
+
+        document.getElementById(
+            "monitorLastSteam"
+        ).textContent =
+            lastSteam
+                ? formatDate(lastSteam)
+                : "-";
+    }
+
+
+    document.getElementById(
+        "monitorLastCycle"
+    ).textContent =
+        lastCycle
+            ? (
+                typeof lastCycle === "number"
+                    ? formatDate(lastCycle)
+                    : String(lastCycle)
+            )
+            : "-";
+
+
+    document.getElementById(
+        "monitorCycles"
+    ).textContent =
+        cycles ?? "-";
+
+
+    document.getElementById(
+        "monitorRequests"
+    ).textContent =
+        requests ?? "-";
+
+
+    document.getElementById(
+        "monitorSuccess"
+    ).textContent =
+        success ?? "-";
+
+
+    document.getElementById(
+        "monitorFailed"
+    ).textContent =
+        failed ?? "-";
+
+
+    document.getElementById(
+        "monitorUptime"
+    ).textContent =
+        uptime !== null
+            ? formatDuration(uptime)
+            : "-";
+
+
+    document.getElementById(
+        "monitorGithub"
+    ).textContent =
+        github ?? "-";
+
+
+    document.getElementById(
+        "monitorLastSave"
+    ).textContent =
+        lastSave
+            ? (
+                typeof lastSave === "number"
+                    ? formatDate(lastSave)
+                    : String(lastSave)
+            )
+            : "-";
+
+
+    document.getElementById(
+        "monitorScan"
+    ).textContent =
+        scan
+            ? (
+                typeof scan === "number"
+                    ? formatDate(scan)
+                    : String(scan)
+            )
+            : "-";
+
+
+    document.getElementById(
+        "monitorCyclesStatus"
+    ).innerHTML =
+        `<span class="monitor-value-blue">
+            ● REGISTRADOS
+        </span>`;
+
+
+    const requestFailed =
+        Number(failed || 0);
+
+    document.getElementById(
+        "monitorRequestsStatus"
+    ).innerHTML =
+        requestFailed > 0
+            ? `<span class="monitor-value-warning">
+                ⚠ CON FALLOS
+               </span>`
+            : `<span class="monitor-value-good">
+                ● NORMAL
+               </span>`;
+
+
+    document.getElementById(
+        "monitorSuccessStatus"
+    ).innerHTML =
+        `<span class="monitor-value-good">
+            ● OK
+        </span>`;
+
+
+    document.getElementById(
+        "monitorFailedStatus"
+    ).innerHTML =
+        requestFailed > 0
+            ? `<span class="monitor-value-warning">
+                ⚠ ${requestFailed}
+               </span>`
+            : `<span class="monitor-value-good">
+                ● 0
+               </span>`;
+
+
+    document.getElementById(
+        "monitorGithubStatus"
+    ).innerHTML =
+        String(github || "")
+            .toLowerCase()
+            .includes("error")
+            ? `<span class="monitor-value-danger">
+                ⚠ ERROR
+               </span>`
+            : `<span class="monitor-value-good">
+                ● OK
+               </span>`;
+
+
+    document.getElementById(
+        "monitorBadge"
+    ).textContent =
+        activo
+            ? "● SISTEMA OPERATIVO"
+            : "● SISTEMA OFFLINE";
+
+    document.getElementById(
+        "monitorBadge"
+    ).className =
+        "pill " +
+        (
+            activo
+                ? ""
+                : "danger"
+        );
+}
+
+
+/* =========================================================
+   PROXIES
+========================================================= */
+
+async function loadProxies() {
+
+    try {
+
+        const response =
+            await fetch(
+                "/api/proxies?x=" +
+                Date.now()
+            );
+
+        if (!response.ok) {
+            throw new Error(
+                "HTTP " +
+                response.status
+            );
+        }
+
+        const data =
+            await response.json();
+
+        proxiesData =
+            Array.isArray(data)
+                ? data
+                : (
+                    data.proxies ||
+                    data.items ||
+                    []
+                );
+
+        renderProxies();
+
+    } catch (error) {
+
+        console.error(
+            "Error /api/proxies:",
+            error
+        );
+
+        document.getElementById(
+            "proxyBadge"
+        ).textContent =
+            "⚠ ERROR";
+    }
+}
+
+
+function renderProxies() {
+
+    const table =
+        document.getElementById(
+            "proxiesTable"
+        );
+
+    if (!Array.isArray(proxiesData)) {
+        proxiesData = [];
+    }
+
+
+    let working = 0;
+    let cooldown = 0;
+    let errors = 0;
+
+
+    table.innerHTML =
+        proxiesData.map(
+            (proxy,index) => {
+
+                const numero =
+                    proxy.proxy_numero ??
+                    proxy.numero ??
+                    proxy.id ??
+                    (index + 1);
+
+                const requests =
+                    Number(
+                        proxy.requests ?? 0
+                    );
+
+                const success =
+                    Number(
+                        proxy.exitosas ??
+                        proxy.success ??
+                        0
+                    );
+
+                const failed =
+                    Number(
+                        proxy.fallidas ??
+                        proxy.failed ??
+                        0
+                    );
+
+                const error429 =
+                    Number(
+                        proxy["429"] ??
+                        proxy.429 ??
+                        0
+                    );
+
+                const timeouts =
+                    Number(
+                        proxy.timeouts ??
+                        proxy.timeout ??
+                        0
+                    );
+
+                const http =
+                    Number(
+                        proxy.http ??
+                        0
+                    );
+
+                const json =
+                    Number(
+                        proxy.json ??
+                        0
+                    );
+
+                const steam =
+                    Number(
+                        proxy.steam ??
+                        0
+                    );
+
+                const requestErrors =
+                    Number(
+                        proxy.request ??
+                        0
+                    );
+
+                const cooldowns =
+                    Number(
+                        proxy.cooldowns ??
+                        0
+                    );
+
+                const lastUse =
+                    Number(
+                        proxy.ultimo_uso ??
+                        proxy.last_used ??
+                        0
+                    );
+
+
+                const successRate =
+                    requests > 0
+                        ? (
+                            success /
+                            requests
+                          ) * 100
+                        : 0;
+
+
+                const cooldownUntil =
+                    Number(
+                        proxy.cooldown_hasta ??
+                        proxy.cooldown_until ??
+                        0
+                    );
+
+
+                let stateText =
+                    "ACTIVO";
+
+                let stateClass =
+                    "proxy-online";
+
+
+                if (
+                    cooldownUntil > Date.now() / 1000
+                ) {
+
+                    stateText =
+                        "COOLDOWN";
+
+                    stateClass =
+                        "proxy-cooldown";
+
+                    cooldown++;
+
+                } else if (
+                    failed > 0 &&
+                    successRate < 80
+                ) {
+
+                    stateText =
+                        "CON ERRORES";
+
+                    stateClass =
+                        "proxy-error";
+
+                    errors++;
+
+                } else {
+
+                    working++;
+                }
+
+
+                if (
+                    failed > 0 &&
+                    successRate < 50
+                ) {
+                    errors++;
+                }
+
+
+                return `
+
+                    <tr>
+
+                        <td>
+                            <strong>
+                                Proxy #${numero}
+                            </strong>
+                        </td>
+
+
+                        <td>
+
+                            <span class="proxy-status ${stateClass}">
+
+                                <span class="proxy-status-dot"></span>
+
+                                ${stateText}
+
+                            </span>
+
+                        </td>
+
+
+                        <td>
+                            ${requests}
+                        </td>
+
+
+                        <td class="good">
+                            ${success}
+                        </td>
+
+
+                        <td class="${
+                            failed > 0
+                                ? "warning"
+                                : ""
+                        }">
+                            ${failed}
+                        </td>
+
+
+                        <td class="${
+                            error429 > 0
+                                ? "warning"
+                                : ""
+                        }">
+                            ${error429}
+                        </td>
+
+
+                        <td>
+                            ${timeouts}
+                        </td>
+
+
+                        <td>
+                            ${http}
+                        </td>
+
+
+                        <td>
+                            ${json}
+                        </td>
+
+
+                        <td>
+                            ${steam}
+                        </td>
+
+
+                        <td>
+                            ${requestErrors}
+                        </td>
+
+
+                        <td>
+                            ${cooldowns}
+                        </td>
+
+
+                        <td>
+
+                            <div style="min-width:90px">
+
+                                <div>
+                                    ${successRate.toFixed(1)}%
+                                </div>
+
+                                <div class="rate-bar">
+
+                                    <div
+                                        class="rate-bar-inner"
+                                        style="width:${Math.min(
+                                            100,
+                                            Math.max(
+                                                0,
+                                                successRate
+                                            )
+                                        )}%"
+                                    ></div>
+
+                                </div>
+
+                            </div>
+
+                        </td>
+
+
+                        <td>
+
+                            ${
+                                lastUse > 0
+                                    ? formatDate(lastUse)
+                                    : "Sin uso"
+                            }
+
+                        </td>
+
+                    </tr>
+
+                `;
+            }
+        ).join("");
+
+
+    document.getElementById(
+        "proxyTotal"
+    ).textContent =
+        proxiesData.length;
+
+
+    document.getElementById(
+        "proxyWorking"
+    ).textContent =
+        working;
+
+
+    document.getElementById(
+        "proxyCooldown"
+    ).textContent =
+        cooldown;
+
+
+    document.getElementById(
+        "proxyErrors"
+    ).textContent =
+        errors;
+
+
+    document.getElementById(
+        "proxyBadge"
+    ).textContent =
+        proxiesData.length > 0
+            ? "● MONITOREANDO " +
+              proxiesData.length +
+              " PROXIES"
+            : "● SIN DATOS";
+}
+
+
+/* =========================================================
+   SEGURIDAD HTML
+========================================================= */
 
 function escapeHtml(text) {
-    if (text === null || text === undefined) return "";
+
+    if (
+        text === null ||
+        text === undefined
+    ) {
+        return "";
+    }
 
     return String(text)
-        .replace(/&/g, "&amp;")
-        .replace(/</g, "&lt;")
-        .replace(/>/g, "&gt;")
-        .replace(/"/g, "&quot;")
-        .replace(/'/g, "&#039;");
+        .replace(
+            /&/g,
+            "&amp;"
+        )
+        .replace(
+            /</g,
+            "&lt;"
+        )
+        .replace(
+            />/g,
+            "&gt;"
+        )
+        .replace(
+            /"/g,
+            "&quot;"
+        )
+        .replace(
+            /'/g,
+            "&#039;"
+        );
 }
+
 
 function escapeAttribute(text) {
     return escapeHtml(text);
 }
 
-/* ACTUALIZAR TODO */
+
+/* =========================================================
+   ACTUALIZAR TODO
+========================================================= */
 
 async function updateAll() {
+
     await loadStatus();
+
     await loadSkins();
 
-    // No actualizar el gráfico automáticamente.
-    // El historial solo se carga al seleccionar una skin
-    // o cambiar el período.
+    /*
+       IMPORTANTE:
+
+       El historial NO se actualiza automáticamente.
+
+       El Monitor y Proxies sí se actualizan
+       automáticamente porque son datos operativos.
+    */
+
+    await loadMonitor();
+
+    await loadProxies();
 }
 
-/* INICIO */
+
+/* =========================================================
+   INICIO
+========================================================= */
 
 updateAll();
 
-setInterval(updateAll, 15000);
+
+/*
+   Actualización general cada 15 segundos.
+*/
+
+setInterval(
+    updateAll,
+    15000
+);
+
+
+/*
+   Monitor y proxies también quedan
+   disponibles aunque el usuario esté
+   mirando otra pestaña.
+*/
+
+setInterval(
+    loadMonitor,
+    15000
+);
+
+setInterval(
+    loadProxies,
+    15000
+);
+
 </script>
 
 </body>
