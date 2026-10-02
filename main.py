@@ -554,7 +554,7 @@ historial_precios = {}
 ESTADO_CARGA_FALLIDA = False
 
 HISTORIAL_HORAS = 48
-HISTORIAL_MAX_PUNTOS = 300
+HISTORIAL_MAX_PUNTOS = 6000
 
 SKIN_COOLDOWN = 600  # 10 minutos
 
@@ -1634,14 +1634,7 @@ def registrar_historial_precio(
                 0
             )
 
-            ultimo_sell = ultimo.get(
-                "sell"
-            )
-
-            if (
-                ahora - ultimo_timestamp < 30
-                and ultimo_sell == precio_sell
-            ):
+            if ahora - ultimo_timestamp < 30:
                 return
 
         # ==================================================
