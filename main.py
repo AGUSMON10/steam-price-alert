@@ -3935,7 +3935,18 @@ def worker(grupo_skins, worker_id):
                 ZONA_ARG
             ).isoformat()
 
+            print(
+                f"[DEBUG CICLO] ultimo_escaneo actualizado: "
+                f"{estado_app['ultimo_escaneo']}"
+            )
+
             ciclo_numero += 1
+
+            print(
+                f"[DEBUG CICLO] ciclo_numero actualizado: "
+                f"{ciclo_numero}"
+            )
+            
             stats_diarias["ciclos"] += 1
 
             duracion = round(time.time() - inicio_ciclo, 2)
