@@ -794,6 +794,180 @@ select:focus {
     color: var(--blue);
 }
 
+
+/* =========================================================
+   DIAGNOSTICO INTELIGENTE
+========================================================= */
+
+.diagnostic-panel {
+    background: linear-gradient(145deg,#131e2b,#0f1722);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 21px;
+    margin-bottom: 22px;
+}
+
+.diagnostic-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 15px;
+    margin-bottom: 20px;
+}
+
+.diagnostic-main {
+    display: flex;
+    align-items: center;
+    gap: 13px;
+    min-width: 0;
+}
+
+.diagnostic-icon {
+    width: 43px;
+    height: 43px;
+    flex-shrink: 0;
+    display: grid;
+    place-items: center;
+    border-radius: 12px;
+    background: rgba(255,255,255,.05);
+    font-size: 21px;
+}
+
+.diagnostic-title {
+    font-family: 'Space Grotesk',sans-serif;
+    font-size: 15px;
+    font-weight: 700;
+}
+
+.diagnostic-description {
+    color: var(--muted);
+    font-size: 11px;
+    margin-top: 5px;
+    line-height: 1.5;
+}
+
+.diagnostic-badge {
+    flex-shrink: 0;
+    padding: 7px 11px;
+    border-radius: 8px;
+    font-size: 10px;
+    font-weight: 800;
+    letter-spacing: .5px;
+}
+
+.diagnostic-ok {
+    color: var(--green);
+    background: rgba(57,223,155,.09);
+    border: 1px solid rgba(57,223,155,.2);
+}
+
+.diagnostic-warning {
+    color: var(--yellow);
+    background: rgba(248,198,92,.09);
+    border: 1px solid rgba(248,198,92,.2);
+}
+
+.diagnostic-problem {
+    color: var(--red);
+    background: rgba(255,104,125,.09);
+    border: 1px solid rgba(255,104,125,.2);
+}
+
+.diagnostic-unknown {
+    color: var(--muted);
+    background: rgba(148,163,184,.08);
+    border: 1px solid var(--border);
+}
+
+.diagnostic-components {
+    display: grid;
+    grid-template-columns: repeat(4,minmax(0,1fr));
+    gap: 11px;
+}
+
+.diagnostic-item {
+    background: #0b131e;
+    border: 1px solid var(--border);
+    border-radius: 11px;
+    padding: 13px;
+    min-width: 0;
+}
+
+.diagnostic-item-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 9px;
+}
+
+.diagnostic-item-name {
+    font-size: 11px;
+    font-weight: 700;
+    color: #dce7f5;
+}
+
+.diagnostic-item-state {
+    font-size: 9px;
+    font-weight: 800;
+}
+
+.diagnostic-item-message {
+    color: var(--muted);
+    font-size: 10px;
+    line-height: 1.5;
+}
+
+.diagnostic-problems {
+    margin-top: 15px;
+    padding: 13px 15px;
+    border-radius: 10px;
+    background: rgba(248,198,92,.06);
+    border: 1px solid rgba(248,198,92,.13);
+}
+
+.diagnostic-problems:empty {
+    display: none;
+}
+
+.diagnostic-problems-title {
+    color: var(--yellow);
+    font-size: 11px;
+    font-weight: 800;
+    margin-bottom: 8px;
+}
+
+.diagnostic-problems ul {
+    margin: 0;
+    padding-left: 17px;
+    color: #c4d0df;
+    font-size: 10px;
+    line-height: 1.8;
+}
+
+.diagnostic-clear {
+    color: var(--green);
+    font-size: 11px;
+    font-weight: 600;
+}
+
+@media (max-width: 1150px) {
+    .diagnostic-components {
+        grid-template-columns: repeat(2,minmax(0,1fr));
+    }
+}
+
+@media (max-width: 600px) {
+    .diagnostic-header {
+        align-items: flex-start;
+        flex-direction: column;
+    }
+
+    .diagnostic-components {
+        grid-template-columns: 1fr;
+    }
+}
+
 /* =========================================================
    PROXIES
 ========================================================= */
@@ -1925,7 +2099,63 @@ select:focus {
 
             </div>
 
+<!-- =====================================================
+     DIAGNOSTICO INTELIGENTE
+====================================================== -->
 
+<div class="diagnostic-panel" id="monitorDiagnostic">
+
+    <div class="diagnostic-header">
+
+        <div class="diagnostic-main">
+
+            <div id="monitorDiagnosticIcon"
+                 class="diagnostic-icon">
+                ◌
+            </div>
+
+            <div>
+
+                <div id="monitorDiagnosticTitle"
+                     class="diagnostic-title">
+                    Analizando el sistema...
+                </div>
+
+                <div id="monitorDiagnosticText"
+                     class="diagnostic-description">
+                    Esperando información del backend.
+                </div>
+
+            </div>
+
+        </div>
+
+        <span id="monitorDiagnosticBadge"
+              class="diagnostic-badge diagnostic-unknown">
+            ANALIZANDO
+        </span>
+
+    </div>
+
+
+    <div id="monitorDiagnosticComponents"
+         class="diagnostic-components">
+
+        <div class="diagnostic-item">
+            <div class="diagnostic-item-name">
+                Esperando diagnóstico...
+            </div>
+        </div>
+
+    </div>
+
+
+    <div id="monitorDiagnosticProblems"
+         class="diagnostic-problems">
+    </div>
+
+</div>
+            
             <div class="monitor-grid">
 
                 <div class="monitor-card">
@@ -3969,19 +4199,257 @@ function getMonitorValue(...keys) {
 }
 
 
+
 function renderMonitor(data) {
 
     if (!data) {
         return;
     }
 
+    // =====================================================
+    // DIAGNOSTICO INTELIGENTE
+    // =====================================================
 
-    /* =====================================================
-       ESTADO GENERAL
-    ===================================================== */
+    const diagnostico =
+        data.diagnostico || {};
 
-    const botEstado =
-        data.bot?.estado || "DESCONOCIDO";
+    const diagnosticoEstado =
+        diagnostico.estado ||
+        data.bot?.estado ||
+        "DESCONOCIDO";
+
+    const diagnosticoTitulo =
+        diagnostico.titulo ||
+        "No hay información del diagnóstico.";
+
+    const estados = {
+
+        OK: {
+            clase: "diagnostic-ok",
+            icono: "✓",
+            texto: "SISTEMA OK"
+        },
+
+        ADVERTENCIA: {
+            clase: "diagnostic-warning",
+            icono: "⚠",
+            texto: "ADVERTENCIA"
+        },
+
+        PROBLEMA: {
+            clase: "diagnostic-problem",
+            icono: "✕",
+            texto: "PROBLEMA"
+        }
+
+    };
+
+    const estadoVisual =
+        estados[diagnosticoEstado] || {
+            clase: "diagnostic-unknown",
+            icono: "?",
+            texto: "SIN DATOS"
+        };
+
+
+    // =====================================================
+    // TITULO Y ESTADO GENERAL
+    // =====================================================
+
+    const diagnosticTitle =
+        document.getElementById(
+            "monitorDiagnosticTitle"
+        );
+
+    const diagnosticText =
+        document.getElementById(
+            "monitorDiagnosticText"
+        );
+
+    const diagnosticIcon =
+        document.getElementById(
+            "monitorDiagnosticIcon"
+        );
+
+    const diagnosticBadge =
+        document.getElementById(
+            "monitorDiagnosticBadge"
+        );
+
+    if (diagnosticTitle) {
+
+        diagnosticTitle.textContent =
+            diagnosticoTitulo;
+    }
+
+    if (diagnosticText) {
+
+        diagnosticText.textContent =
+            "Diagnóstico automático del funcionamiento del bot.";
+    }
+
+    if (diagnosticIcon) {
+
+        diagnosticIcon.textContent =
+            estadoVisual.icono;
+
+        diagnosticIcon.className =
+            "diagnostic-icon " +
+            estadoVisual.clase;
+    }
+
+    if (diagnosticBadge) {
+
+        diagnosticBadge.textContent =
+            estadoVisual.texto;
+
+        diagnosticBadge.className =
+            "diagnostic-badge " +
+            estadoVisual.clase;
+    }
+
+
+    // =====================================================
+    // ESTADO INDIVIDUAL DE LOS COMPONENTES
+    // =====================================================
+
+    const componentes =
+        diagnostico.componentes || {};
+
+    const nombresComponentes = {
+
+        steam: "Steam",
+
+        workers: "Workers",
+
+        actividad: "Actividad",
+
+        github: "GitHub"
+
+    };
+
+    const componentsContainer =
+        document.getElementById(
+            "monitorDiagnosticComponents"
+        );
+
+    if (componentsContainer) {
+
+        const componentesHTML =
+            Object.entries(componentes).map(
+                ([clave, componente]) => {
+
+                    const estado =
+                        componente.estado ||
+                        "DESCONOCIDO";
+
+                    const visual =
+                        estados[estado] || {
+                            clase: "diagnostic-unknown",
+                            icono: "?",
+                            texto: "SIN DATOS"
+                        };
+
+                    const nombre =
+                        nombresComponentes[clave] ||
+                        clave;
+
+                    const mensaje =
+                        componente.mensaje ||
+                        "Sin información disponible.";
+
+                    return `
+
+                        <div class="diagnostic-item">
+
+                            <div class="diagnostic-item-top">
+
+                                <span class="diagnostic-item-name">
+                                    ${escapeHtml(nombre)}
+                                </span>
+
+                                <span class="diagnostic-item-state ${visual.clase}">
+                                    ${visual.icono}
+                                    ${visual.texto}
+                                </span>
+
+                            </div>
+
+                            <div class="diagnostic-item-message">
+                                ${escapeHtml(mensaje)}
+                            </div>
+
+                        </div>
+
+                    `;
+
+                }
+            ).join("");
+
+        componentsContainer.innerHTML =
+            componentesHTML ||
+            `
+                <div class="diagnostic-item">
+                    <div class="diagnostic-item-message">
+                        No hay componentes para analizar.
+                    </div>
+                </div>
+            `;
+    }
+
+
+    // =====================================================
+    // LISTA DE PROBLEMAS
+    // =====================================================
+
+    const problemas =
+        Array.isArray(diagnostico.problemas)
+            ? diagnostico.problemas
+            : [];
+
+    const problemsContainer =
+        document.getElementById(
+            "monitorDiagnosticProblems"
+        );
+
+    if (problemsContainer) {
+
+        if (problemas.length > 0) {
+
+            problemsContainer.innerHTML = `
+
+                <div class="diagnostic-problems-title">
+                    ⚠ DETALLES QUE REQUIEREN ATENCIÓN
+                </div>
+
+                <ul>
+                    ${
+                        problemas.map(
+                            problema =>
+                                `<li>${escapeHtml(problema)}</li>`
+                        ).join("")
+                    }
+                </ul>
+
+            `;
+
+        } else {
+
+            problemsContainer.innerHTML = `
+
+                <div class="diagnostic-clear">
+                    ✓ No se detectaron problemas.
+                    Todos los componentes están funcionando correctamente.
+                </div>
+
+            `;
+        }
+    }
+
+
+    // =====================================================
+    // ESTADO GENERAL DE LA TARJETA
+    // =====================================================
 
     const statusElement =
         document.getElementById(
@@ -3990,28 +4458,32 @@ function renderMonitor(data) {
 
     if (statusElement) {
 
-        if (botEstado === "OK") {
+        statusElement.textContent =
+            diagnosticoEstado === "OK"
+                ? "🟢 ONLINE"
+                : diagnosticoEstado === "ADVERTENCIA"
+                    ? "🟡 ADVERTENCIA"
+                    : diagnosticoEstado === "PROBLEMA"
+                        ? "🔴 PROBLEMA"
+                        : "⚪ SIN DATOS";
 
-            statusElement.textContent =
-                "🟢 ONLINE";
-
-            statusElement.className =
-                "monitor-card-value monitor-value-good";
-
-        } else {
-
-            statusElement.textContent =
-                "🔴 " + botEstado;
-
-            statusElement.className =
-                "monitor-card-value monitor-value-danger";
-        }
+        statusElement.className =
+            "monitor-card-value " +
+            (
+                diagnosticoEstado === "OK"
+                    ? "monitor-value-good"
+                    : diagnosticoEstado === "ADVERTENCIA"
+                        ? "monitor-value-warning"
+                        : diagnosticoEstado === "PROBLEMA"
+                            ? "monitor-value-danger"
+                            : "monitor-value-blue"
+            );
     }
 
 
-    /* =====================================================
-       BADGE
-    ===================================================== */
+    // =====================================================
+    // BADGE SUPERIOR DEL MONITOR
+    // =====================================================
 
     const badge =
         document.getElementById(
@@ -4020,38 +4492,30 @@ function renderMonitor(data) {
 
     if (badge) {
 
-        if (botEstado === "OK") {
+        badge.textContent =
+            "● " + estadoVisual.texto;
 
-            badge.textContent =
-                "● SISTEMA ONLINE";
-
-            badge.className =
-                "pill";
-
-        } else {
-
-            badge.textContent =
-                "⚠ " + botEstado;
-
-            badge.className =
-                "pill";
-        }
+        badge.className =
+            "pill " +
+            (
+                diagnosticoEstado === "OK"
+                    ? ""
+                    : diagnosticoEstado === "ADVERTENCIA"
+                        ? "warning"
+                        : "danger"
+            );
     }
 
 
-    /* =====================================================
-       WORKERS
-    ===================================================== */
+    // =====================================================
+    // WORKERS
+    // =====================================================
 
     const workersActivos =
-        Number(
-            data.workers?.activos || 0
-        );
+        Number(data.workers?.activos || 0);
 
     const workersTotal =
-        Number(
-            data.workers?.total || 0
-        );
+        Number(data.workers?.total || 0);
 
     document.getElementById(
         "monitorWorkers"
@@ -4061,17 +4525,15 @@ function renderMonitor(data) {
         workersTotal;
 
 
-    /* =====================================================
-       ÚLTIMA CONSULTA STEAM
-    ===================================================== */
+    // =====================================================
+    // ULTIMA CONSULTA STEAM
+    // =====================================================
 
     const ultimoRequest =
         data.steam?.ultimo_request;
 
     const segundosDesdeRequest =
-        Number(
-            data.steam?.segundos_desde_request
-        );
+        data.steam?.segundos_desde_request;
 
     document.getElementById(
         "monitorLastSteam"
@@ -4080,12 +4542,6 @@ function renderMonitor(data) {
             ? formatDate(ultimoRequest)
             : "-";
 
-
-    /*
-       Mostramos debajo cuánto hace
-       que se consultó Steam.
-    */
-
     const lastSteamSub =
         document.querySelector(
             "#monitorLastSteam + .monitor-card-sub"
@@ -4093,29 +4549,20 @@ function renderMonitor(data) {
 
     if (lastSteamSub) {
 
-        if (
-            Number.isFinite(
-                segundosDesdeRequest
-            )
-        ) {
-
-            lastSteamSub.textContent =
-                "Hace " +
-                formatDuration(
-                    segundosDesdeRequest
-                );
-
-        } else {
-
-            lastSteamSub.textContent =
-                "Tiempo desde la última petición";
-        }
+        lastSteamSub.textContent =
+            segundosDesdeRequest !== null &&
+            segundosDesdeRequest !== undefined
+                ? "Hace " +
+                  formatDuration(
+                      Number(segundosDesdeRequest)
+                  )
+                : "Sin consultas registradas";
     }
 
 
-    /* =====================================================
-       ÚLTIMO CICLO
-    ===================================================== */
+    // =====================================================
+    // ULTIMO CICLO
+    // =====================================================
 
     const ultimoEscaneo =
         data.ciclo?.ultimo_escaneo;
@@ -4128,103 +4575,95 @@ function renderMonitor(data) {
             : "-";
 
 
-    /* =====================================================
-       CICLOS
-    ===================================================== */
+    // =====================================================
+    // CICLOS
+    // =====================================================
 
     const ciclos =
-        Number(
-            data.stats?.ciclos || 0
-        );
+        Number(data.stats?.ciclos || 0);
 
     document.getElementById(
         "monitorCycles"
     ).textContent =
-        ciclos.toLocaleString(
-            "es-AR"
-        );
-
+        ciclos.toLocaleString("es-AR");
 
     document.getElementById(
         "monitorCyclesStatus"
     ).innerHTML =
-        `
-            <span class="monitor-value-good">
-                ● ACTIVIDAD
-            </span>
-        `;
+        ciclos > 0
+            ? `
+                <span class="monitor-value-good">
+                    ● ACTIVIDAD
+                </span>
+              `
+            : `
+                <span class="monitor-value-warning">
+                    ⚠ SIN DATOS
+                </span>
+              `;
 
 
-    /* =====================================================
-       REQUESTS STEAM
-    ===================================================== */
+    // =====================================================
+    // REQUESTS STEAM
+    // =====================================================
 
     const requests =
-        Number(
-            data.stats?.requests_steam || 0
-        );
+        Number(data.stats?.requests_steam || 0);
 
     document.getElementById(
         "monitorRequests"
     ).textContent =
-        requests.toLocaleString(
-            "es-AR"
-        );
-
+        requests.toLocaleString("es-AR");
 
     document.getElementById(
         "monitorRequestsStatus"
     ).innerHTML =
-        `
-            <span class="monitor-value-good">
-                ● ACTIVO
-            </span>
-        `;
+        requests > 0
+            ? `
+                <span class="monitor-value-good">
+                    ● ACTIVO
+                </span>
+              `
+            : `
+                <span class="monitor-value-warning">
+                    ⚠ SIN DATOS
+                </span>
+              `;
 
 
-    /* =====================================================
-       REQUESTS EXITOSAS
-    ===================================================== */
+    // =====================================================
+    // REQUESTS EXITOSAS
+    // =====================================================
 
     const exitosas =
-        Number(
-            data.stats?.requests_exitosas || 0
-        );
+        Number(data.stats?.requests_exitosas || 0);
 
     document.getElementById(
         "monitorSuccess"
     ).textContent =
-        exitosas.toLocaleString(
-            "es-AR"
-        );
-
+        exitosas.toLocaleString("es-AR");
 
     document.getElementById(
         "monitorSuccessStatus"
     ).innerHTML =
         `
             <span class="monitor-value-good">
-                ● OK
+                ● ${exitosas > 0 ? "REGISTRADAS" : "SIN DATOS"}
             </span>
         `;
 
 
-    /* =====================================================
-       REQUESTS FALLIDAS
-    ===================================================== */
+    // =====================================================
+    // REQUESTS FALLIDAS
+    // =====================================================
 
     const fallidas =
-        Number(
-            data.stats?.requests_fallidas || 0
-        );
+        Number(data.stats?.requests_fallidas || 0);
 
     document.getElementById(
         "monitorFailed"
     ).textContent =
-        fallidas.toLocaleString(
-            "es-AR"
-        );
-
+        fallidas.toLocaleString("es-AR");
 
     document.getElementById(
         "monitorFailedStatus"
@@ -4242,38 +4681,34 @@ function renderMonitor(data) {
               `;
 
 
-    /* =====================================================
-       UPTIME
-    ===================================================== */
+    // =====================================================
+    // UPTIME
+    // =====================================================
 
     const uptime =
-        Number(
-            data.bot?.uptime || 0
-        );
+        Number(data.bot?.uptime || 0);
 
     document.getElementById(
         "monitorUptime"
     ).textContent =
-        formatDuration(
-            uptime
-        );
+        formatDuration(uptime);
 
 
-    /* =====================================================
-       GITHUB
-    ===================================================== */
+    // =====================================================
+    // GITHUB
+    // =====================================================
 
     const githubEstado =
-        data.github?.estado ||
-        "DESCONOCIDO";
+        data.github?.estado || "DESCONOCIDO";
 
     document.getElementById(
         "monitorGithub"
     ).textContent =
         githubEstado === "OK"
             ? "🟢 OK"
-            : "🔴 " + githubEstado;
-
+            : githubEstado === "ERROR"
+                ? "🔴 ERROR"
+                : "⚠ " + githubEstado;
 
     document.getElementById(
         "monitorGithubStatus"
@@ -4281,19 +4716,19 @@ function renderMonitor(data) {
         githubEstado === "OK"
             ? `
                 <span class="monitor-value-good">
-                    ● CONECTADO
+                    ● REGISTRADO
                 </span>
               `
             : `
-                <span class="monitor-value-danger">
+                <span class="monitor-value-warning">
                     ⚠ REVISAR
                 </span>
               `;
 
 
-    /* =====================================================
-       ÚLTIMO GUARDADO
-    ===================================================== */
+    // =====================================================
+    // ULTIMO GUARDADO
+    // =====================================================
 
     const ultimoGuardado =
         data.github?.ultimo_guardado;
@@ -4306,9 +4741,9 @@ function renderMonitor(data) {
             : "-";
 
 
-    /* =====================================================
-       ÚLTIMO ESCANEO
-    ===================================================== */
+    // =====================================================
+    // ULTIMO ESCANEO
+    // =====================================================
 
     document.getElementById(
         "monitorScan"
@@ -4316,54 +4751,7 @@ function renderMonitor(data) {
         ultimoEscaneo
             ? formatDate(ultimoEscaneo)
             : "-";
-}
-/* =========================================================
-   PROXIES
-========================================================= */
 
-async function loadProxies() {
-
-    try {
-
-        const response =
-            await fetch(
-                "/api/proxies?x=" +
-                Date.now()
-            );
-
-        if (!response.ok) {
-            throw new Error(
-                "HTTP " +
-                response.status
-            );
-        }
-
-        const data =
-            await response.json();
-
-        proxiesData =
-            Array.isArray(data)
-                ? data
-                : (
-                    data.proxies ||
-                    data.items ||
-                    []
-                );
-
-        renderProxies();
-
-    } catch (error) {
-
-        console.error(
-            "Error /api/proxies:",
-            error
-        );
-
-        document.getElementById(
-            "proxyBadge"
-        ).textContent =
-            "⚠ ERROR";
-    }
 }
 
 
