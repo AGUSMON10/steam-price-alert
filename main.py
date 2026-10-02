@@ -1550,28 +1550,30 @@ def api_monitor():
         0
     )
 
-    if ultimo_request:
-        segundos_desde_request = max(
-            0,
-            ahora - ultimo_request
-        )
-    else:
-        segundos_desde_request = None
+    segundos_desde_request = (
+        max(0, ahora - ultimo_request)
+        if ultimo_request
+        else None
+    )
 
     # ======================================================
     # ESTADO DE STEAM
     # ======================================================
 
     if segundos_desde_request is None:
+
         steam_estado = "SIN DATOS"
 
     elif segundos_desde_request < 120:
+
         steam_estado = "OK"
 
     elif segundos_desde_request < 900:
+
         steam_estado = "ADVERTENCIA"
 
     else:
+
         steam_estado = "SIN ACTIVIDAD"
 
     # ======================================================
@@ -1620,12 +1622,8 @@ def api_monitor():
                 pass
 
     except Exception:
-        workers = []
 
-    # ======================================================
-    # SI NO TENEMOS LA LISTA DE WORKERS,
-    # NO INVENTAMOS CANTIDADES
-    # ======================================================
+        workers = []
 
     if workers_total == 0:
 
@@ -1644,7 +1642,22 @@ def api_monitor():
         worker_estado = "DETENIDO"
 
     # ======================================================
-    # ESTADÍSTICAS DIARIAS
+    # ACTIVIDAD DE WORKERS
+    # ======================================================
+
+    ultima_actividad_worker = globals().get(
+        "LAST_WORKER_ACTIVITY",
+        0
+    )
+
+    segundos_desde_actividad = (
+        max(0, ahora - ultima_actividad_worker)
+        if ultima_actividad_worker
+        else None
+    )
+
+    # ======================================================
+    # ESTADÍSTICAS Y ESTADO DE LA APP
     # ======================================================
 
     with lock:
@@ -1671,16 +1684,11 @@ def api_monitor():
         0
     )
 
-    if ultimo_guardado:
-
-        segundos_desde_guardado = max(
-            0,
-            ahora - ultimo_guardado
-        )
-
-    else:
-
-        segundos_desde_guardado = None
+    segundos_desde_guardado = (
+        max(0, ahora - ultimo_guardado)
+        if ultimo_guardado
+        else None
+    )
 
     # ======================================================
     # ESTADO DE GITHUB
@@ -1712,6 +1720,232 @@ def api_monitor():
     )
 
     # ======================================================
+    # DIAGNÓSTICO INTELIGENTE
+    # ======================================================
+
+    problemas = []
+
+    componentes = {}
+
+    # ------------------------------------------------------
+    # STEAM
+    # ------------------------------------------------------
+
+    if steam_estado == "OK":
+
+        componentes["steam"] = {
+            "estado": "OK",
+            "mensaje": "Steam responde correctamente."
+        }
+
+    elif steam_estado == "ADVERTENCIA":
+
+        componentes["steam"] = {
+            "estado": "ADVERTENCIA",
+            "mensaje": (
+                "Hace más de 2 minutos que no se "
+                "registra una consulta a Steam."
+            )
+        }
+
+        problemas.append(
+            "Steam lleva más de 2 minutos sin consultas."
+        )
+
+    elif steam_estado == "SIN ACTIVIDAD":
+
+        componentes["steam"] = {
+            "estado": "PROBLEMA",
+            "mensaje": (
+                "Hace más de 15 minutos que no se "
+                "registra una consulta a Steam."
+            )
+        }
+
+        problemas.append(
+            "Steam lleva más de 15 minutos sin consultas."
+        )
+
+    else:
+
+        componentes["steam"] = {
+            "estado": "ADVERTENCIA",
+            "mensaje": "Todavía no hay datos de consultas Steam."
+        }
+
+        problemas.append(
+            "No hay datos de actividad de Steam."
+        )
+
+    # ------------------------------------------------------
+    # WORKERS
+    # ------------------------------------------------------
+
+    if worker_estado == "OK":
+
+        componentes["workers"] = {
+            "estado": "OK",
+            "mensaje": (
+                f"Todos los workers están activos "
+                f"({workers_activos}/{workers_total})."
+            )
+        }
+
+    elif worker_estado == "ADVERTENCIA":
+
+        componentes["workers"] = {
+            "estado": "ADVERTENCIA",
+            "mensaje": (
+                f"Hay workers detenidos. "
+                f"Activos: {workers_activos}/{workers_total}."
+            )
+        }
+
+        problemas.append(
+            "Uno o más workers están detenidos."
+        )
+
+    elif worker_estado == "DETENIDO":
+
+        componentes["workers"] = {
+            "estado": "PROBLEMA",
+            "mensaje": "Todos los workers están detenidos."
+        }
+
+        problemas.append(
+            "Todos los workers están detenidos."
+        )
+
+    else:
+
+        componentes["workers"] = {
+            "estado": "ADVERTENCIA",
+            "mensaje": "No se pudo comprobar el estado de los workers."
+        }
+
+        problemas.append(
+            "No hay información disponible de los workers."
+        )
+
+    # ------------------------------------------------------
+    # ACTIVIDAD DE LOS WORKERS
+    # ------------------------------------------------------
+
+    if segundos_desde_actividad is None:
+
+        componentes["actividad"] = {
+            "estado": "ADVERTENCIA",
+            "mensaje": "No hay registro de actividad de workers."
+        }
+
+        problemas.append(
+            "No se registró actividad de los workers."
+        )
+
+    elif segundos_desde_actividad < 180:
+
+        componentes["actividad"] = {
+            "estado": "OK",
+            "mensaje": (
+                "Los workers registraron actividad recientemente."
+            )
+        }
+
+    elif segundos_desde_actividad < 600:
+
+        componentes["actividad"] = {
+            "estado": "ADVERTENCIA",
+            "mensaje": (
+                "Los workers llevan más de 3 minutos "
+                "sin registrar actividad."
+            )
+        }
+
+        problemas.append(
+            "Los workers llevan más de 3 minutos sin actividad."
+        )
+
+    else:
+
+        componentes["actividad"] = {
+            "estado": "PROBLEMA",
+            "mensaje": (
+                "Los workers llevan más de 10 minutos "
+                "sin registrar actividad."
+            )
+        }
+
+        problemas.append(
+            "Los workers llevan más de 10 minutos sin actividad."
+        )
+
+    # ------------------------------------------------------
+    # GITHUB
+    # ------------------------------------------------------
+
+    if github_estado == "OK":
+
+        componentes["github"] = {
+            "estado": "OK",
+            "mensaje": "El estado tiene un guardado registrado."
+        }
+
+    elif github_estado == "ERROR":
+
+        componentes["github"] = {
+            "estado": "ADVERTENCIA",
+            "mensaje": "El último intento de carga presentó un error."
+        }
+
+        problemas.append(
+            "GitHub informó un error de carga."
+        )
+
+    else:
+
+        componentes["github"] = {
+            "estado": "ADVERTENCIA",
+            "mensaje": "Todavía no hay un guardado registrado."
+        }
+
+        problemas.append(
+            "No hay información del último guardado en GitHub."
+        )
+
+    # ======================================================
+    # ESTADO GENERAL DEL DIAGNÓSTICO
+    # ======================================================
+
+    estados_componentes = [
+        componente["estado"]
+        for componente in componentes.values()
+    ]
+
+    if "PROBLEMA" in estados_componentes:
+
+        diagnostico_estado = "PROBLEMA"
+
+        diagnostico_titulo = (
+            "Se detectaron problemas que requieren atención."
+        )
+
+    elif "ADVERTENCIA" in estados_componentes:
+
+        diagnostico_estado = "ADVERTENCIA"
+
+        diagnostico_titulo = (
+            "El bot funciona, pero hay puntos para revisar."
+        )
+
+    else:
+
+        diagnostico_estado = "OK"
+
+        diagnostico_titulo = (
+            "Todos los componentes funcionan correctamente."
+        )
+
+    # ======================================================
     # RESPUESTA
     # ======================================================
 
@@ -1721,23 +1955,24 @@ def api_monitor():
 
         "bot": {
 
-            "estado": (
-                "OK"
-                if (
-                    steam_estado == "OK"
-                    and worker_estado in (
-                        "OK",
-                        "NO DISPONIBLE"
-                    )
-                )
-                else "ADVERTENCIA"
-            ),
+            "estado": diagnostico_estado,
 
             "uptime": uptime_segundos,
 
             "uptime_horas": (
                 uptime_segundos / 3600
             )
+        },
+
+        "diagnostico": {
+
+            "estado": diagnostico_estado,
+
+            "titulo": diagnostico_titulo,
+
+            "problemas": problemas,
+
+            "componentes": componentes
         },
 
         "steam": {
@@ -1762,15 +1997,14 @@ def api_monitor():
 
             "activos": workers_activos,
 
-            "ultima_actividad":
-                LAST_WORKER_ACTIVITY,
+            "ultima_actividad": (
+                ultima_actividad_worker
+                if ultima_actividad_worker
+                else None
+            ),
 
             "segundos_desde_actividad":
-                (
-                    ahora - LAST_WORKER_ACTIVITY
-                    if LAST_WORKER_ACTIVITY
-                    else None
-                )
+                segundos_desde_actividad
         },
 
         "ciclo": {
