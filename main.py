@@ -45,6 +45,13 @@ PROXY_MIN_INTERVAL = 10
 GLOBAL_MIN_REQUEST_INTERVAL = 3.0
 LAST_STEAM_REQUEST = 0
 
+# ==========================================================
+# MONITOR DEL BOT
+# ==========================================================
+
+BOT_START_TIME = time.time()
+ULTIMO_GUARDADO_ESTADO = 0
+
 # =========================================================
 # AUTO-TUNER
 # =========================================================
@@ -671,6 +678,8 @@ ULTIMO_GUARDADO_ESTADO = 0
 
 
 def guardar_estado(forzar=False):
+
+    global ULTIMO_GUARDADO_ESTADO
     
     global ESTADO_CARGA_FALLIDA
 
@@ -1122,6 +1131,10 @@ def cargar_estado():
             0
         )
 
+        global ULTIMO_GUARDADO_ESTADO
+
+        ULTIMO_GUARDADO_ESTADO = time.time()
+
         print("[GITHUB] Estado descargado correctamente.")
         print(
             f"[GITHUB] Cache recuperada: "
@@ -1508,6 +1521,684 @@ def api_skins():
         })
 
     return jsonify(resultado)
+
+# ==========================================================
+# API MONITOR DEL BOT
+# ==========================================================
+
+@app.route('/api/monitor')
+def api_monitor():
+
+    ahora = time.time()
+
+    # ======================================================
+    # UPTIME
+    # ======================================================
+
+    uptime_segundos = max(
+        0,
+        ahora - BOT_START_TIME
+    )
+
+    # ======================================================
+    # ÚLTIMO REQUEST A STEAM
+    # ======================================================
+
+    ultimo_request = globals().get(
+        "LAST_STEAM_REQUEST",
+        0
+    )
+
+    if ultimo_request:
+        segundos_desde_request = max(
+            0,
+            ahora - ultimo_request
+        )
+    else:
+        segundos_desde_request = None
+
+    # ======================================================
+    # ESTADO DE STEAM
+    # ======================================================
+
+    if segundos_desde_request is None:
+        steam_estado = "SIN DATOS"
+
+    elif segundos_desde_request < 120:
+        steam_estado = "OK"
+
+    elif segundos_desde_request < 900:
+        steam_estado = "ADVERTENCIA"
+
+    else:
+        steam_estado = "SIN ACTIVIDAD"
+
+    # ======================================================
+    # WORKERS
+    # ======================================================
+
+    workers_threads = globals().get(
+        "WORKER_THREADS",
+        []
+    )
+
+    workers_total = 0
+    workers_activos = 0
+
+    try:
+
+        if isinstance(workers_threads, dict):
+
+            workers = list(
+                workers_threads.values()
+            )
+
+        elif isinstance(
+            workers_threads,
+            (list, tuple, set)
+        ):
+
+            workers = list(
+                workers_threads
+            )
+
+        else:
+
+            workers = []
+
+        workers_total = len(workers)
+
+        for worker in workers:
+
+            try:
+
+                if worker.is_alive():
+                    workers_activos += 1
+
+            except Exception:
+                pass
+
+    except Exception:
+        workers = []
+
+    # ======================================================
+    # SI NO TENEMOS LA LISTA DE WORKERS,
+    # NO INVENTAMOS CANTIDADES
+    # ======================================================
+
+    if workers_total == 0:
+
+        worker_estado = "NO DISPONIBLE"
+
+    elif workers_activos == workers_total:
+
+        worker_estado = "OK"
+
+    elif workers_activos > 0:
+
+        worker_estado = "ADVERTENCIA"
+
+    else:
+
+        worker_estado = "DETENIDO"
+
+    # ======================================================
+    # ESTADÍSTICAS DIARIAS
+    # ======================================================
+
+    with lock:
+
+        stats = dict(
+            stats_diarias
+        )
+
+        ciclo_actual = ciclo_numero
+
+        estado_actual = dict(
+            estado_app
+        ) if isinstance(
+            estado_app,
+            dict
+        ) else {}
+
+    # ======================================================
+    # ÚLTIMO GUARDADO
+    # ======================================================
+
+    ultimo_guardado = globals().get(
+        "ULTIMO_GUARDADO_ESTADO",
+        0
+    )
+
+    if ultimo_guardado:
+
+        segundos_desde_guardado = max(
+            0,
+            ahora - ultimo_guardado
+        )
+
+    else:
+
+        segundos_desde_guardado = None
+
+    # ======================================================
+    # ESTADO DE GITHUB
+    # ======================================================
+
+    estado_carga_fallida = globals().get(
+        "ESTADO_CARGA_FALLIDA",
+        False
+    )
+
+    if estado_carga_fallida:
+
+        github_estado = "ERROR"
+
+    elif ultimo_guardado:
+
+        github_estado = "OK"
+
+    else:
+
+        github_estado = "SIN DATOS"
+
+    # ======================================================
+    # ÚLTIMO ESCANEO
+    # ======================================================
+
+    ultimo_escaneo = estado_actual.get(
+        "ultimo_escaneo"
+    )
+
+    # ======================================================
+    # RESPUESTA
+    # ======================================================
+
+    return jsonify({
+
+        "timestamp": ahora,
+
+        "bot": {
+
+            "estado": (
+                "OK"
+                if (
+                    steam_estado == "OK"
+                    and worker_estado in (
+                        "OK",
+                        "NO DISPONIBLE"
+                    )
+                )
+                else "ADVERTENCIA"
+            ),
+
+            "uptime": uptime_segundos,
+
+            "uptime_horas": (
+                uptime_segundos / 3600
+            )
+        },
+
+        "steam": {
+
+            "estado": steam_estado,
+
+            "ultimo_request": (
+                ultimo_request
+                if ultimo_request
+                else None
+            ),
+
+            "segundos_desde_request":
+                segundos_desde_request
+        },
+
+        "workers": {
+
+            "estado": worker_estado,
+
+            "total": workers_total,
+
+            "activos": workers_activos
+        },
+
+        "ciclo": {
+
+            "actual": ciclo_actual,
+
+            "ultimo_escaneo":
+                ultimo_escaneo
+        },
+
+        "stats": {
+
+            "requests_steam":
+                stats.get(
+                    "requests_steam",
+                    0
+                ),
+
+            "requests_exitosas":
+                stats.get(
+                    "requests_exitosas",
+                    0
+                ),
+
+            "requests_fallidas":
+                stats.get(
+                    "requests_fallidas",
+                    0
+                ),
+
+            "cache_hits":
+                stats.get(
+                    "cache_hits",
+                    0
+                ),
+
+            "alertas_enviadas":
+                stats.get(
+                    "alertas_enviadas",
+                    0
+                ),
+
+            "ciclos":
+                stats.get(
+                    "ciclos",
+                    0
+                )
+        },
+
+        "github": {
+
+            "estado":
+                github_estado,
+
+            "ultimo_guardado":
+                ultimo_guardado
+                if ultimo_guardado
+                else None,
+
+            "segundos_desde_guardado":
+                segundos_desde_guardado,
+
+            "carga_fallida":
+                estado_carga_fallida
+        }
+    })
+
+# ==========================================================
+# API MONITOR DE PROXIES
+# ==========================================================
+
+@app.route('/api/proxies')
+def api_proxies():
+
+    ahora = time.time()
+
+    proxies_resultado = []
+
+    total_requests = 0
+    total_exitosas = 0
+    total_fallidas = 0
+    total_429 = 0
+    total_timeouts = 0
+    total_http = 0
+    total_json = 0
+    total_steam = 0
+    total_request = 0
+    total_cooldowns = 0
+
+    with lock:
+
+        stats_copia = dict(
+            stats_proxies
+        )
+
+    proxy_status = globals().get(
+        "PROXY_STATUS",
+        {}
+    )
+
+    proxy_fails = globals().get(
+        "PROXY_FAILS",
+        {}
+    )
+
+    proxy_429_fails = globals().get(
+        "PROXY_429_FAILS",
+        {}
+    )
+
+    for numero, proxy in enumerate(
+        PROXIES,
+        start=1
+    ):
+
+        datos = stats_copia.get(
+            proxy,
+            {}
+        )
+
+        requests_total = int(
+            datos.get(
+                "requests",
+                0
+            ) or 0
+        )
+
+        exitosas = int(
+            datos.get(
+                "exitosas",
+                0
+            ) or 0
+        )
+
+        fallidas = int(
+            datos.get(
+                "fallidas",
+                0
+            ) or 0
+        )
+
+        errores_429 = int(
+            datos.get(
+                "429",
+                0
+            ) or 0
+        )
+
+        timeouts = int(
+            datos.get(
+                "timeouts",
+                0
+            ) or 0
+        )
+
+        errores_http = int(
+            datos.get(
+                "http",
+                0
+            ) or 0
+        )
+
+        errores_json = int(
+            datos.get(
+                "json",
+                0
+            ) or 0
+        )
+
+        errores_steam = int(
+            datos.get(
+                "steam",
+                0
+            ) or 0
+        )
+
+        errores_request = int(
+            datos.get(
+                "request",
+                0
+            ) or 0
+        )
+
+        cooldowns = int(
+            datos.get(
+                "cooldowns",
+                0
+            ) or 0
+        )
+
+        tiempo_total = float(
+            datos.get(
+                "tiempo_total",
+                0
+            ) or 0
+        )
+
+        ultimo_uso = float(
+            datos.get(
+                "ultimo_uso",
+                0
+            ) or 0
+        )
+
+        # ==================================================
+        # CLASIFICACIÓN
+        # ==================================================
+
+        fallos_recientes = int(
+            proxy_fails.get(
+                proxy,
+                0
+            ) or 0
+        )
+
+        fallos_429_recientes = int(
+            proxy_429_fails.get(
+                proxy,
+                0
+            ) or 0
+        )
+
+        estado_proxy = proxy_status.get(
+            proxy
+        )
+
+        if (
+            fallos_429_recientes >= 2
+            or errores_429 >= 10
+            or timeouts >= 5
+        ):
+
+            estado = "ERROR"
+
+        elif (
+            fallidas > 0
+            or errores_429 > 0
+            or fallos_recientes > 0
+            or estado_proxy
+            in (
+                "cooldown",
+                "warning",
+                "degraded"
+            )
+        ):
+
+            estado = "ADVERTENCIA"
+
+        else:
+
+            estado = "OK"
+
+        # ==================================================
+        # ÚLTIMO USO
+        # ==================================================
+
+        if ultimo_uso > 0:
+
+            segundos_desde_uso = max(
+                0,
+                ahora - ultimo_uso
+            )
+
+        else:
+
+            segundos_desde_uso = None
+
+        # ==================================================
+        # TASA DE ÉXITO
+        # ==================================================
+
+        if requests_total > 0:
+
+            tasa_exito = (
+                exitosas /
+                requests_total
+            ) * 100
+
+        else:
+
+            tasa_exito = 0
+
+        # ==================================================
+        # PROMEDIO DE REQUEST
+        # ==================================================
+
+        if requests_total > 0:
+
+            promedio_request = (
+                tiempo_total /
+                requests_total
+            )
+
+        else:
+
+            promedio_request = 0
+
+        # ==================================================
+        # GUARDAR RESULTADO
+        # ==================================================
+
+        proxies_resultado.append({
+
+            "numero": numero,
+
+            "estado": estado,
+
+            "requests": requests_total,
+
+            "exitosas": exitosas,
+
+            "fallidas": fallidas,
+
+            "429": errores_429,
+
+            "timeouts": timeouts,
+
+            "http": errores_http,
+
+            "json": errores_json,
+
+            "steam": errores_steam,
+
+            "request": errores_request,
+
+            "cooldowns": cooldowns,
+
+            "ultimo_uso":
+                ultimo_uso
+                if ultimo_uso > 0
+                else None,
+
+            "segundos_desde_uso":
+                segundos_desde_uso,
+
+            "tasa_exito":
+                round(
+                    tasa_exito,
+                    2
+                ),
+
+            "promedio_request":
+                round(
+                    promedio_request,
+                    3
+                )
+        })
+
+        # ==================================================
+        # TOTALES
+        # ==================================================
+
+        total_requests += requests_total
+        total_exitosas += exitosas
+        total_fallidas += fallidas
+        total_429 += errores_429
+        total_timeouts += timeouts
+        total_http += errores_http
+        total_json += errores_json
+        total_steam += errores_steam
+        total_request += errores_request
+        total_cooldowns += cooldowns
+
+    # ======================================================
+    # PROXIES SALUDABLES
+    # ======================================================
+
+    proxies_ok = sum(
+        1
+        for proxy in proxies_resultado
+        if proxy["estado"] == "OK"
+    )
+
+    proxies_warning = sum(
+        1
+        for proxy in proxies_resultado
+        if proxy["estado"] == "ADVERTENCIA"
+    )
+
+    proxies_error = sum(
+        1
+        for proxy in proxies_resultado
+        if proxy["estado"] == "ERROR"
+    )
+
+    # ======================================================
+    # RESPUESTA
+    # ======================================================
+
+    return jsonify({
+
+        "total": len(
+            proxies_resultado
+        ),
+
+        "resumen": {
+
+            "ok": proxies_ok,
+
+            "advertencia":
+                proxies_warning,
+
+            "error":
+                proxies_error,
+
+            "requests":
+                total_requests,
+
+            "exitosas":
+                total_exitosas,
+
+            "fallidas":
+                total_fallidas,
+
+            "429":
+                total_429,
+
+            "timeouts":
+                total_timeouts,
+
+            "http":
+                total_http,
+
+            "json":
+                total_json,
+
+            "steam":
+                total_steam,
+
+            "request":
+                total_request,
+
+            "cooldowns":
+                total_cooldowns
+        },
+
+        "proxies":
+            proxies_resultado
+    })
 
 # ==========================================================
 # API HISTORIAL
