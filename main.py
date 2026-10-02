@@ -3914,6 +3914,11 @@ def worker(grupo_skins, worker_id):
 
         if worker_id == 0:
 
+            # Registrar que el ciclo terminó correctamente
+            estado_app["ultimo_escaneo"] = datetime.now(
+                ZONA_ARG
+            ).isoformat()
+
             ciclo_numero += 1
             stats_diarias["ciclos"] += 1
 
