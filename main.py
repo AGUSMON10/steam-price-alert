@@ -512,7 +512,15 @@ ITEM_NAME_IDS = {
 notificados = {}
 skins_revisadas_total = 0
 ciclo_numero = 0
-estado_app = {"activo": True, "errores": 0, "ultimo_escaneo": None}
+
+estado_app = {
+    "activo": True,
+    "errores": 0,
+    "ultimo_escaneo": None
+}
+
+# Registro de los hilos worker.
+WORKER_THREADS = {}
 
 lock = threading.Lock()
 
@@ -550,7 +558,12 @@ HISTORIAL_MAX_PUNTOS = 300
 
 SKIN_COOLDOWN = 600  # 10 minutos
 
+# Cantidad de fallos consecutivos antes de poner una skin en cooldown.
+SKIN_MAX_FAILS = 3
+
+# Contador individual de errores por skin.
 SKIN_FAILS = {skin: 0 for skin in skins_a_vigilar}
+
 SKIN_COOLDOWN_UNTIL = {skin: 0 for skin in skins_a_vigilar}
 
 # =========================
@@ -566,34 +579,39 @@ ALERTA_DOBLE_INTERVALO = 15
 def calcular_ttl(precio, precio_max):
 
     if precio is None or precio_max <= 0:
-        return random.uniform(150, 190)
+        ttl = random.uniform(150, 190)
 
-    distancia = (precio - precio_max) / precio_max
-
-    # Precio igual o por debajo del máximo
-    if distancia <= 0:
-        return random.uniform(55, 85)
-
-    # Hasta 5% por encima
-    elif distancia <= 0.05:
-        return random.uniform(85, 120)
-
-    # Entre 5% y 10%
-    elif distancia <= 0.10:
-        return random.uniform(95, 120)
-
-    # Entre 10% y 15%
-    elif distancia <= 0.15:
-        return random.uniform(110, 145)
-
-    # Entre 15% y 25%
-    elif distancia <= 0.25:
-        return random.uniform(135, 170)
-
-    # Muy lejos del objetivo
     else:
-        return random.uniform(160, 190)
 
+        distancia = (precio - precio_max) / precio_max
+
+        # Precio igual o por debajo del máximo
+        if distancia <= 0:
+            ttl = random.uniform(55, 85)
+
+        # Hasta 5% por encima
+        elif distancia <= 0.05:
+            ttl = random.uniform(85, 120)
+
+        # Entre 5% y 10%
+        elif distancia <= 0.10:
+            ttl = random.uniform(95, 120)
+
+        # Entre 10% y 15%
+        elif distancia <= 0.15:
+            ttl = random.uniform(110, 145)
+
+        # Entre 15% y 25%
+        elif distancia <= 0.25:
+            ttl = random.uniform(135, 170)
+
+        # Muy lejos del objetivo
+        else:
+            ttl = random.uniform(160, 190)
+
+    # Nunca superar el máximo configurado.
+    return min(CACHE_MAX_TTL, ttl)
+    
 # =========================
 # ESTADÍSTICAS
 # =========================
@@ -708,7 +726,7 @@ def guardar_estado(forzar=False):
 
                 # Momento de la última utilización del proxy.
                 # Se guarda solamente el timestamp, nunca la URL.
-                "ultimo_uso": datos.get("ultimo_uso", 0),
+                "ultimo_uso": PROXY_LAST_USED.get(proxy, 0),
             })
 
         estado = {
@@ -1231,11 +1249,14 @@ def registrar_error_skin(skin_name, error):
             f"[SKIN ERROR] {skin_name} | "
             f"Motivo: {error} | "
             f"Fallos consecutivos: "
-            f"{fallos}/{SKIN_FAILS}"
+            f"{fallos}/{SKIN_MAX_FAILS}"
         )
 
-        if fallos >= SKIN_FAILS:
-            SKIN_COOLDOWN_UNTIL[skin_name] = time.time() + SKIN_COOLDOWN
+        if fallos >= SKIN_MAX_FAILS:
+
+            SKIN_COOLDOWN_UNTIL[skin_name] = (
+                time.time() + SKIN_COOLDOWN
+            )
 
             print(
                 f"[SKIN COOLDOWN] {skin_name} | "
@@ -2476,10 +2497,29 @@ def enviar_resumen_diario(reiniciar=True):
 # ============================================================
 
 def comando_estado():
+
     ahora = datetime.now(ZONA_ARG)
+    ahora_timestamp = time.time()
 
-    estado = "ACTIVO" if estado_app.get("activo", False) else "DETENIDO"
+    # Comprobar si existe al menos un worker funcionando.
+    worker_activo = any(
+        t.is_alive()
+        for t in WORKER_THREADS.values()
+    )
 
+    if not estado_app.get("activo", False):
+
+        estado = "🔴 DETENIDO"
+
+    elif worker_activo:
+
+        estado = "🟢 ACTIVO"
+
+    else:
+
+        estado = "🟠 SIN WORKER"
+
+    # Último escaneo completo.
     ultimo_escaneo = estado_app.get("ultimo_escaneo")
 
     if ultimo_escaneo:
@@ -2487,33 +2527,66 @@ def comando_estado():
     else:
         ultimo_escaneo_texto = "Sin datos"
 
+    # Último intento real de consulta a Steam.
+    with lock:
+        ultimo_request = LAST_STEAM_REQUEST
+
+    if ultimo_request > 0:
+
+        minutos_sin_consultar = int(
+            (ahora_timestamp - ultimo_request) / 60
+        )
+
+        ultima_consulta_texto = (
+            f"Hace {minutos_sin_consultar} minutos"
+        )
+
+    else:
+
+        minutos_sin_consultar = None
+        ultima_consulta_texto = "Sin consultas todavía"
+
+    # Proxies en cooldown.
     proxies_en_cooldown = sum(
         1
         for proxy in PROXIES
-        if PROXY_STATUS.get(proxy, 0) > time.time()
+        if PROXY_STATUS.get(proxy, 0) > ahora_timestamp
     )
 
     mensaje = (
         "🤖 ESTADO DEL BOT\n\n"
+
         f"Estado: {estado}\n"
+
         f"Hora: {ahora.strftime('%d/%m/%Y %H:%M:%S')}\n"
+
         f"Skins vigiladas: {len(skins_a_vigilar)}\n"
+
         f"Skins en caché: {len(price_cache)}\n"
+
         f"Ciclo actual: {ciclo_numero}\n"
-        f"Último escaneo: {ultimo_escaneo_texto}\n"
+
+        f"Último escaneo completo: {ultimo_escaneo_texto}\n"
+
+        f"Último intento a Steam: {ultima_consulta_texto}\n"
+
+        f"Workers funcionando: "
+        f"{sum(1 for t in WORKER_THREADS.values() if t.is_alive())}\n"
+
         f"Proxies configurados: {len(PROXIES)}\n"
+
         f"Proxies en cooldown: {proxies_en_cooldown}\n"
+
         f"Fallos consecutivos de Steam: {STEAM_429_CONSECUTIVOS}\n"
+
         f"Pausa global de Steam: "
         f"{int(steam_pausa_restante())} segundos"
     )
 
     enviar_telegram(mensaje)
-
-
+    
 def comando_resumen():
     enviar_resumen_diario(reiniciar=False)
-
 
 def comando_proxies():
     ahora = time.time()
@@ -2734,6 +2807,129 @@ def telegram_listener():
 
 def dividir_skins_en_grupos():
     return [list(skins_a_vigilar.items())]
+
+# ============================================================
+# SUPERVISOR DE WORKERS
+# ============================================================
+
+def supervisor_workers(grupos):
+
+    global WORKER_THREADS
+
+    print("[SUPERVISOR] Iniciando control de workers...")
+
+    worker_alertado = False
+    sin_consultas_alertado = False
+
+    ultimo_request_visto = LAST_STEAM_REQUEST
+
+    # Iniciar los workers por primera vez.
+    for i, grupo in enumerate(grupos):
+
+        t = threading.Thread(
+            target=worker,
+            args=(grupo, i),
+            daemon=True
+        )
+
+        t.start()
+
+        WORKER_THREADS[i] = t
+
+        print(f"[SUPERVISOR] Worker {i} iniciado.")
+
+    # Control permanente.
+    while estado_app.get("activo", False):
+
+        # ====================================================
+        # 1. CONTROLAR SI LOS WORKERS SIGUEN VIVOS
+        # ====================================================
+
+        for i, grupo in enumerate(grupos):
+
+            actual = WORKER_THREADS.get(i)
+
+            if actual is None or not actual.is_alive():
+
+                print(
+                    f"[SUPERVISOR] Worker {i} detenido. "
+                    f"Intentando reiniciarlo..."
+                )
+
+                if not worker_alertado:
+
+                    enviar_telegram(
+                        "⚠️ ALERTA DEL BOT\n\n"
+                        f"El Worker {i} se detuvo inesperadamente.\n"
+                        "El supervisor está intentando reiniciarlo."
+                    )
+
+                    worker_alertado = True
+
+                # Crear un nuevo worker.
+                nuevo = threading.Thread(
+                    target=worker,
+                    args=(grupo, i),
+                    daemon=True
+                )
+
+                nuevo.start()
+
+                WORKER_THREADS[i] = nuevo
+
+        # ====================================================
+        # 2. CONTROLAR EL TIEMPO SIN CONSULTAS A STEAM
+        # ====================================================
+
+        ahora = time.time()
+
+        with lock:
+            ultimo_request = LAST_STEAM_REQUEST
+
+        # Si todavía no hubo ninguna consulta, usar el
+        # momento de inicio que se establece en main.
+        tiempo_sin_consultar = ahora - ultimo_request
+
+        # 45 minutos sin intentar una consulta real.
+        if (
+            tiempo_sin_consultar >= 2700
+            and not sin_consultas_alertado
+        ):
+
+            minutos = int(tiempo_sin_consultar / 60)
+
+            enviar_telegram(
+                "🚨 ALERTA: BOT SIN CONSULTAS\n\n"
+                f"Hace aproximadamente {minutos} minutos "
+                "que no se intenta consultar Steam.\n\n"
+                "El supervisor sigue funcionando y "
+                "controlando los workers."
+            )
+
+            sin_consultas_alertado = True
+
+        # ====================================================
+        # 3. AVISAR CUANDO SE RECUPERA
+        # ====================================================
+
+        if ultimo_request > ultimo_request_visto:
+
+            if worker_alertado or sin_consultas_alertado:
+
+                enviar_telegram(
+                    "✅ BOT RECUPERADO\n\n"
+                    "Se detectaron nuevas consultas a Steam.\n"
+                    "El bot volvió a trabajar."
+                )
+
+                worker_alertado = False
+                sin_consultas_alertado = False
+
+            ultimo_request_visto = ultimo_request
+
+        time.sleep(10)
+
+    print("[SUPERVISOR] Finalizado.")
 
 def worker(grupo_skins, worker_id):
 
@@ -3213,6 +3409,9 @@ if __name__ == "__main__":
 
     cargar_estado()
 
+    # Iniciar el contador de tiempo sin consultas.
+    LAST_STEAM_REQUEST = time.time()
+
     # Actualizar inmediatamente el bot_state.json
     # al nuevo formato seguro sin credenciales de proxies
     guardar_estado(forzar=True)
@@ -3233,12 +3432,17 @@ if __name__ == "__main__":
     print("Grupos:", len(dividir_skins_en_grupos()))
     print("====================")
 
-    threads = []
+    # ====================================================
+    # INICIAR SUPERVISOR DE WORKERS
+    # ====================================================
 
-    for i, grupo in enumerate(grupos):
-        t = threading.Thread(target=worker, args=(grupo, i))
-        t.start()
-        threads.append(t)
+    supervisor_thread = threading.Thread(
+        target=supervisor_workers,
+        args=(grupos,),
+        daemon=True
+    )
+
+    supervisor_thread.start()
 
     servidor_thread = threading.Thread(target=iniciar_servidor)
     servidor_thread.start()
@@ -3247,8 +3451,7 @@ if __name__ == "__main__":
         target=telegram_listener,
         daemon=True
     )
+
     telegram_thread.start()
 
-    for t in threads:
-        t.join()
     servidor_thread.join()
