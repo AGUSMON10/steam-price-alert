@@ -3540,7 +3540,6 @@ function renderRadar() {
 
                                 </div>
 
-
                                 <div style="
                                     display:flex;
                                     gap:7px;
@@ -3560,13 +3559,7 @@ function renderRadar() {
                                     <!-- BOTÓN PARA CELULAR -->
                                     <a
                                         class="button"
-                                        href="${escapeAttribute(
-                                            skin.steam_url
-                                                .replace(
-                                                    "steam://",
-                                                    "https://steamcommunity.com/market/listings/"
-                                                )
-                                        )}"
+                                href="https://steamcommunity.com/market/listings/730/${encodeURIComponent(skin.name)}"
                                         target="_blank"
                                         rel="noopener noreferrer"
                                     >
