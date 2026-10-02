@@ -4754,7 +4754,84 @@ function renderMonitor(data) {
 
 }
 
+/* =========================================================
+   PROXIES - CARGAR
+========================================================= */
 
+async function loadProxies() {
+
+    try {
+
+        const response =
+            await fetch(
+                "/api/proxies?x=" +
+                Date.now()
+            );
+
+        if (!response.ok) {
+            throw new Error(
+                "HTTP " +
+                response.status
+            );
+        }
+
+        const data =
+            await response.json();
+
+        /*
+           El backend puede devolver directamente
+           una lista o una estructura con proxies.
+        */
+
+        if (Array.isArray(data)) {
+
+            proxiesData = data;
+
+        } else if (
+            Array.isArray(data.proxies)
+        ) {
+
+            proxiesData =
+                data.proxies;
+
+        } else if (
+            Array.isArray(data.stats_proxies)
+        ) {
+
+            proxiesData =
+                data.stats_proxies;
+
+        } else {
+
+            proxiesData = [];
+
+        }
+
+        renderProxies();
+
+    } catch (error) {
+
+        console.error(
+            "Error /api/proxies:",
+            error
+        );
+
+        proxiesData = [];
+
+        renderProxies();
+
+        document.getElementById(
+            "proxyBadge"
+        ).textContent =
+            "⚠ ERROR";
+
+        document.getElementById(
+            "proxyBadge"
+        ).className =
+            "pill danger";
+    }
+}
+    
 function renderProxies() {
 
     const table =
