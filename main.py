@@ -44,6 +44,7 @@ PROXY_MIN_INTERVAL = 10
 # Tiempo mínimo entre requests reales a Steam
 GLOBAL_MIN_REQUEST_INTERVAL = 3.0
 LAST_STEAM_REQUEST = 0
+LAST_WORKER_ACTIVITY = time.time()
 
 # ==========================================================
 # MONITOR DEL BOT
@@ -1759,7 +1760,17 @@ def api_monitor():
 
             "total": workers_total,
 
-            "activos": workers_activos
+            "activos": workers_activos,
+
+            "ultima_actividad":
+                LAST_WORKER_ACTIVITY,
+
+            "segundos_desde_actividad":
+                (
+                    ahora - LAST_WORKER_ACTIVITY
+                    if LAST_WORKER_ACTIVITY
+                    else None
+                )
         },
 
         "ciclo": {
@@ -3593,6 +3604,7 @@ def worker(grupo_skins, worker_id):
     global skins_revisadas_total
     global ciclo_numero
     global PROXIMA_PAUSA
+    global LAST_WORKER_ACTIVITY
 
     while estado_app["activo"]:
 
@@ -3625,6 +3637,8 @@ def worker(grupo_skins, worker_id):
         )
 
         for skin_name, precio_max in skins_ordenadas:
+            
+            LAST_WORKER_ACTIVITY = time.time()
             
             # ====================================================
             # PAUSA GLOBAL POR RATE LIMIT DE STEAM
@@ -3910,9 +3924,11 @@ def worker(grupo_skins, worker_id):
             if not resultado.get("from_cache", False):
                 time.sleep(random.uniform(1, 2))
 
-        estado_app["ultimo_escaneo"] = datetime.now(ZONA_ARG).isoformat()
-
         if worker_id == 0:
+            print(
+                f"[DEBUG CICLO] Worker {worker_id} terminó de recorrer "
+                f"todas las skins"
+            )
 
             # Registrar que el ciclo terminó correctamente
             estado_app["ultimo_escaneo"] = datetime.now(
