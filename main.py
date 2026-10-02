@@ -875,14 +875,14 @@ def cargar_estado():
 
         headers = {
             "Authorization": f"Bearer {github_token}",
-            "Accept": "application/vnd.github+json",
+            "Accept": "application/vnd.github.raw+json",
             "X-GitHub-Api-Version": "2022-11-28"
         }
 
         respuesta = requests.get(
             url,
             headers=headers,
-            timeout=15
+            timeout=30
         )
 
         if respuesta.status_code == 404:
@@ -906,38 +906,25 @@ def cargar_estado():
 
             return
 
-        datos_github = respuesta.json()
+        # GitHub devuelve ahora el archivo directamente
+        # como texto, sin necesidad de decodificar Base64.
 
-        import base64
+        contenido = respuesta.text
 
-        contenido_base64 = datos_github.get(
-            "content",
-            ""
-        )
-
-        # Eliminar saltos de línea y espacios
-        # que puede devolver la API de GitHub.
-
-        contenido_base64 = "".join(
-            contenido_base64.split()
-        )
-
-        if not contenido_base64:
+        if not contenido.strip():
             raise ValueError(
                 "GitHub devolvió bot_state.json vacío."
             )
 
-        contenido = base64.b64decode(
-            contenido_base64,
-            validate=True
-        ).decode("utf-8")
+        try:
 
-        if not contenido.strip():
+            estado = json.loads(contenido)
+
+        except json.JSONDecodeError as e:
+
             raise ValueError(
-                "El contenido descargado está vacío."
+                f"GitHub devolvió un JSON inválido: {e}"
             )
-
-        estado = json.loads(contenido)
 
         if not isinstance(estado, dict):
             raise ValueError(
@@ -1057,22 +1044,6 @@ def cargar_estado():
 
             # Recuperar el último uso directamente
             # en la estructura que utiliza obtener_proxy().
-
-            try:
-
-                PROXY_LAST_USED[proxy] = float(
-                    datos.get("ultimo_uso", 0)
-                )
-
-            except (TypeError, ValueError):
-
-                PROXY_LAST_USED[proxy] = 0
-
-        # ====================================================
-        # RECUPERAR ÚLTIMO USO DE CADA PROXY
-        # ====================================================
-
-        if "ultimo_uso" in datos:
 
             try:
 
