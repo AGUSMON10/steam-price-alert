@@ -3541,14 +3541,39 @@ function renderRadar() {
                                 </div>
 
 
-                                <a
-                                    class="button"
-                                    href="${escapeAttribute(skin.steam_url)}"
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                >
-                                    Ver en Steam ↗
-                                </a>
+                                <div style="
+                                    display:flex;
+                                    gap:7px;
+                                    flex-wrap:wrap;
+                                ">
+
+                                    <!-- BOTÓN PARA PC -->
+                                    <a
+                                        class="button"
+                                        href="${escapeAttribute(skin.steam_url)}"
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                    >
+                                        🖥️ Ver en Steam
+                                    </a>
+
+                                    <!-- BOTÓN PARA CELULAR -->
+                                    <a
+                                        class="button"
+                                        href="${escapeAttribute(
+                                            skin.steam_url
+                                                .replace(
+                                                    "steam://",
+                                                    "https://steamcommunity.com/market/listings/"
+                                                )
+                                        )}"
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                    >
+                                        📱 Ver en celular
+                                    </a>
+
+                                </div>
 
                             </div>
 
