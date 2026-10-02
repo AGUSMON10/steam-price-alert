@@ -2467,9 +2467,6 @@ select:focus {
     </main>
 
 </div>
-```
-
-</div>
 
 <script>
 
@@ -2634,27 +2631,58 @@ function getStatus(price, max) {
    FECHA
 ========================================================= */
 
-function formatDate(timestamp) {
+function formatDate(value) {
 
-    if (!timestamp) {
+    if (!value) {
         return "-";
     }
 
-    const date =
-        new Date(Number(timestamp) * 1000);
+    try {
 
-    if (isNaN(date.getTime())) {
-        return "-";
-    }
+        let fecha;
 
-    return date.toLocaleTimeString(
-        "es-AR",
-        {
-            hour: "2-digit",
-            minute: "2-digit",
-            second: "2-digit"
+        // Timestamp Unix
+        if (
+            typeof value === "number" ||
+            (!isNaN(value) && !String(value).includes("-"))
+        ) {
+
+            let numero =
+                Number(value);
+
+            // Unix timestamp en segundos
+            if (numero < 100000000000) {
+                numero *= 1000;
+            }
+
+            fecha = new Date(numero);
+
+        } else {
+
+            // Fecha ISO
+            fecha = new Date(value);
         }
-    );
+
+        if (isNaN(fecha.getTime())) {
+            return "-";
+        }
+
+        return fecha.toLocaleString(
+            "es-AR",
+            {
+                day: "2-digit",
+                month: "2-digit",
+                year: "numeric",
+                hour: "2-digit",
+                minute: "2-digit",
+                second: "2-digit"
+            }
+        );
+
+    } catch (error) {
+
+        return "-";
+    }
 }
 
 
@@ -3903,7 +3931,7 @@ async function loadMonitor() {
         monitorData =
             await response.json();
 
-        renderMonitor();
+        renderMonitor(monitorData);
 
     } catch (error) {
 
@@ -3941,294 +3969,354 @@ function getMonitorValue(...keys) {
 }
 
 
-function renderMonitor() {
+function renderMonitor(data) {
 
-    const activo =
-        getMonitorValue(
-            "activo",
-            "bot_activo",
-            "online"
-        ) === true;
+    if (!data) {
+        return;
+    }
 
-    const workers =
-        getMonitorValue(
-            "workers",
-            "workers_activos",
-            "worker_count"
+
+    /* =====================================================
+       ESTADO GENERAL
+    ===================================================== */
+
+    const botEstado =
+        data.bot?.estado || "DESCONOCIDO";
+
+    const statusElement =
+        document.getElementById(
+            "monitorStatus"
         );
 
-    const lastSteam =
-        getMonitorValue(
-            "ultima_consulta_steam",
-            "last_steam_request",
-            "ultimo_request_steam",
-            "segundos_desde_ultima_consulta"
+    if (statusElement) {
+
+        if (botEstado === "OK") {
+
+            statusElement.textContent =
+                "🟢 ONLINE";
+
+            statusElement.className =
+                "monitor-card-value monitor-value-good";
+
+        } else {
+
+            statusElement.textContent =
+                "🔴 " + botEstado;
+
+            statusElement.className =
+                "monitor-card-value monitor-value-danger";
+        }
+    }
+
+
+    /* =====================================================
+       BADGE
+    ===================================================== */
+
+    const badge =
+        document.getElementById(
+            "monitorBadge"
         );
 
-    const lastCycle =
-        getMonitorValue(
-            "ultimo_ciclo",
-            "last_cycle",
-            "ultimo_ciclo_timestamp"
+    if (badge) {
+
+        if (botEstado === "OK") {
+
+            badge.textContent =
+                "● SISTEMA ONLINE";
+
+            badge.className =
+                "pill";
+
+        } else {
+
+            badge.textContent =
+                "⚠ " + botEstado;
+
+            badge.className =
+                "pill";
+        }
+    }
+
+
+    /* =====================================================
+       WORKERS
+    ===================================================== */
+
+    const workersActivos =
+        Number(
+            data.workers?.activos || 0
         );
 
-    const cycles =
-        getMonitorValue(
-            "ciclos",
-            "ciclos_realizados",
-            "cycle_count"
+    const workersTotal =
+        Number(
+            data.workers?.total || 0
         );
-
-    const requests =
-        getMonitorValue(
-            "requests_steam",
-            "requests",
-            "steam_requests"
-        );
-
-    const success =
-        getMonitorValue(
-            "requests_exitosas",
-            "requests_success",
-            "successful_requests"
-        );
-
-    const failed =
-        getMonitorValue(
-            "requests_fallidas",
-            "requests_failed",
-            "failed_requests"
-        );
-
-    const uptime =
-        getMonitorValue(
-            "uptime",
-            "uptime_segundos",
-            "uptime_seconds"
-        );
-
-    const github =
-        getMonitorValue(
-            "github",
-            "github_estado",
-            "estado_github"
-        );
-
-    const lastSave =
-        getMonitorValue(
-            "ultimo_guardado",
-            "last_save"
-        );
-
-    const scan =
-        getMonitorValue(
-            "ultimo_escaneo",
-            "last_scan"
-        );
-
-
-    document.getElementById(
-        "monitorStatus"
-    ).innerHTML =
-        `
-        <span class="monitor-status ${
-            activo
-                ? "monitor-value-good"
-                : "monitor-value-danger"
-        }">
-
-            <span class="monitor-dot"></span>
-
-            ${
-                activo
-                    ? "ONLINE"
-                    : "OFFLINE"
-            }
-
-        </span>
-        `;
-
 
     document.getElementById(
         "monitorWorkers"
     ).textContent =
-        workers !== null
-            ? workers
+        workersActivos +
+        " / " +
+        workersTotal;
+
+
+    /* =====================================================
+       ÚLTIMA CONSULTA STEAM
+    ===================================================== */
+
+    const ultimoRequest =
+        data.steam?.ultimo_request;
+
+    const segundosDesdeRequest =
+        Number(
+            data.steam?.segundos_desde_request
+        );
+
+    document.getElementById(
+        "monitorLastSteam"
+    ).textContent =
+        ultimoRequest
+            ? formatDate(ultimoRequest)
             : "-";
 
 
-    if (
-        typeof lastSteam === "number"
-    ) {
+    /*
+       Mostramos debajo cuánto hace
+       que se consultó Steam.
+    */
 
-        document.getElementById(
-            "monitorLastSteam"
-        ).textContent =
-            formatDuration(
-                lastSteam
-            );
+    const lastSteamSub =
+        document.querySelector(
+            "#monitorLastSteam + .monitor-card-sub"
+        );
 
-    } else {
+    if (lastSteamSub) {
 
-        document.getElementById(
-            "monitorLastSteam"
-        ).textContent =
-            lastSteam
-                ? formatDate(lastSteam)
-                : "-";
+        if (
+            Number.isFinite(
+                segundosDesdeRequest
+            )
+        ) {
+
+            lastSteamSub.textContent =
+                "Hace " +
+                formatDuration(
+                    segundosDesdeRequest
+                );
+
+        } else {
+
+            lastSteamSub.textContent =
+                "Tiempo desde la última petición";
+        }
     }
 
+
+    /* =====================================================
+       ÚLTIMO CICLO
+    ===================================================== */
+
+    const ultimoEscaneo =
+        data.ciclo?.ultimo_escaneo;
 
     document.getElementById(
         "monitorLastCycle"
     ).textContent =
-        lastCycle
-            ? (
-                typeof lastCycle === "number"
-                    ? formatDate(lastCycle)
-                    : String(lastCycle)
-            )
+        ultimoEscaneo
+            ? formatDate(ultimoEscaneo)
             : "-";
 
+
+    /* =====================================================
+       CICLOS
+    ===================================================== */
+
+    const ciclos =
+        Number(
+            data.stats?.ciclos || 0
+        );
 
     document.getElementById(
         "monitorCycles"
     ).textContent =
-        cycles ?? "-";
-
-
-    document.getElementById(
-        "monitorRequests"
-    ).textContent =
-        requests ?? "-";
-
-
-    document.getElementById(
-        "monitorSuccess"
-    ).textContent =
-        success ?? "-";
-
-
-    document.getElementById(
-        "monitorFailed"
-    ).textContent =
-        failed ?? "-";
-
-
-    document.getElementById(
-        "monitorUptime"
-    ).textContent =
-        uptime !== null
-            ? formatDuration(uptime)
-            : "-";
-
-
-    document.getElementById(
-        "monitorGithub"
-    ).textContent =
-        github ?? "-";
-
-
-    document.getElementById(
-        "monitorLastSave"
-    ).textContent =
-        lastSave
-            ? (
-                typeof lastSave === "number"
-                    ? formatDate(lastSave)
-                    : String(lastSave)
-            )
-            : "-";
-
-
-    document.getElementById(
-        "monitorScan"
-    ).textContent =
-        scan
-            ? (
-                typeof scan === "number"
-                    ? formatDate(scan)
-                    : String(scan)
-            )
-            : "-";
+        ciclos.toLocaleString(
+            "es-AR"
+        );
 
 
     document.getElementById(
         "monitorCyclesStatus"
     ).innerHTML =
-        `<span class="monitor-value-blue">
-            ● REGISTRADOS
-        </span>`;
+        `
+            <span class="monitor-value-good">
+                ● ACTIVIDAD
+            </span>
+        `;
 
 
-    const requestFailed =
-        Number(failed || 0);
+    /* =====================================================
+       REQUESTS STEAM
+    ===================================================== */
+
+    const requests =
+        Number(
+            data.stats?.requests_steam || 0
+        );
+
+    document.getElementById(
+        "monitorRequests"
+    ).textContent =
+        requests.toLocaleString(
+            "es-AR"
+        );
+
 
     document.getElementById(
         "monitorRequestsStatus"
     ).innerHTML =
-        requestFailed > 0
-            ? `<span class="monitor-value-warning">
-                ⚠ CON FALLOS
-               </span>`
-            : `<span class="monitor-value-good">
-                ● NORMAL
-               </span>`;
+        `
+            <span class="monitor-value-good">
+                ● ACTIVO
+            </span>
+        `;
+
+
+    /* =====================================================
+       REQUESTS EXITOSAS
+    ===================================================== */
+
+    const exitosas =
+        Number(
+            data.stats?.requests_exitosas || 0
+        );
+
+    document.getElementById(
+        "monitorSuccess"
+    ).textContent =
+        exitosas.toLocaleString(
+            "es-AR"
+        );
 
 
     document.getElementById(
         "monitorSuccessStatus"
     ).innerHTML =
-        `<span class="monitor-value-good">
-            ● OK
-        </span>`;
+        `
+            <span class="monitor-value-good">
+                ● OK
+            </span>
+        `;
+
+
+    /* =====================================================
+       REQUESTS FALLIDAS
+    ===================================================== */
+
+    const fallidas =
+        Number(
+            data.stats?.requests_fallidas || 0
+        );
+
+    document.getElementById(
+        "monitorFailed"
+    ).textContent =
+        fallidas.toLocaleString(
+            "es-AR"
+        );
 
 
     document.getElementById(
         "monitorFailedStatus"
     ).innerHTML =
-        requestFailed > 0
-            ? `<span class="monitor-value-warning">
-                ⚠ ${requestFailed}
-               </span>`
-            : `<span class="monitor-value-good">
-                ● 0
-               </span>`;
+        fallidas > 0
+            ? `
+                <span class="monitor-value-warning">
+                    ⚠ ${fallidas} FALLIDAS
+                </span>
+              `
+            : `
+                <span class="monitor-value-good">
+                    ● SIN ERRORES
+                </span>
+              `;
+
+
+    /* =====================================================
+       UPTIME
+    ===================================================== */
+
+    const uptime =
+        Number(
+            data.bot?.uptime || 0
+        );
+
+    document.getElementById(
+        "monitorUptime"
+    ).textContent =
+        formatDuration(
+            uptime
+        );
+
+
+    /* =====================================================
+       GITHUB
+    ===================================================== */
+
+    const githubEstado =
+        data.github?.estado ||
+        "DESCONOCIDO";
+
+    document.getElementById(
+        "monitorGithub"
+    ).textContent =
+        githubEstado === "OK"
+            ? "🟢 OK"
+            : "🔴 " + githubEstado;
 
 
     document.getElementById(
         "monitorGithubStatus"
     ).innerHTML =
-        String(github || "")
-            .toLowerCase()
-            .includes("error")
-            ? `<span class="monitor-value-danger">
-                ⚠ ERROR
-               </span>`
-            : `<span class="monitor-value-good">
-                ● OK
-               </span>`;
+        githubEstado === "OK"
+            ? `
+                <span class="monitor-value-good">
+                    ● CONECTADO
+                </span>
+              `
+            : `
+                <span class="monitor-value-danger">
+                    ⚠ REVISAR
+                </span>
+              `;
 
+
+    /* =====================================================
+       ÚLTIMO GUARDADO
+    ===================================================== */
+
+    const ultimoGuardado =
+        data.github?.ultimo_guardado;
 
     document.getElementById(
-        "monitorBadge"
+        "monitorLastSave"
     ).textContent =
-        activo
-            ? "● SISTEMA OPERATIVO"
-            : "● SISTEMA OFFLINE";
+        ultimoGuardado
+            ? formatDate(ultimoGuardado)
+            : "-";
+
+
+    /* =====================================================
+       ÚLTIMO ESCANEO
+    ===================================================== */
 
     document.getElementById(
-        "monitorBadge"
-    ).className =
-        "pill " +
-        (
-            activo
-                ? ""
-                : "danger"
-        );
+        "monitorScan"
+    ).textContent =
+        ultimoEscaneo
+            ? formatDate(ultimoEscaneo)
+            : "-";
 }
-
-
 /* =========================================================
    PROXIES
 ========================================================= */
