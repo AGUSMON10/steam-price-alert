@@ -431,8 +431,8 @@ if not TELEGRAM_BOT_TOKEN or not TELEGRAM_CHAT_ID:
 
 # Lista de ítems con URL y precio máximo aceptado
 skins_a_vigilar = {
-    "★ StatTrak™ Falchion Knife | Autotronic (Minimal Wear)": 190.00,
-    "★ StatTrak™ Falchion Knife | Crimson Web (Field-Tested)": 145.00,
+    "★ StatTrak™ Falchion Knife | Autotronic (Minimal Wear)": 150.00,
+    "★ StatTrak™ Falchion Knife | Crimson Web (Field-Tested)": 180.00,
     "★ StatTrak™ Bowie Knife | Autotronic (Minimal Wear)": 130.00,
     "★ StatTrak™ Paracord Knife | Blue Steel (Minimal Wear)": 115.00,
     "★ StatTrak™ Falchion Knife | Lore (Minimal Wear)": 158.00,
@@ -3862,8 +3862,8 @@ def obtener_datos_inspeccion(market_hash_name):
             return cache["texto"]
 
     texto_error = (
-        "🔎 Inspección: datos no disponibles "
-        "(no se pudo completar la consulta opcional)."
+        "🔎 Inspección: datos no disponibles.\n"
+        "Revisar logs del bot para identificar el motivo."
     )
 
     try:
@@ -4236,9 +4236,10 @@ def obtener_datos_inspeccion(market_hash_name):
     except Exception as e:
 
         print(
-            f"[INSPECCION OMITIDA] "
+            f"[INSPECCION ERROR] "
             f"{market_hash_name} | "
-            f"{type(e).__name__}: {e}"
+            f"{type(e).__name__}: {e}",
+            flush=True
         )
 
         with lock:
