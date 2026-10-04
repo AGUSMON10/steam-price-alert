@@ -433,8 +433,8 @@ if not TELEGRAM_BOT_TOKEN or not TELEGRAM_CHAT_ID:
 skins_a_vigilar = {
     "★ StatTrak™ Falchion Knife | Autotronic (Minimal Wear)": 150.00,
     "★ StatTrak™ Falchion Knife | Crimson Web (Field-Tested)": 145.00,
-    "★ StatTrak™ Bowie Knife | Autotronic (Minimal Wear)": 180.00,
-    "★ StatTrak™ Paracord Knife | Blue Steel (Minimal Wear)": 115.00,
+    "★ StatTrak™ Bowie Knife | Autotronic (Minimal Wear)": 130.00,
+    "★ StatTrak™ Paracord Knife | Blue Steel (Minimal Wear)": 155.00,
     "★ StatTrak™ Falchion Knife | Lore (Minimal Wear)": 158.00,
     "★ Bowie Knife | Blue Steel (Minimal Wear)": 138.00,
     "★ StatTrak™ Falchion Knife | Black Laminate (Factory New)": 154.00,
@@ -1285,6 +1285,14 @@ SESSIONS = {}
 for proxy in PROXIES:
 
     SESSIONS[proxy] = crear_session()
+
+# ==========================================================
+# SESSION DIRECTA PARA INSPECCIONES
+# No utiliza PROXIES.
+# Solo se usa cuando se encuentra una oportunidad.
+# ==========================================================
+
+INSPECTION_SESSION = crear_session()
 
 PROXY_STATUS = {proxy: 0 for proxy in PROXIES}
 PROXY_LAST_USED = {proxy: 0 for proxy in PROXIES}
@@ -3868,45 +3876,15 @@ def obtener_datos_inspeccion(market_hash_name):
 
     try:
 
+
         # --------------------------------------------------
-        # ELEGIR UN PROXY DISPONIBLE SIN ESPERAR
+        # INSPECCIÓN DIRECTA
+        # No utiliza los proxies del bot.
         # --------------------------------------------------
 
-        proxy = None
+        session = INSPECTION_SESSION
 
-        with lock:
-
-            candidatos = [
-                p for p in PROXIES
-                if (
-                    time.time() >= PROXY_STATUS[p]
-                    and time.time() - PROXY_LAST_USED[p]
-                    >= PROXY_MIN_INTERVAL
-                )
-            ]
-
-            if candidatos:
-
-                candidatos.sort(
-                    key=lambda p: (
-                        time.time() - PROXY_LAST_USED[p]
-                        - PROXY_FAILS[p] * 30
-                    ),
-                    reverse=True
-                )
-
-                proxy = candidatos[0]
-                PROXY_LAST_USED[proxy] = time.time()
-
-        if proxy is None:
-            raise Exception("No hay proxy disponible para inspección")
-
-        session = SESSIONS[proxy]
-
-        proxies = {
-            "http": proxy,
-            "https": proxy
-        }
+        proxies = None
 
         # --------------------------------------------------
         # BUSCAR PUBLICACIONES INDIVIDUALES EN STEAM
