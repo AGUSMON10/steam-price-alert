@@ -432,8 +432,8 @@ if not TELEGRAM_BOT_TOKEN or not TELEGRAM_CHAT_ID:
 # Lista de ítems con URL y precio máximo aceptado
 skins_a_vigilar = {
     "★ StatTrak™ Falchion Knife | Autotronic (Minimal Wear)": 150.00,
-    "★ StatTrak™ Falchion Knife | Crimson Web (Field-Tested)": 180.00,
-    "★ StatTrak™ Bowie Knife | Autotronic (Minimal Wear)": 130.00,
+    "★ StatTrak™ Falchion Knife | Crimson Web (Field-Tested)": 145.00,
+    "★ StatTrak™ Bowie Knife | Autotronic (Minimal Wear)": 180.00,
     "★ StatTrak™ Paracord Knife | Blue Steel (Minimal Wear)": 115.00,
     "★ StatTrak™ Falchion Knife | Lore (Minimal Wear)": 158.00,
     "★ Bowie Knife | Blue Steel (Minimal Wear)": 138.00,
@@ -4069,7 +4069,28 @@ def obtener_datos_inspeccion(market_hash_name):
                 f"CSFloat HTTP {respuesta_float.status_code}"
             )
 
-        datos_float = respuesta_float.json()
+        # --------------------------------------------------
+        # VALIDAR RESPUESTA DE CSFLOAT
+        # --------------------------------------------------
+
+        contenido = respuesta_float.text.strip()
+
+        if not contenido:
+            raise Exception(
+                f"CSFloat devolvió respuesta vacía "
+                f"(HTTP {respuesta_float.status_code})"
+            )
+
+        try:
+            datos_float = respuesta_float.json()
+
+        except ValueError:
+
+            raise Exception(
+                f"CSFloat no devolvió JSON "
+                f"(HTTP {respuesta_float.status_code}) "
+                f"Respuesta: {contenido[:200]}"
+            )
 
         item = datos_float.get(
             "iteminfo",
