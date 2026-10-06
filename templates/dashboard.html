@@ -4217,264 +4217,326 @@ function getMonitorValue(...keys) {
 }
 
 
-
 function renderMonitor(data) {
 
-    if (!data) {
-        return;
+if (!data) {
+    return;
+}
+
+// =====================================================
+// DIAGNOSTICO INTELIGENTE
+// =====================================================
+
+const diagnostico =
+    data.diagnostico || {};
+
+const pausaProgramada =
+    data.steam?.pausa_programada === true;
+
+const segundosRestantesPausa =
+    Number(
+        data.steam?.segundos_restantes_pausa || 0
+    );
+
+const diagnosticoEstado =
+    diagnostico.estado ||
+    data.bot?.estado ||
+    "DESCONOCIDO";
+
+const diagnosticoTitulo =
+    pausaProgramada
+        ? "El bot está realizando una pausa programada."
+        : (
+            diagnostico.titulo ||
+            "No hay información del diagnóstico."
+        );
+
+const estados = {
+
+    OK: {
+        clase: "diagnostic-ok",
+        icono: "✓",
+        texto: "SISTEMA OK"
+    },
+
+    ADVERTENCIA: {
+        clase: "diagnostic-warning",
+        icono: "⚠",
+        texto: "ADVERTENCIA"
+    },
+
+    PROBLEMA: {
+        clase: "diagnostic-problem",
+        icono: "✕",
+        texto: "PROBLEMA"
     }
 
-    // =====================================================
-    // DIAGNOSTICO INTELIGENTE
-    // =====================================================
+};
 
-    const diagnostico =
-        data.diagnostico || {};
-
-    const diagnosticoEstado =
-        diagnostico.estado ||
-        data.bot?.estado ||
-        "DESCONOCIDO";
-
-    const diagnosticoTitulo =
-        diagnostico.titulo ||
-        "No hay información del diagnóstico.";
-
-    const estados = {
-
-        OK: {
+const estadoVisual =
+    pausaProgramada
+        ? {
             clase: "diagnostic-ok",
-            icono: "✓",
-            texto: "SISTEMA OK"
-        },
-
-        ADVERTENCIA: {
-            clase: "diagnostic-warning",
-            icono: "⚠",
-            texto: "ADVERTENCIA"
-        },
-
-        PROBLEMA: {
-            clase: "diagnostic-problem",
-            icono: "✕",
-            texto: "PROBLEMA"
+            icono: "⏸",
+            texto: "PAUSA PROGRAMADA"
         }
-
-    };
-
-    const estadoVisual =
-        estados[diagnosticoEstado] || {
-            clase: "diagnostic-unknown",
-            icono: "?",
-            texto: "SIN DATOS"
-        };
-
-
-    // =====================================================
-    // TITULO Y ESTADO GENERAL
-    // =====================================================
-
-    const diagnosticTitle =
-        document.getElementById(
-            "monitorDiagnosticTitle"
+        : (
+            estados[diagnosticoEstado] || {
+                clase: "diagnostic-unknown",
+                icono: "?",
+                texto: "SIN DATOS"
+            }
         );
 
-    const diagnosticText =
-        document.getElementById(
-            "monitorDiagnosticText"
-        );
 
-    const diagnosticIcon =
-        document.getElementById(
-            "monitorDiagnosticIcon"
-        );
+// =====================================================
+// TITULO Y ESTADO GENERAL
+// =====================================================
 
-    const diagnosticBadge =
-        document.getElementById(
-            "monitorDiagnosticBadge"
-        );
+const diagnosticTitle =
+    document.getElementById(
+        "monitorDiagnosticTitle"
+    );
 
-    if (diagnosticTitle) {
+const diagnosticText =
+    document.getElementById(
+        "monitorDiagnosticText"
+    );
 
-        diagnosticTitle.textContent =
-            diagnosticoTitulo;
-    }
+const diagnosticIcon =
+    document.getElementById(
+        "monitorDiagnosticIcon"
+    );
 
-    if (diagnosticText) {
+const diagnosticBadge =
+    document.getElementById(
+        "monitorDiagnosticBadge"
+    );
+
+if (diagnosticTitle) {
+
+    diagnosticTitle.textContent =
+        diagnosticoTitulo;
+}
+
+if (diagnosticText) {
+
+    if (pausaProgramada) {
+
+        diagnosticText.textContent =
+            "Las consultas a Steam están pausadas temporalmente. El bot se reanudará automáticamente.";
+
+    } else {
 
         diagnosticText.textContent =
             "Diagnóstico automático del funcionamiento del bot.";
     }
+}
 
-    if (diagnosticIcon) {
+if (diagnosticIcon) {
 
-        diagnosticIcon.textContent =
-            estadoVisual.icono;
+    diagnosticIcon.textContent =
+        estadoVisual.icono;
 
-        diagnosticIcon.className =
-            "diagnostic-icon " +
-            estadoVisual.clase;
-    }
+    diagnosticIcon.className =
+        "diagnostic-icon " +
+        estadoVisual.clase;
+}
 
-    if (diagnosticBadge) {
+if (diagnosticBadge) {
 
-        diagnosticBadge.textContent =
-            estadoVisual.texto;
+    diagnosticBadge.textContent =
+        estadoVisual.texto;
 
-        diagnosticBadge.className =
-            "diagnostic-badge " +
-            estadoVisual.clase;
-    }
+    diagnosticBadge.className =
+        "diagnostic-badge " +
+        estadoVisual.clase;
+}
 
 
-    // =====================================================
-    // ESTADO INDIVIDUAL DE LOS COMPONENTES
-    // =====================================================
+// =====================================================
+// ESTADO INDIVIDUAL DE LOS COMPONENTES
+// =====================================================
 
-    const componentes =
-        diagnostico.componentes || {};
+const componentes =
+    diagnostico.componentes || {};
 
-    const nombresComponentes = {
+const nombresComponentes = {
 
-        steam: "Steam",
+    steam: "Steam",
 
-        workers: "Workers",
+    workers: "Workers",
 
-        actividad: "Actividad",
+    actividad: "Actividad",
 
-        github: "GitHub"
+    github: "GitHub"
 
-    };
+};
 
-    const componentsContainer =
-        document.getElementById(
-            "monitorDiagnosticComponents"
-        );
+const componentsContainer =
+    document.getElementById(
+        "monitorDiagnosticComponents"
+    );
 
-    if (componentsContainer) {
+if (componentsContainer) {
 
-        const componentesHTML =
-            Object.entries(componentes).map(
-                ([clave, componente]) => {
+    const componentesHTML =
+        Object.entries(componentes).map(
+            ([clave, componente]) => {
 
-                    const estado =
-                        componente.estado ||
-                        "DESCONOCIDO";
+                const estado =
+                    componente.estado ||
+                    "DESCONOCIDO";
 
-                    const visual =
-                        estados[estado] || {
-                            clase: "diagnostic-unknown",
-                            icono: "?",
-                            texto: "SIN DATOS"
-                        };
+                const visual =
+                    estados[estado] || {
+                        clase: "diagnostic-unknown",
+                        icono: "?",
+                        texto: "SIN DATOS"
+                    };
 
-                    const nombre =
-                        nombresComponentes[clave] ||
-                        clave;
+                const nombre =
+                    nombresComponentes[clave] ||
+                    clave;
 
-                    const mensaje =
-                        componente.mensaje ||
-                        "Sin información disponible.";
+                let mensaje =
+                    componente.mensaje ||
+                    "Sin información disponible.";
 
-                    return `
+                // -------------------------------------------------
+                // MENSAJE ESPECIAL DURANTE PAUSA PROGRAMADA
+                // -------------------------------------------------
 
-                        <div class="diagnostic-item">
+                if (
+                    clave === "steam" &&
+                    pausaProgramada
+                ) {
 
-                            <div class="diagnostic-item-top">
+                    mensaje =
+                        "Consultas pausadas temporalmente.";
 
-                                <span class="diagnostic-item-name">
-                                    ${escapeHtml(nombre)}
-                                </span>
+                }
 
-                                <span class="diagnostic-item-state ${visual.clase}">
-                                    ${visual.icono}
-                                    ${visual.texto}
-                                </span>
+                return `
 
-                            </div>
+                    <div class="diagnostic-item">
 
-                            <div class="diagnostic-item-message">
-                                ${escapeHtml(mensaje)}
-                            </div>
+                        <div class="diagnostic-item-top">
+
+                            <span class="diagnostic-item-name">
+                                ${escapeHtml(nombre)}
+                            </span>
+
+                            <span class="diagnostic-item-state ${visual.clase}">
+                                ${visual.icono}
+                                ${visual.texto}
+                            </span>
 
                         </div>
 
-                    `;
+                        <div class="diagnostic-item-message">
+                            ${escapeHtml(mensaje)}
+                        </div>
 
-                }
-            ).join("");
-
-        componentsContainer.innerHTML =
-            componentesHTML ||
-            `
-                <div class="diagnostic-item">
-                    <div class="diagnostic-item-message">
-                        No hay componentes para analizar.
                     </div>
+
+                `;
+
+            }
+        ).join("");
+
+    componentsContainer.innerHTML =
+        componentesHTML ||
+        `
+            <div class="diagnostic-item">
+                <div class="diagnostic-item-message">
+                    No hay componentes para analizar.
                 </div>
-            `;
+            </div>
+        `;
+}
+
+
+// =====================================================
+// LISTA DE PROBLEMAS
+// =====================================================
+
+const problemas =
+    Array.isArray(diagnostico.problemas)
+        ? diagnostico.problemas
+        : [];
+
+const problemsContainer =
+    document.getElementById(
+        "monitorDiagnosticProblems"
+    );
+
+if (problemsContainer) {
+
+    if (pausaProgramada) {
+
+        problemsContainer.innerHTML = `
+
+            <div class="diagnostic-clear">
+                ⏸ Pausa programada activa.
+                No se detectaron problemas.
+            </div>
+
+        `;
+
+    } else if (problemas.length > 0) {
+
+        problemsContainer.innerHTML = `
+
+            <div class="diagnostic-problems-title">
+                ⚠ DETALLES QUE REQUIEREN ATENCIÓN
+            </div>
+
+            <ul>
+                ${
+                    problemas.map(
+                        problema =>
+                            `<li>${escapeHtml(problema)}</li>`
+                    ).join("")
+                }
+            </ul>
+
+        `;
+
+    } else {
+
+        problemsContainer.innerHTML = `
+
+            <div class="diagnostic-clear">
+                ✓ No se detectaron problemas.
+                Todos los componentes están funcionando correctamente.
+            </div>
+
+        `;
     }
+}
 
 
-    // =====================================================
-    // LISTA DE PROBLEMAS
-    // =====================================================
+// =====================================================
+// ESTADO GENERAL DE LA TARJETA
+// =====================================================
 
-    const problemas =
-        Array.isArray(diagnostico.problemas)
-            ? diagnostico.problemas
-            : [];
+const statusElement =
+    document.getElementById(
+        "monitorStatus"
+    );
 
-    const problemsContainer =
-        document.getElementById(
-            "monitorDiagnosticProblems"
-        );
+if (statusElement) {
 
-    if (problemsContainer) {
+    if (pausaProgramada) {
 
-        if (problemas.length > 0) {
+        statusElement.textContent =
+            "⏸ PAUSA PROGRAMADA";
 
-            problemsContainer.innerHTML = `
+        statusElement.className =
+            "monitor-card-value monitor-value-good";
 
-                <div class="diagnostic-problems-title">
-                    ⚠ DETALLES QUE REQUIEREN ATENCIÓN
-                </div>
-
-                <ul>
-                    ${
-                        problemas.map(
-                            problema =>
-                                `<li>${escapeHtml(problema)}</li>`
-                        ).join("")
-                    }
-                </ul>
-
-            `;
-
-        } else {
-
-            problemsContainer.innerHTML = `
-
-                <div class="diagnostic-clear">
-                    ✓ No se detectaron problemas.
-                    Todos los componentes están funcionando correctamente.
-                </div>
-
-            `;
-        }
-    }
-
-
-    // =====================================================
-    // ESTADO GENERAL DE LA TARJETA
-    // =====================================================
-
-    const statusElement =
-        document.getElementById(
-            "monitorStatus"
-        );
-
-    if (statusElement) {
+    } else {
 
         statusElement.textContent =
             diagnosticoEstado === "OK"
@@ -4497,18 +4559,29 @@ function renderMonitor(data) {
                             : "monitor-value-blue"
             );
     }
+}
 
 
-    // =====================================================
-    // BADGE SUPERIOR DEL MONITOR
-    // =====================================================
+// =====================================================
+// BADGE SUPERIOR DEL MONITOR
+// =====================================================
 
-    const badge =
-        document.getElementById(
-            "monitorBadge"
-        );
+const badge =
+    document.getElementById(
+        "monitorBadge"
+    );
 
-    if (badge) {
+if (badge) {
+
+    if (pausaProgramada) {
+
+        badge.textContent =
+            "⏸ PAUSA PROGRAMADA";
+
+        badge.className =
+            "pill";
+
+    } else {
 
         badge.textContent =
             "● " + estadoVisual.texto;
@@ -4523,49 +4596,71 @@ function renderMonitor(data) {
                         : "danger"
             );
     }
+}
 
 
-    // =====================================================
-    // WORKERS
-    // =====================================================
+// =====================================================
+// WORKERS
+// =====================================================
 
-    const workersActivos =
-        Number(data.workers?.activos || 0);
+const workersActivos =
+    Number(data.workers?.activos || 0);
 
-    const workersTotal =
-        Number(data.workers?.total || 0);
+const workersTotal =
+    Number(data.workers?.total || 0);
 
-    document.getElementById(
-        "monitorWorkers"
-    ).textContent =
-        workersActivos +
-        " / " +
-        workersTotal;
+document.getElementById(
+    "monitorWorkers"
+).textContent =
+    workersActivos +
+    " / " +
+    workersTotal;
 
 
-    // =====================================================
-    // ULTIMA CONSULTA STEAM
-    // =====================================================
+// =====================================================
+// ULTIMA CONSULTA STEAM
+// =====================================================
 
-    const ultimoRequest =
-        data.steam?.ultimo_request;
+const ultimoRequest =
+    data.steam?.ultimo_request;
 
-    const segundosDesdeRequest =
-        data.steam?.segundos_desde_request;
+const segundosDesdeRequest =
+    data.steam?.segundos_desde_request;
 
-    document.getElementById(
-        "monitorLastSteam"
-    ).textContent =
-        ultimoRequest
-            ? formatDate(ultimoRequest)
-            : "-";
+document.getElementById(
+    "monitorLastSteam"
+).textContent =
+    ultimoRequest
+        ? formatDate(ultimoRequest)
+        : "-";
 
-    const lastSteamSub =
-        document.querySelector(
-            "#monitorLastSteam + .monitor-card-sub"
-        );
+const lastSteamSub =
+    document.querySelector(
+        "#monitorLastSteam + .monitor-card-sub"
+    );
 
-    if (lastSteamSub) {
+if (lastSteamSub) {
+
+    if (pausaProgramada) {
+
+        const minutos =
+            Math.floor(
+                segundosRestantesPausa / 60
+            );
+
+        const segundos =
+            Math.floor(
+                segundosRestantesPausa % 60
+            );
+
+        lastSteamSub.textContent =
+            "⏸ Reanuda en " +
+            minutos +
+            "m " +
+            segundos +
+            "s";
+
+    } else {
 
         lastSteamSub.textContent =
             segundosDesdeRequest !== null &&
@@ -4576,199 +4671,201 @@ function renderMonitor(data) {
                   )
                 : "Sin consultas registradas";
     }
+}
 
 
-    // =====================================================
-    // ULTIMO CICLO
-    // =====================================================
+// =====================================================
+// ULTIMO CICLO
+// =====================================================
 
-    const ultimoEscaneo =
-        data.ciclo?.ultimo_escaneo;
+const ultimoEscaneo =
+    data.ciclo?.ultimo_escaneo;
 
-    document.getElementById(
-        "monitorLastCycle"
-    ).textContent =
-        ultimoEscaneo
-            ? formatDate(ultimoEscaneo)
-            : "-";
-
-
-    // =====================================================
-    // CICLOS
-    // =====================================================
-
-    const ciclos =
-        Number(data.stats?.ciclos || 0);
-
-    document.getElementById(
-        "monitorCycles"
-    ).textContent =
-        ciclos.toLocaleString("es-AR");
-
-    document.getElementById(
-        "monitorCyclesStatus"
-    ).innerHTML =
-        ciclos > 0
-            ? `
-                <span class="monitor-value-good">
-                    ● ACTIVIDAD
-                </span>
-              `
-            : `
-                <span class="monitor-value-warning">
-                    ⚠ SIN DATOS
-                </span>
-              `;
+document.getElementById(
+    "monitorLastCycle"
+).textContent =
+    ultimoEscaneo
+        ? formatDate(ultimoEscaneo)
+        : "-";
 
 
-    // =====================================================
-    // REQUESTS STEAM
-    // =====================================================
+// =====================================================
+// CICLOS
+// =====================================================
 
-    const requests =
-        Number(data.stats?.requests_steam || 0);
+const ciclos =
+    Number(data.stats?.ciclos || 0);
 
-    document.getElementById(
-        "monitorRequests"
-    ).textContent =
-        requests.toLocaleString("es-AR");
+document.getElementById(
+    "monitorCycles"
+).textContent =
+    ciclos.toLocaleString("es-AR");
 
-    document.getElementById(
-        "monitorRequestsStatus"
-    ).innerHTML =
-        requests > 0
-            ? `
-                <span class="monitor-value-good">
-                    ● ACTIVO
-                </span>
-              `
-            : `
-                <span class="monitor-value-warning">
-                    ⚠ SIN DATOS
-                </span>
-              `;
-
-
-    // =====================================================
-    // REQUESTS EXITOSAS
-    // =====================================================
-
-    const exitosas =
-        Number(data.stats?.requests_exitosas || 0);
-
-    document.getElementById(
-        "monitorSuccess"
-    ).textContent =
-        exitosas.toLocaleString("es-AR");
-
-    document.getElementById(
-        "monitorSuccessStatus"
-    ).innerHTML =
-        `
+document.getElementById(
+    "monitorCyclesStatus"
+).innerHTML =
+    ciclos > 0
+        ? `
             <span class="monitor-value-good">
-                ● ${exitosas > 0 ? "REGISTRADAS" : "SIN DATOS"}
+                ● ACTIVIDAD
             </span>
-        `;
+          `
+        : `
+            <span class="monitor-value-warning">
+                ⚠ SIN DATOS
+            </span>
+          `;
 
 
-    // =====================================================
-    // REQUESTS FALLIDAS
-    // =====================================================
+// =====================================================
+// REQUESTS STEAM
+// =====================================================
 
-    const fallidas =
-        Number(data.stats?.requests_fallidas || 0);
+const requests =
+    Number(data.stats?.requests_steam || 0);
 
-    document.getElementById(
-        "monitorFailed"
-    ).textContent =
-        fallidas.toLocaleString("es-AR");
+document.getElementById(
+    "monitorRequests"
+).textContent =
+    requests.toLocaleString("es-AR");
 
-    document.getElementById(
-        "monitorFailedStatus"
-    ).innerHTML =
-        fallidas > 0
-            ? `
-                <span class="monitor-value-warning">
-                    ⚠ ${fallidas} FALLIDAS
-                </span>
-              `
-            : `
-                <span class="monitor-value-good">
-                    ● SIN ERRORES
-                </span>
-              `;
-
-
-    // =====================================================
-    // UPTIME
-    // =====================================================
-
-    const uptime =
-        Number(data.bot?.uptime || 0);
-
-    document.getElementById(
-        "monitorUptime"
-    ).textContent =
-        formatDuration(uptime);
+document.getElementById(
+    "monitorRequestsStatus"
+).innerHTML =
+    requests > 0
+        ? `
+            <span class="monitor-value-good">
+                ● ACTIVO
+            </span>
+          `
+        : `
+            <span class="monitor-value-warning">
+                ⚠ SIN DATOS
+            </span>
+          `;
 
 
-    // =====================================================
-    // GITHUB
-    // =====================================================
+// =====================================================
+// REQUESTS EXITOSAS
+// =====================================================
 
-    const githubEstado =
-        data.github?.estado || "DESCONOCIDO";
+const exitosas =
+    Number(data.stats?.requests_exitosas || 0);
 
-    document.getElementById(
-        "monitorGithub"
-    ).textContent =
-        githubEstado === "OK"
-            ? "🟢 OK"
-            : githubEstado === "ERROR"
-                ? "🔴 ERROR"
-                : "⚠ " + githubEstado;
+document.getElementById(
+    "monitorSuccess"
+).textContent =
+    exitosas.toLocaleString("es-AR");
 
-    document.getElementById(
-        "monitorGithubStatus"
-    ).innerHTML =
-        githubEstado === "OK"
-            ? `
-                <span class="monitor-value-good">
-                    ● REGISTRADO
-                </span>
-              `
-            : `
-                <span class="monitor-value-warning">
-                    ⚠ REVISAR
-                </span>
-              `;
+document.getElementById(
+    "monitorSuccessStatus"
+).innerHTML =
+    `
+        <span class="monitor-value-good">
+            ● ${exitosas > 0 ? "REGISTRADAS" : "SIN DATOS"}
+        </span>
+    `;
 
 
-    // =====================================================
-    // ULTIMO GUARDADO
-    // =====================================================
+// =====================================================
+// REQUESTS FALLIDAS
+// =====================================================
 
-    const ultimoGuardado =
-        data.github?.ultimo_guardado;
+const fallidas =
+    Number(data.stats?.requests_fallidas || 0);
 
-    document.getElementById(
-        "monitorLastSave"
-    ).textContent =
-        ultimoGuardado
-            ? formatDate(ultimoGuardado)
-            : "-";
+document.getElementById(
+    "monitorFailed"
+).textContent =
+    fallidas.toLocaleString("es-AR");
+
+document.getElementById(
+    "monitorFailedStatus"
+).innerHTML =
+    fallidas > 0
+        ? `
+            <span class="monitor-value-warning">
+                ⚠ ${fallidas} FALLIDAS
+            </span>
+          `
+        : `
+            <span class="monitor-value-good">
+                ● SIN ERRORES
+            </span>
+          `;
 
 
-    // =====================================================
-    // ULTIMO ESCANEO
-    // =====================================================
+// =====================================================
+// UPTIME
+// =====================================================
 
-    document.getElementById(
-        "monitorScan"
-    ).textContent =
-        ultimoEscaneo
-            ? formatDate(ultimoEscaneo)
-            : "-";
+const uptime =
+    Number(data.bot?.uptime || 0);
+
+document.getElementById(
+    "monitorUptime"
+).textContent =
+    formatDuration(uptime);
+
+
+// =====================================================
+// GITHUB
+// =====================================================
+
+const githubEstado =
+    data.github?.estado || "DESCONOCIDO";
+
+document.getElementById(
+    "monitorGithub"
+).textContent =
+    githubEstado === "OK"
+        ? "🟢 OK"
+        : githubEstado === "ERROR"
+            ? "🔴 ERROR"
+            : "⚠ " + githubEstado;
+
+document.getElementById(
+    "monitorGithubStatus"
+).innerHTML =
+    githubEstado === "OK"
+        ? `
+            <span class="monitor-value-good">
+                ● REGISTRADO
+            </span>
+          `
+        : `
+            <span class="monitor-value-warning">
+                ⚠ REVISAR
+            </span>
+          `;
+
+
+// =====================================================
+// ULTIMO GUARDADO
+// =====================================================
+
+const ultimoGuardado =
+    data.github?.ultimo_guardado;
+
+document.getElementById(
+    "monitorLastSave"
+).textContent =
+    ultimoGuardado
+        ? formatDate(ultimoGuardado)
+        : "-";
+
+
+// =====================================================
+// ULTIMO ESCANEO
+// =====================================================
+
+document.getElementById(
+    "monitorScan"
+).textContent =
+    ultimoEscaneo
+        ? formatDate(ultimoEscaneo)
+        : "-";
+
 
 }
 
