@@ -53,6 +53,14 @@ LAST_WORKER_ACTIVITY = time.time()
 BOT_START_TIME = time.time()
 ULTIMO_GUARDADO_ESTADO = 0
 
+# ==========================================================
+# ESTADO DE PAUSA PROGRAMADA
+# ==========================================================
+
+PAUSA_PROGRAMADA_ACTIVA = False
+PAUSA_PROGRAMADA_HASTA = 0
+PAUSA_PROGRAMADA_INICIO = 0
+
 # =========================================================
 # AUTO-TUNER
 # =========================================================
@@ -1557,10 +1565,43 @@ def api_monitor():
     )
 
     # ======================================================
+    # ESTADO DE PAUSA PROGRAMADA
+    # ======================================================
+
+    pausa_programada_activa = globals().get(
+        "PAUSA_PROGRAMADA_ACTIVA",
+        False
+    )
+
+    pausa_programada_hasta = globals().get(
+        "PAUSA_PROGRAMADA_HASTA",
+        0
+    )
+
+    pausa_programada_inicio = globals().get(
+        "PAUSA_PROGRAMADA_INICIO",
+        0
+    )
+
+    segundos_restantes_pausa = (
+        max(
+            0,
+            pausa_programada_hasta - ahora
+        )
+        if pausa_programada_activa
+        and pausa_programada_hasta
+        else 0
+    )
+
+    # ======================================================
     # ESTADO DE STEAM
     # ======================================================
 
-    if segundos_desde_request is None:
+    if pausa_programada_activa:
+
+        steam_estado = "PAUSA PROGRAMADA"
+
+    elif segundos_desde_request is None:
 
         steam_estado = "SIN DATOS"
 
@@ -1728,6 +1769,7 @@ def api_monitor():
     componentes = {}
 
     # ------------------------------------------------------
+    # ------------------------------------------------------
     # STEAM
     # ------------------------------------------------------
 
@@ -1736,6 +1778,24 @@ def api_monitor():
         componentes["steam"] = {
             "estado": "OK",
             "mensaje": "Steam responde correctamente."
+        }
+
+    elif steam_estado == "PAUSA PROGRAMADA":
+
+        minutos_restantes = (
+            segundos_restantes_pausa / 60
+        )
+
+        componentes["steam"] = {
+            "estado": "OK",
+            "mensaje": (
+                "El bot está realizando una pausa "
+                "programada de mantenimiento."
+            ),
+            "pausa_programada": True,
+            "segundos_restantes": segundos_restantes_pausa,
+            "minutos_restantes": minutos_restantes,
+            "hasta": pausa_programada_hasta
         }
 
     elif steam_estado == "ADVERTENCIA":
@@ -1986,7 +2046,24 @@ def api_monitor():
             ),
 
             "segundos_desde_request":
-                segundos_desde_request
+                segundos_desde_request,
+
+            "pausa_programada": pausa_programada_activa,
+
+            "pausa_inicio": (
+                pausa_programada_inicio
+                if pausa_programada_inicio
+                else None
+            ),
+
+            "pausa_hasta": (
+                pausa_programada_hasta
+                if pausa_programada_hasta
+                else None
+            ),
+
+            "segundos_restantes_pausa":
+                segundos_restantes_pausa
         },
 
         "workers": {
@@ -3838,6 +3915,9 @@ def worker(grupo_skins, worker_id):
     global skins_revisadas_total
     global ciclo_numero
     global PROXIMA_PAUSA
+    global PAUSA_PROGRAMADA_ACTIVA
+    global PAUSA_PROGRAMADA_INICIO
+    global PAUSA_PROGRAMADA_HASTA
     global LAST_WORKER_ACTIVITY
 
     while estado_app["activo"]:
@@ -4292,27 +4372,56 @@ def worker(grupo_skins, worker_id):
         guardar_estado()
 
         if time.time() >= PROXIMA_PAUSA:
+
             inicio_pausa = time.time()
 
             pausa = random.uniform(600, 1200)
+
+            # ======================================================
+            # MARCAR PAUSA PROGRAMADA
+            # ======================================================
+
+            PAUSA_PROGRAMADA_ACTIVA = True
+            PAUSA_PROGRAMADA_INICIO = inicio_pausa
+            PAUSA_PROGRAMADA_HASTA = inicio_pausa + pausa
 
             print(
                 f"[PAUSA] Pausa periódica de {pausa / 60:.1f} minutos"
             )
 
+            guardar_estado()
+
+            # ======================================================
+            # PAUSA
+            # ======================================================
+
             time.sleep(pausa)
 
+            # ======================================================
+            # FINALIZAR PAUSA PROGRAMADA
+            # ======================================================
+
             tiempo_pausa_real = time.time() - inicio_pausa
+
+            PAUSA_PROGRAMADA_ACTIVA = False
+            PAUSA_PROGRAMADA_INICIO = 0
+            PAUSA_PROGRAMADA_HASTA = 0
 
             stats_diarias["pausas_programadas"] += 1
             stats_diarias["tiempo_pausas"] += tiempo_pausa_real
 
-            PROXIMA_PAUSA = time.time() + random.uniform(7200, 10800)
+            PROXIMA_PAUSA = (
+                time.time()
+                + random.uniform(7200, 10800)
+            )
 
             guardar_estado()
 
         else:
-            time.sleep(random.uniform(6, 12))
+
+            time.sleep(
+                random.uniform(6, 12)
+            )
 
 # 🔁 Ejecutar el servidor Flask en hilo separado
 def iniciar_servidor():
