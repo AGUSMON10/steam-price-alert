@@ -4153,7 +4153,7 @@ def worker(grupo_skins, worker_id):
 
             if precio_actual <= precio_max and (
                 ultima_alerta is None
-                or precio_actual < ultima_alerta
+                or precio_actual != ultima_alerta
             ):
                 steam_url = (
                     "steam://openurl/https://steamcommunity.com/market/listings/730/"
