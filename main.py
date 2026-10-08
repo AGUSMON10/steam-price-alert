@@ -74,7 +74,7 @@ CONFIG_DEFAULTS = {
         "proxy_min_interval": 10,
 
         # TTL máximo de caché.
-        "cache_max_ttl": 241,
+        "cache_max_ttl": 240,
     },
 
     # ======================================================
