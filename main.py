@@ -2719,6 +2719,224 @@ def api_config_save():
             "error": "No se pudo guardar la configuración"
         }), 500
 
+# =========================================================
+# PRECIOS MÁXIMOS POR SKIN
+# =========================================================
+
+@app.route(
+    "/api/config/skins",
+    methods=["GET", "POST"]
+)
+def api_config_skins():
+
+    error = config_admin_required()
+
+    if error:
+        return error
+
+
+    # =====================================================
+    # GET
+    # =====================================================
+
+    if request.method == "GET":
+
+        return jsonify({
+            "ok": True,
+            "skins_a_vigilar": copy.deepcopy(
+                skins_a_vigilar
+            )
+        })
+
+
+    # =====================================================
+    # POST
+    # =====================================================
+
+    datos = request.get_json(
+        silent=True
+    )
+
+    if not isinstance(datos, dict):
+
+        return jsonify({
+            "ok": False,
+            "error": "Solicitud inválida"
+        }), 400
+
+
+    nuevos_precios = datos.get(
+        "skins_a_vigilar"
+    )
+
+    if not isinstance(
+        nuevos_precios,
+        dict
+    ):
+
+        return jsonify({
+            "ok": False,
+            "error": "Falta skins_a_vigilar"
+        }), 400
+
+
+    # =====================================================
+    # VALIDAR PRECIOS
+    # =====================================================
+
+    errores = []
+
+    precios_validos = {}
+
+
+    for skin_name, precio in nuevos_precios.items():
+
+        # -----------------------------------------------
+        # Nombre de skin
+        # -----------------------------------------------
+
+        if not isinstance(
+            skin_name,
+            str
+        ):
+
+            errores.append(
+                "Nombre de skin inválido"
+            )
+
+            continue
+
+
+        skin_name = skin_name.strip()
+
+
+        if not skin_name:
+
+            errores.append(
+                "Existe una skin con nombre vacío"
+            )
+
+            continue
+
+
+        # -----------------------------------------------
+        # Precio
+        # -----------------------------------------------
+
+        try:
+
+            precio = float(
+                precio
+            )
+
+        except (
+            TypeError,
+            ValueError
+        ):
+
+            errores.append(
+                f"Precio inválido para {skin_name}"
+            )
+
+            continue
+
+
+        if precio < 0:
+
+            errores.append(
+                f"El precio no puede ser negativo: {skin_name}"
+            )
+
+            continue
+
+
+        if precio > 1000000:
+
+            errores.append(
+                f"Precio demasiado alto para {skin_name}"
+            )
+
+            continue
+
+
+        precios_validos[
+            skin_name
+        ] = round(
+            precio,
+            2
+        )
+
+
+    # =====================================================
+    # SI HAY ERRORES
+    # =====================================================
+
+    if errores:
+
+        return jsonify({
+            "ok": False,
+            "error": "Hay precios inválidos",
+            "errores": errores
+        }), 400
+
+
+    # =====================================================
+    # ACTUALIZAR SOLAMENTE SKINS EXISTENTES
+    # =====================================================
+
+    skins_actualizadas = 0
+
+
+    for skin_name, precio in precios_validos.items():
+
+        if skin_name in skins_a_vigilar:
+
+            skins_a_vigilar[
+                skin_name
+            ] = precio
+
+            skins_actualizadas += 1
+
+
+    # =====================================================
+    # GUARDAR ESTADO
+    # =====================================================
+
+    try:
+
+        guardar_estado()
+
+    except Exception as e:
+
+        print(
+            f"[CONFIG SKINS] Error guardando estado: {e}"
+        )
+
+        return jsonify({
+            "ok": False,
+            "error": "No se pudieron guardar los precios"
+        }), 500
+
+
+    # =====================================================
+    # RESPUESTA
+    # =====================================================
+
+    return jsonify({
+
+        "ok": True,
+
+        "mensaje": (
+            f"Precios actualizados: "
+            f"{skins_actualizadas}"
+        ),
+
+        "skins_a_vigilar": copy.deepcopy(
+            skins_a_vigilar
+        )
+
+    })
+
 @app.route("/")
 def home():
     return render_template("dashboard.html")
