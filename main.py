@@ -2,6 +2,7 @@ import random
 import requests
 import time
 import os
+import secrets
 import threading
 import re
 import json
@@ -655,6 +656,21 @@ def aplicar_configuracion():
     PAUSA_MANUAL_ACTIVA = CONFIG["bot"][
         "pausa_manual"
     ]
+
+# ==========================================================
+# AUTORIZACIÓN DEL PANEL DE CONFIGURACIÓN
+# ==========================================================
+
+def config_admin_required():
+
+    if not session.get("config_admin"):
+
+        return jsonify({
+            "ok": False,
+            "error": "No autorizado"
+        }), 401
+
+    return None
 
 # =========================================================
 # AUTO-TUNER
@@ -1963,21 +1979,162 @@ def obtener_proxy():
 
 app = Flask(__name__)
 
-# ==========================================================
-# SEGURIDAD DEL DASHBOARD
-# ==========================================================
-
-# Esta clave se utiliza para proteger la sesión de
-# administración del dashboard.
-#
-# IMPORTANTE:
-# Nunca poner esta clave directamente en el código.
-# Se configura desde las variables de entorno de Render.
-
 app.secret_key = os.getenv(
     "DASHBOARD_SESSION_SECRET",
     ""
 )
+
+app.config["SESSION_COOKIE_HTTPONLY"] = True
+app.config["SESSION_COOKIE_SAMESITE"] = "Lax"
+app.config["SESSION_COOKIE_SECURE"] = True
+
+DASHBOARD_ADMIN_PASSWORD = os.getenv(
+    "DASHBOARD_ADMIN_PASSWORD",
+    ""
+)
+
+# ==========================================================
+# CONFIGURACIÓN — LOGIN
+# ==========================================================
+
+@app.route("/api/config/login", methods=["POST"])
+def config_login():
+
+    datos = request.get_json(silent=True)
+
+    if not isinstance(datos, dict):
+
+        return jsonify({
+            "ok": False,
+            "error": "Solicitud inválida"
+        }), 400
+
+    password = str(
+        datos.get("password", "")
+    )
+
+    if not DASHBOARD_ADMIN_PASSWORD:
+
+        return jsonify({
+            "ok": False,
+            "error": "Contraseña de administrador no configurada"
+        }), 500
+
+    if not secrets.compare_digest(
+        password,
+        DASHBOARD_ADMIN_PASSWORD
+    ):
+
+        return jsonify({
+            "ok": False,
+            "error": "Contraseña incorrecta"
+        }), 401
+
+    session["config_admin"] = True
+
+    return jsonify({
+        "ok": True,
+        "mensaje": "Autenticación correcta"
+    })
+
+# ==========================================================
+# CONFIGURACIÓN — LOGOUT
+# ==========================================================
+
+@app.route("/api/config/logout", methods=["POST"])
+def config_logout():
+
+    session.pop(
+        "config_admin",
+        None
+    )
+
+    return jsonify({
+        "ok": True
+    })
+
+# ==========================================================
+# CONFIGURACIÓN — OBTENER
+# ==========================================================
+
+@app.route("/api/config", methods=["GET"])
+def api_config():
+
+    error = config_admin_required()
+
+    if error:
+        return error
+
+    return jsonify({
+        "ok": True,
+        "config": copy.deepcopy(CONFIG)
+    })
+
+# ==========================================================
+# CONFIGURACIÓN — GUARDAR
+# ==========================================================
+
+@app.route("/api/config/save", methods=["POST"])
+def api_config_save():
+
+    error = config_admin_required()
+
+    if error:
+        return error
+
+    datos = request.get_json(silent=True)
+
+    if not isinstance(datos, dict):
+
+        return jsonify({
+            "ok": False,
+            "error": "Configuración inválida"
+        }), 400
+
+    nueva_config = datos.get(
+        "config"
+    )
+
+    if not isinstance(nueva_config, dict):
+
+        return jsonify({
+            "ok": False,
+            "error": "Falta el objeto config"
+        }), 400
+
+    try:
+
+        nueva_config = mezclar_configuracion(
+            CONFIG_DEFAULTS,
+            nueva_config
+        )
+
+        CONFIG.clear()
+
+        CONFIG.update(
+            nueva_config
+        )
+
+        aplicar_configuracion()
+
+        guardar_estado()
+
+        return jsonify({
+            "ok": True,
+            "mensaje": "Configuración guardada",
+            "config": copy.deepcopy(CONFIG)
+        })
+
+    except Exception as e:
+
+        print(
+            f"[CONFIG] Error guardando configuración: {e}"
+        )
+
+        return jsonify({
+            "ok": False,
+            "error": "No se pudo guardar la configuración"
+        }), 500
 
 @app.route("/")
 def home():
