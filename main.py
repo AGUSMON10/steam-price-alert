@@ -304,6 +304,577 @@ def mezclar_configuracion(defaults, guardada):
 
     return resultado
 
+# ==========================================================
+# VALIDACIÓN DE CONFIGURACIÓN
+# ==========================================================
+
+def validar_configuracion(config):
+
+    errores = []
+
+    def numero_en_rango(
+        seccion,
+        clave,
+        minimo,
+        maximo
+    ):
+
+        try:
+
+            valor = config[seccion][clave]
+
+            if isinstance(valor, bool):
+                raise ValueError
+
+            valor = float(valor)
+
+            if valor < minimo or valor > maximo:
+
+                errores.append(
+                    f"{seccion}.{clave} debe estar "
+                    f"entre {minimo} y {maximo}"
+                )
+
+        except (
+            KeyError,
+            TypeError,
+            ValueError
+        ):
+
+            errores.append(
+                f"{seccion}.{clave} tiene un valor inválido"
+            )
+
+    def entero_en_rango(
+        seccion,
+        clave,
+        minimo,
+        maximo
+    ):
+
+        try:
+
+            valor = config[seccion][clave]
+
+            if isinstance(valor, bool):
+                raise ValueError
+
+            if int(valor) != float(valor):
+
+                raise ValueError
+
+            valor = int(valor)
+
+            if valor < minimo or valor > maximo:
+
+                errores.append(
+                    f"{seccion}.{clave} debe estar "
+                    f"entre {minimo} y {maximo}"
+                )
+
+        except (
+            KeyError,
+            TypeError,
+            ValueError
+        ):
+
+            errores.append(
+                f"{seccion}.{clave} tiene un valor inválido"
+            )
+
+    # ======================================================
+    # STEAM
+    # ======================================================
+
+    numero_en_rango(
+        "steam",
+        "global_min_request_interval",
+        2,
+        30
+    )
+
+    numero_en_rango(
+        "steam",
+        "proxy_min_interval",
+        5,
+        60
+    )
+
+    entero_en_rango(
+        "steam",
+        "cache_max_ttl",
+        30,
+        900
+    )
+
+    # ======================================================
+    # PROXIES
+    # ======================================================
+
+    entero_en_rango(
+        "proxies",
+        "cooldown",
+        10,
+        3600
+    )
+
+    entero_en_rango(
+        "proxies",
+        "429_cooldown_base",
+        30,
+        1800
+    )
+
+    entero_en_rango(
+        "proxies",
+        "429_cooldown_max",
+        60,
+        3600
+    )
+
+    try:
+
+        base_429 = int(
+            config["proxies"]["429_cooldown_base"]
+        )
+
+        max_429 = int(
+            config["proxies"]["429_cooldown_max"]
+        )
+
+        if max_429 < base_429:
+
+            errores.append(
+                "proxies.429_cooldown_max no puede "
+                "ser menor que 429_cooldown_base"
+            )
+
+    except (
+        KeyError,
+        TypeError,
+        ValueError
+    ):
+
+        pass
+
+    # ======================================================
+    # STEAM 429
+    # ======================================================
+
+    entero_en_rango(
+        "steam_429",
+        "umbral",
+        1,
+        20
+    )
+
+    entero_en_rango(
+        "steam_429",
+        "pausa_base",
+        30,
+        3600
+    )
+
+    entero_en_rango(
+        "steam_429",
+        "pausa_max",
+        60,
+        3600
+    )
+
+    try:
+
+        pausa_base = int(
+            config["steam_429"]["pausa_base"]
+        )
+
+        pausa_max = int(
+            config["steam_429"]["pausa_max"]
+        )
+
+        if pausa_max < pausa_base:
+
+            errores.append(
+                "steam_429.pausa_max no puede "
+                "ser menor que pausa_base"
+            )
+
+    except (
+        KeyError,
+        TypeError,
+        ValueError
+    ):
+
+        pass
+
+    # ======================================================
+    # AUTO TUNER
+    # ======================================================
+
+    if not isinstance(
+        config["auto_tuner"].get("activo"),
+        bool
+    ):
+
+        errores.append(
+            "auto_tuner.activo debe ser verdadero o falso"
+        )
+
+    entero_en_rango(
+        "auto_tuner",
+        "intervalo",
+        30,
+        3600
+    )
+
+    entero_en_rango(
+        "auto_tuner",
+        "global_min",
+        2,
+        30
+    )
+
+    entero_en_rango(
+        "auto_tuner",
+        "global_max",
+        2,
+        30
+    )
+
+    entero_en_rango(
+        "auto_tuner",
+        "proxy_min",
+        5,
+        60
+    )
+
+    entero_en_rango(
+        "auto_tuner",
+        "proxy_max",
+        5,
+        60
+    )
+
+    entero_en_rango(
+        "auto_tuner",
+        "429_base_min",
+        30,
+        1800
+    )
+
+    entero_en_rango(
+        "auto_tuner",
+        "429_base_max",
+        30,
+        1800
+    )
+
+    try:
+
+        if (
+            int(config["auto_tuner"]["global_max"])
+            <
+            int(config["auto_tuner"]["global_min"])
+        ):
+
+            errores.append(
+                "auto_tuner.global_max no puede "
+                "ser menor que global_min"
+            )
+
+        if (
+            int(config["auto_tuner"]["proxy_max"])
+            <
+            int(config["auto_tuner"]["proxy_min"])
+        ):
+
+            errores.append(
+                "auto_tuner.proxy_max no puede "
+                "ser menor que proxy_min"
+            )
+
+        if (
+            int(config["auto_tuner"]["429_base_max"])
+            <
+            int(config["auto_tuner"]["429_base_min"])
+        ):
+
+            errores.append(
+                "auto_tuner.429_base_max no puede "
+                "ser menor que 429_base_min"
+            )
+
+    except (
+        KeyError,
+        TypeError,
+        ValueError
+    ):
+
+        pass
+
+    # ======================================================
+    # PAUSAS PROGRAMADAS
+    # ======================================================
+
+    if not isinstance(
+        config["pausas_programadas"].get("activas"),
+        bool
+    ):
+
+        errores.append(
+            "pausas_programadas.activas debe ser verdadero o falso"
+        )
+
+    entero_en_rango(
+        "pausas_programadas",
+        "intervalo_min",
+        1800,
+        86400
+    )
+
+    entero_en_rango(
+        "pausas_programadas",
+        "intervalo_max",
+        1800,
+        86400
+    )
+
+    entero_en_rango(
+        "pausas_programadas",
+        "duracion_min",
+        60,
+        3600
+    )
+
+    entero_en_rango(
+        "pausas_programadas",
+        "duracion_max",
+        60,
+        3600
+    )
+
+    entero_en_rango(
+        "pausas_programadas",
+        "sleep_min",
+        2,
+        60
+    )
+
+    entero_en_rango(
+        "pausas_programadas",
+        "sleep_max",
+        2,
+        120
+    )
+
+    try:
+
+        if (
+            int(config["pausas_programadas"]["intervalo_max"])
+            <
+            int(config["pausas_programadas"]["intervalo_min"])
+        ):
+
+            errores.append(
+                "pausas_programadas.intervalo_max no puede "
+                "ser menor que intervalo_min"
+            )
+
+        if (
+            int(config["pausas_programadas"]["duracion_max"])
+            <
+            int(config["pausas_programadas"]["duracion_min"])
+        ):
+
+            errores.append(
+                "pausas_programadas.duracion_max no puede "
+                "ser menor que duracion_min"
+            )
+
+        if (
+            int(config["pausas_programadas"]["sleep_max"])
+            <
+            int(config["pausas_programadas"]["sleep_min"])
+        ):
+
+            errores.append(
+                "pausas_programadas.sleep_max no puede "
+                "ser menor que sleep_min"
+            )
+
+    except (
+        KeyError,
+        TypeError,
+        ValueError
+    ):
+
+        pass
+
+    # ======================================================
+    # ALERTAS
+    # ======================================================
+
+    if not isinstance(
+        config["alertas"].get("activas"),
+        bool
+    ):
+
+        errores.append(
+            "alertas.activas debe ser verdadero o falso"
+        )
+
+    if not isinstance(
+        config["alertas"].get("doble_alerta_activa"),
+        bool
+    ):
+
+        errores.append(
+            "alertas.doble_alerta_activa debe ser verdadero o falso"
+        )
+
+    numero_en_rango(
+        "alertas",
+        "doble_alerta_descuento",
+        0.01,
+        0.90
+    )
+
+    entero_en_rango(
+        "alertas",
+        "doble_alerta_intervalo",
+        1,
+        1440
+    )
+
+    # ======================================================
+    # ERRORES / RETRIES
+    # ======================================================
+
+    entero_en_rango(
+        "errores",
+        "max_intentos",
+        1,
+        5
+    )
+
+    entero_en_rango(
+        "errores",
+        "retry_timeout_min",
+        0,
+        30
+    )
+
+    entero_en_rango(
+        "errores",
+        "retry_timeout_max",
+        0,
+        60
+    )
+
+    entero_en_rango(
+        "errores",
+        "retry_http_min",
+        0,
+        30
+    )
+
+    entero_en_rango(
+        "errores",
+        "retry_http_max",
+        0,
+        60
+    )
+
+    entero_en_rango(
+        "errores",
+        "retry_json_min",
+        0,
+        30
+    )
+
+    entero_en_rango(
+        "errores",
+        "retry_json_max",
+        0,
+        60
+    )
+
+    entero_en_rango(
+        "errores",
+        "retry_otro_min",
+        0,
+        30
+    )
+
+    entero_en_rango(
+        "errores",
+        "retry_otro_max",
+        0,
+        60
+    )
+
+    entero_en_rango(
+        "errores",
+        "skin_max_fails",
+        1,
+        20
+    )
+
+    entero_en_rango(
+        "errores",
+        "skin_cooldown",
+        60,
+        86400
+    )
+
+    # ======================================================
+    # HISTORIAL
+    # ======================================================
+
+    entero_en_rango(
+        "historial",
+        "horas",
+        1,
+        168
+    )
+
+    entero_en_rango(
+        "historial",
+        "max_puntos",
+        50,
+        5000
+    )
+
+    # ======================================================
+    # PERSISTENCIA
+    # ======================================================
+
+    entero_en_rango(
+        "persistencia",
+        "guardar_estado_intervalo",
+        60,
+        86400
+    )
+
+    # ======================================================
+    # BOT
+    # ======================================================
+
+    if not isinstance(
+        config["bot"].get("pausa_manual"),
+        bool
+    ):
+
+        errores.append(
+            "bot.pausa_manual debe ser verdadero o falso"
+        )
+
+    # ======================================================
+    # RESULTADO
+    # ======================================================
+
+    return errores
+
 
 # ==========================================================
 # PAUSA MANUAL
@@ -2108,6 +2679,18 @@ def api_config_save():
             CONFIG_DEFAULTS,
             nueva_config
         )
+
+        errores_config = validar_configuracion(
+            nueva_config
+        )
+
+        if errores_config:
+
+            return jsonify({
+                "ok": False,
+                "error": "Configuración inválida",
+                "errores": errores_config
+            }), 400
 
         CONFIG.clear()
 
