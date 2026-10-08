@@ -1228,7 +1228,7 @@ def guardar_estado(forzar=False):
             "ciclo_numero": ciclo_numero,
             "estado_app": estado_app,
             "skins_revisadas_total": skins_revisadas_total,
-            "fecha_estadisticas": fecha_estadisticas.isoformat()
+            "fecha_estadisticas": fecha_estadisticas.isoformat(),
 
             # Configuración editable del bot.
             #
