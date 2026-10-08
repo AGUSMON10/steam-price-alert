@@ -5,7 +5,7 @@ import os
 import threading
 import re
 import json
-from flask import Flask, jsonify, render_template, request
+from flask import Flask, jsonify, render_template, request, session
 from datetime import datetime
 import builtins
 from zoneinfo import ZoneInfo
@@ -1422,8 +1422,27 @@ def obtener_proxy():
 
     return None
     
-# Crear app Flask para UptimeRobot
+# ==========================================================
+# APP FLASK
+# ==========================================================
+
 app = Flask(__name__)
+
+# ==========================================================
+# SEGURIDAD DEL DASHBOARD
+# ==========================================================
+
+# Esta clave se utiliza para proteger la sesión de
+# administración del dashboard.
+#
+# IMPORTANTE:
+# Nunca poner esta clave directamente en el código.
+# Se configura desde las variables de entorno de Render.
+
+app.secret_key = os.getenv(
+    "DASHBOARD_SESSION_SECRET",
+    ""
+)
 
 @app.route("/")
 def home():
