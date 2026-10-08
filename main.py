@@ -259,6 +259,50 @@ import copy
 
 CONFIG = copy.deepcopy(CONFIG_DEFAULTS)
 
+# ==========================================================
+# MEZCLAR CONFIGURACIÓN GUARDADA CON LOS VALORES POR DEFECTO
+# ==========================================================
+
+def mezclar_configuracion(defaults, guardada):
+    """
+    Combina una configuración guardada con los valores
+    actuales de CONFIG_DEFAULTS.
+
+    Esto permite agregar nuevas opciones en el futuro sin
+    romper configuraciones antiguas.
+    """
+
+    resultado = copy.deepcopy(defaults)
+
+    if not isinstance(guardada, dict):
+        return resultado
+
+    for clave, valor in guardada.items():
+
+        # --------------------------------------------------
+        # Si ambos valores son diccionarios, los combinamos
+        # recursivamente.
+        # --------------------------------------------------
+
+        if (
+            clave in resultado
+            and isinstance(resultado[clave], dict)
+            and isinstance(valor, dict)
+        ):
+            resultado[clave] = mezclar_configuracion(
+                resultado[clave],
+                valor
+            )
+
+        # --------------------------------------------------
+        # Si es un valor normal, utilizamos el guardado.
+        # --------------------------------------------------
+
+        else:
+            resultado[clave] = valor
+
+    return resultado
+
 
 # ==========================================================
 # PAUSA MANUAL
@@ -1185,6 +1229,13 @@ def guardar_estado(forzar=False):
             "estado_app": estado_app,
             "skins_revisadas_total": skins_revisadas_total,
             "fecha_estadisticas": fecha_estadisticas.isoformat()
+
+            # Configuración editable del bot.
+            #
+            # IMPORTANTE:
+            # CONFIG no contiene tokens, contraseñas ni URLs
+            # de proxies.
+            "configuracion": copy.deepcopy(CONFIG),
         }
         # ====================================================
         # GUARDAR ARCHIVO LOCAL
@@ -1307,6 +1358,7 @@ def cargar_estado():
     global fecha_estadisticas
     global price_cache
     global ESTADO_CARGA_FALLIDA
+    global CONFIG
 
     try:
         github_token = os.getenv("GITHUB_TOKEN")
@@ -1394,6 +1446,20 @@ def cargar_estado():
             )
 
         notificados = estado.get("notificados", {})
+
+        # ==========================================================
+        # RECUPERAR CONFIGURACIÓN
+        # ==========================================================
+
+        configuracion_guardada = estado.get(
+            "configuracion",
+            {}
+        )
+
+        CONFIG = mezclar_configuracion(
+            CONFIG_DEFAULTS,
+            configuracion_guardada
+        )
 
         # ====================================================
         # RECUPERAR ESTADÍSTICAS DIARIAS
