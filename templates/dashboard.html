@@ -1272,6 +1272,167 @@ select:focus {
     }
 }
 
+/* =====================================================
+   CONFIGURACIÓN
+   ===================================================== */
+
+.config-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 16px;
+    margin-top: 18px;
+}
+
+.config-field {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.config-field label {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text);
+}
+
+.config-field input[type="number"],
+.config-field input[type="text"],
+.config-field input[type="password"] {
+    width: 100%;
+    box-sizing: border-box;
+    padding: 11px 12px;
+    border-radius: 8px;
+    border: 1px solid var(--border);
+    background: var(--panel3);
+    color: var(--text);
+    outline: none;
+    font-family: inherit;
+    font-size: 14px;
+}
+
+.config-field input:focus {
+    border-color: var(--green);
+}
+
+.config-help {
+    font-size: 11px;
+    color: var(--muted);
+    line-height: 1.4;
+}
+
+.config-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 20px;
+    padding: 14px 0;
+    border-bottom: 1px solid var(--border);
+}
+
+.config-row:last-child {
+    border-bottom: none;
+}
+
+.config-row-info {
+    flex: 1;
+}
+
+.config-row-title {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text);
+}
+
+.config-row-description {
+    margin-top: 4px;
+    font-size: 12px;
+    color: var(--muted);
+    line-height: 1.4;
+}
+
+/* Switch */
+
+.switch {
+    position: relative;
+    display: inline-block;
+    width: 46px;
+    min-width: 46px;
+    height: 24px;
+}
+
+.switch input {
+    opacity: 0;
+    width: 0;
+    height: 0;
+}
+
+.slider {
+    position: absolute;
+    cursor: pointer;
+    inset: 0;
+    background: #3a3f4b;
+    border-radius: 24px;
+    transition: 0.2s;
+}
+
+.slider::before {
+    content: "";
+    position: absolute;
+    width: 18px;
+    height: 18px;
+    left: 3px;
+    top: 3px;
+    background: white;
+    border-radius: 50%;
+    transition: 0.2s;
+}
+
+.switch input:checked + .slider {
+    background: var(--green);
+}
+
+.switch input:checked + .slider::before {
+    transform: translateX(22px);
+}
+
+/* Mensajes */
+
+.config-message {
+    margin-top: 12px;
+    font-size: 13px;
+    line-height: 1.4;
+}
+
+.config-message.success {
+    color: #4ade80;
+}
+
+.config-message.error {
+    color: #f87171;
+}
+
+/* Botones */
+
+.config-actions {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    margin-top: 20px;
+}
+
+/* Responsive */
+
+@media (max-width: 800px) {
+
+    .config-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .config-row {
+        align-items: flex-start;
+    }
+}
+    
 </style>
 
 </head>
@@ -1356,6 +1517,12 @@ select:focus {
                 onclick="showTab('bot',this)">
             <span class="nav-icon">⚙</span>
             Estado del bot
+        </button>
+
+        <button class="tab"
+                onclick="showTab('configuracion',this)">
+            <span class="nav-icon">⚙</span>
+            Configuración
         </button>
 
     </nav>
@@ -2700,6 +2867,381 @@ select:focus {
 
 <script>
 
+<!-- =====================================================
+     CONFIGURACIÓN
+====================================================== -->
+
+<section id="configuracion" class="section">
+
+    <div class="section-header">
+
+        <div>
+
+            <h2>
+                Configuración
+            </h2>
+
+            <p>
+                Control avanzado del comportamiento del bot
+            </p>
+
+        </div>
+
+        <div id="configStatus"
+             class="status-badge">
+            🔒 No autenticado
+        </div>
+
+    </div>
+
+
+    <!-- =================================================
+         LOGIN
+    ================================================== -->
+
+    <div id="configLoginCard"
+         class="card">
+
+        <div class="card-title">
+            🔐 Acceso de administrador
+        </div>
+
+        <div class="card-subtitle">
+            Ingresá la contraseña para modificar
+            la configuración del bot.
+        </div>
+
+        <div style="
+            display:flex;
+            gap:10px;
+            margin-top:18px;
+            max-width:500px;
+        ">
+
+            <input
+                type="password"
+                id="configPassword"
+                placeholder="Contraseña de administrador"
+                autocomplete="current-password"
+                style="
+                    flex:1;
+                    padding:12px;
+                "
+            >
+
+            <button
+                class="btn"
+                onclick="loginConfiguracion()"
+            >
+                Ingresar
+            </button>
+
+        </div>
+
+        <div
+            id="configLoginMessage"
+            style="
+                margin-top:12px;
+                display:none;
+            "
+        ></div>
+
+    </div>
+
+
+    <!-- =================================================
+         PANEL PROTEGIDO
+    ================================================== -->
+
+    <div id="configPanel"
+         style="display:none;">
+
+        <div class="card">
+
+            <div class="card-title">
+                ⚙️ Configuración del bot
+            </div>
+
+            <div class="card-subtitle">
+                Los cambios se validan en el servidor
+                antes de guardarse.
+            </div>
+
+            <div style="
+                margin-top:20px;
+                display:flex;
+                justify-content:space-between;
+                align-items:center;
+                gap:15px;
+                flex-wrap:wrap;
+            ">
+
+                <div>
+
+                    <strong>
+                        Sesión de administrador activa
+                    </strong>
+
+                    <div style="
+                        opacity:.65;
+                        margin-top:4px;
+                    ">
+                        Podés modificar la configuración
+                        mientras esta sesión esté activa.
+                    </div>
+
+                </div>
+
+                <button
+                    class="btn"
+                    onclick="logoutConfiguracion()"
+                >
+                    🔒 Cerrar sesión
+                </button>
+
+            </div>
+
+        </div>
+
+
+        <!-- =============================================
+             CONFIGURACIÓN GENERAL
+        ============================================== -->
+
+        <div class="card">
+
+            <div class="card-title">
+                🤖 Estado y funcionamiento
+            </div>
+
+            <div class="config-row">
+
+                <div>
+
+                    <strong>
+                        Pausa manual
+                    </strong>
+
+                    <div class="config-help">
+                        Detiene temporalmente las consultas
+                        sin apagar el proceso del bot.
+                    </div>
+
+                </div>
+
+                <label class="switch">
+
+                    <input
+                        type="checkbox"
+                        id="configPausaManual"
+                    >
+
+                    <span class="slider"></span>
+
+                </label>
+
+            </div>
+
+        </div>
+
+
+        <!-- =============================================
+             STEAM
+        ============================================== -->
+
+        <div class="card">
+
+            <div class="card-title">
+                🎮 Consultas a Steam
+            </div>
+
+            <div class="config-grid">
+
+                <div class="config-field">
+
+                    <label>
+                        Intervalo global mínimo
+                    </label>
+
+                    <input
+                        type="number"
+                        id="configGlobalInterval"
+                        min="2"
+                        max="30"
+                        step="1"
+                    >
+
+                    <small>
+                        Segundos
+                    </small>
+
+                </div>
+
+                <div class="config-field">
+
+                    <label>
+                        Intervalo mínimo por proxy
+                    </label>
+
+                    <input
+                        type="number"
+                        id="configProxyInterval"
+                        min="5"
+                        max="60"
+                        step="1"
+                    >
+
+                    <small>
+                        Segundos
+                    </small>
+
+                </div>
+
+                <div class="config-field">
+
+                    <label>
+                        TTL máximo de caché
+                    </label>
+
+                    <input
+                        type="number"
+                        id="configCacheTTL"
+                        min="30"
+                        max="900"
+                        step="1"
+                    >
+
+                    <small>
+                        Segundos
+                    </small>
+
+                </div>
+
+            </div>
+
+        </div>
+
+
+        <!-- =============================================
+             PROXIES
+        ============================================== -->
+
+        <div class="card">
+
+            <div class="card-title">
+                🌐 Proxies
+            </div>
+
+            <div class="config-grid">
+
+                <div class="config-field">
+
+                    <label>
+                        Cooldown
+                    </label>
+
+                    <input
+                        type="number"
+                        id="configProxyCooldown"
+                        min="10"
+                        max="3600"
+                        step="1"
+                    >
+
+                    <small>
+                        Segundos
+                    </small>
+
+                </div>
+
+                <div class="config-field">
+
+                    <label>
+                        Cooldown base por 429
+                    </label>
+
+                    <input
+                        type="number"
+                        id="configProxy429Base"
+                        min="30"
+                        max="1800"
+                        step="1"
+                    >
+
+                    <small>
+                        Segundos
+                    </small>
+
+                </div>
+
+                <div class="config-field">
+
+                    <label>
+                        Cooldown máximo por 429
+                    </label>
+
+                    <input
+                        type="number"
+                        id="configProxy429Max"
+                        min="60"
+                        max="3600"
+                        step="1"
+                    >
+
+                    <small>
+                        Segundos
+                    </small>
+
+                </div>
+
+            </div>
+
+        </div>
+
+
+        <!-- =============================================
+             BOTONES
+        ============================================== -->
+
+        <div class="card">
+
+            <div style="
+                display:flex;
+                justify-content:flex-end;
+                gap:10px;
+                flex-wrap:wrap;
+            ">
+
+                <button
+                    class="btn"
+                    onclick="cargarConfiguracion()"
+                >
+                    ↻ Recargar
+                </button>
+
+                <button
+                    class="btn"
+                    onclick="guardarConfiguracion()"
+                >
+                    💾 Guardar cambios
+                </button>
+
+            </div>
+
+            <div
+                id="configSaveMessage"
+                style="
+                    margin-top:14px;
+                    display:none;
+                "
+            ></div>
+
+        </div>
+
+    </div>
+
+</section>
+
 /* =========================================================
    VARIABLES
 ========================================================= */
@@ -2726,7 +3268,17 @@ function showTab(tabName, button) {
         tab.classList.remove("active");
     });
 
-    document.getElementById(tabName).classList.add("active");
+    const section = document.getElementById(tabName);
+
+    if (!section) {
+        console.error(
+            "Sección no encontrada:",
+            tabName
+        );
+        return;
+    }
+
+    section.classList.add("active");
 
     if (button) {
         button.classList.add("active");
@@ -2734,6 +3286,7 @@ function showTab(tabName, button) {
 
     if (
         tabName === "historial" &&
+        document.getElementById("historySkin") &&
         document.getElementById("historySkin").value
     ) {
         loadHistory();
@@ -2746,6 +3299,18 @@ function showTab(tabName, button) {
     if (tabName === "proxies") {
         loadProxies();
     }
+
+    if (tabName === "configuracion") {
+        cargarConfiguracion();
+    }
+    const section = document.getElementById(tabName);
+
+    if (!section) {
+        console.error(
+            "Sección no encontrada:",
+            tabName
+        );
+        return;
 }
 
 
@@ -5369,6 +5934,686 @@ setInterval(
     15000
 );
 
+
+// =====================================================
+// CONFIGURACIÓN DEL BOT
+// =====================================================
+
+let CONFIG_ACTUAL = null;
+
+
+// =====================================================
+// MOSTRAR MENSAJE DE LOGIN
+// =====================================================
+
+function mostrarConfigLoginMensaje(
+    mensaje,
+    tipo = "error"
+) {
+
+    const elemento = document.getElementById(
+        "configLoginMessage"
+    );
+
+    if (!elemento) {
+        return;
+    }
+
+    elemento.style.display = "block";
+
+    elemento.textContent = mensaje;
+
+    if (tipo === "ok") {
+
+        elemento.style.opacity = "1";
+
+    } else {
+
+        elemento.style.opacity = "0.9";
+    }
+}
+
+
+// =====================================================
+// MOSTRAR MENSAJE DE GUARDADO
+// =====================================================
+
+function mostrarConfigSaveMensaje(
+    mensaje,
+    tipo = "error"
+) {
+
+    const elemento = document.getElementById(
+        "configSaveMessage"
+    );
+
+    if (!elemento) {
+        return;
+    }
+
+    elemento.style.display = "block";
+
+    elemento.textContent = mensaje;
+
+    if (tipo === "ok") {
+
+        elemento.style.opacity = "1";
+
+    } else {
+
+        elemento.style.opacity = "0.9";
+    }
+}
+
+
+// =====================================================
+// ESTADO VISUAL DE CONFIGURACIÓN
+// =====================================================
+
+function actualizarEstadoConfig(
+    autenticado
+) {
+
+    const status = document.getElementById(
+        "configStatus"
+    );
+
+    const loginCard = document.getElementById(
+        "configLoginCard"
+    );
+
+    const panel = document.getElementById(
+        "configPanel"
+    );
+
+    if (!status || !loginCard || !panel) {
+        return;
+    }
+
+    if (autenticado) {
+
+        status.textContent =
+            "🔓 Administrador autenticado";
+
+        loginCard.style.display = "none";
+
+        panel.style.display = "block";
+
+    } else {
+
+        status.textContent =
+            "🔒 No autenticado";
+
+        loginCard.style.display = "block";
+
+        panel.style.display = "none";
+    }
+}
+
+
+// =====================================================
+// LOGIN
+// =====================================================
+
+async function loginConfiguracion() {
+
+    const input = document.getElementById(
+        "configPassword"
+    );
+
+    if (!input) {
+        return;
+    }
+
+    const password = input.value.trim();
+
+    if (!password) {
+
+        mostrarConfigLoginMensaje(
+            "Ingresá la contraseña."
+        );
+
+        return;
+    }
+
+    try {
+
+        const respuesta = await fetch(
+            "/api/config/login",
+            {
+                method: "POST",
+
+                headers: {
+                    "Content-Type": "application/json"
+                },
+
+                body: JSON.stringify({
+                    password: password
+                })
+            }
+        );
+
+        const datos = await respuesta.json();
+
+        if (!respuesta.ok || !datos.ok) {
+
+            mostrarConfigLoginMensaje(
+                datos.error ||
+                "No se pudo iniciar sesión."
+            );
+
+            return;
+        }
+
+        input.value = "";
+
+        mostrarConfigLoginMensaje(
+            "Autenticación correcta.",
+            "ok"
+        );
+
+        actualizarEstadoConfig(true);
+
+        await cargarConfiguracion();
+
+    } catch (error) {
+
+        console.error(
+            "[CONFIG] Error de login:",
+            error
+        );
+
+        mostrarConfigLoginMensaje(
+            "No se pudo conectar con el servidor."
+        );
+    }
+}
+
+
+// =====================================================
+// LOGOUT
+// =====================================================
+
+async function logoutConfiguracion() {
+
+    try {
+
+        const respuesta = await fetch(
+            "/api/config/logout",
+            {
+                method: "POST"
+            }
+        );
+
+        const datos = await respuesta.json();
+
+        if (!respuesta.ok || !datos.ok) {
+
+            mostrarConfigSaveMensaje(
+                datos.error ||
+                "No se pudo cerrar la sesión."
+            );
+
+            return;
+        }
+
+        CONFIG_ACTUAL = null;
+
+        actualizarEstadoConfig(false);
+
+        const password = document.getElementById(
+            "configPassword"
+        );
+
+        if (password) {
+            password.value = "";
+        }
+
+    } catch (error) {
+
+        console.error(
+            "[CONFIG] Error de logout:",
+            error
+        );
+    }
+}
+
+
+// =====================================================
+// CARGAR CONFIGURACIÓN
+// =====================================================
+
+async function cargarConfiguracion() {
+
+    try {
+
+        const respuesta = await fetch(
+            "/api/config"
+        );
+
+        const datos = await respuesta.json();
+
+        if (respuesta.status === 401) {
+
+            CONFIG_ACTUAL = null;
+
+            actualizarEstadoConfig(false);
+
+            return;
+        }
+
+        if (!respuesta.ok || !datos.ok) {
+
+            console.error(
+                "[CONFIG] Error cargando configuración:",
+                datos
+            );
+
+            return;
+        }
+
+        CONFIG_ACTUAL = datos.config;
+
+        actualizarEstadoConfig(true);
+
+        rellenarFormularioConfiguracion(
+            CONFIG_ACTUAL
+        );
+
+    } catch (error) {
+
+        console.error(
+            "[CONFIG] Error:",
+            error
+        );
+
+        actualizarEstadoConfig(false);
+    }
+}
+
+
+// =====================================================
+// RELLENAR FORMULARIO
+// =====================================================
+
+function rellenarFormularioConfiguracion(
+    config
+) {
+
+    if (!config) {
+        return;
+    }
+
+    // -------------------------------------------------
+    // BOT
+    // -------------------------------------------------
+
+    const pausaManual = document.getElementById(
+        "configPausaManual"
+    );
+
+    if (pausaManual) {
+
+        pausaManual.checked =
+            config.bot?.pausa_manual === true;
+    }
+
+
+    // -------------------------------------------------
+    // STEAM
+    // -------------------------------------------------
+
+    const globalInterval =
+        document.getElementById(
+            "configGlobalInterval"
+        );
+
+    if (globalInterval) {
+
+        globalInterval.value =
+            config.steam?.global_min_request_interval
+            ?? "";
+    }
+
+
+    const proxyInterval =
+        document.getElementById(
+            "configProxyInterval"
+        );
+
+    if (proxyInterval) {
+
+        proxyInterval.value =
+            config.steam?.proxy_min_interval
+            ?? "";
+    }
+
+
+    const cacheTTL =
+        document.getElementById(
+            "configCacheTTL"
+        );
+
+    if (cacheTTL) {
+
+        cacheTTL.value =
+            config.steam?.cache_max_ttl
+            ?? "";
+    }
+
+
+    // -------------------------------------------------
+    // PROXIES
+    // -------------------------------------------------
+
+    const proxyCooldown =
+        document.getElementById(
+            "configProxyCooldown"
+        );
+
+    if (proxyCooldown) {
+
+        proxyCooldown.value =
+            config.proxies?.cooldown
+            ?? "";
+    }
+
+
+    const proxy429Base =
+        document.getElementById(
+            "configProxy429Base"
+        );
+
+    if (proxy429Base) {
+
+        proxy429Base.value =
+            config.proxies?.["429_cooldown_base"]
+            ?? "";
+    }
+
+
+    const proxy429Max =
+        document.getElementById(
+            "configProxy429Max"
+        );
+
+    if (proxy429Max) {
+
+        proxy429Max.value =
+            config.proxies?.["429_cooldown_max"]
+            ?? "";
+    }
+}
+
+
+// =====================================================
+// LEER NÚMERO
+// =====================================================
+
+function leerNumeroConfig(
+    id
+) {
+
+    const elemento =
+        document.getElementById(id);
+
+    if (!elemento) {
+        return null;
+    }
+
+    const valor = Number(
+        elemento.value
+    );
+
+    if (!Number.isFinite(valor)) {
+        return null;
+    }
+
+    return valor;
+}
+
+
+// =====================================================
+// GUARDAR CONFIGURACIÓN
+// =====================================================
+
+async function guardarConfiguracion() {
+
+    if (!CONFIG_ACTUAL) {
+
+        mostrarConfigSaveMensaje(
+            "No hay una sesión de administrador activa."
+        );
+
+        return;
+    }
+
+
+    // -------------------------------------------------
+    // COPIAR CONFIGURACIÓN ACTUAL
+    // -------------------------------------------------
+
+    const nuevaConfig =
+        JSON.parse(
+            JSON.stringify(CONFIG_ACTUAL)
+        );
+
+
+    // -------------------------------------------------
+    // BOT
+    // -------------------------------------------------
+
+    const pausaManual =
+        document.getElementById(
+            "configPausaManual"
+        );
+
+    if (pausaManual) {
+
+        nuevaConfig.bot.pausa_manual =
+            pausaManual.checked;
+    }
+
+
+    // -------------------------------------------------
+    // STEAM
+    // -------------------------------------------------
+
+    const globalInterval =
+        leerNumeroConfig(
+            "configGlobalInterval"
+        );
+
+    const proxyInterval =
+        leerNumeroConfig(
+            "configProxyInterval"
+        );
+
+    const cacheTTL =
+        leerNumeroConfig(
+            "configCacheTTL"
+        );
+
+
+    if (
+        globalInterval === null ||
+        proxyInterval === null ||
+        cacheTTL === null
+    ) {
+
+        mostrarConfigSaveMensaje(
+            "Revisá los valores de Steam."
+        );
+
+        return;
+    }
+
+
+    nuevaConfig.steam.global_min_request_interval =
+        globalInterval;
+
+    nuevaConfig.steam.proxy_min_interval =
+        proxyInterval;
+
+    nuevaConfig.steam.cache_max_ttl =
+        cacheTTL;
+
+
+    // -------------------------------------------------
+    // PROXIES
+    // -------------------------------------------------
+
+    const proxyCooldown =
+        leerNumeroConfig(
+            "configProxyCooldown"
+        );
+
+    const proxy429Base =
+        leerNumeroConfig(
+            "configProxy429Base"
+        );
+
+    const proxy429Max =
+        leerNumeroConfig(
+            "configProxy429Max"
+        );
+
+
+    if (
+        proxyCooldown === null ||
+        proxy429Base === null ||
+        proxy429Max === null
+    ) {
+
+        mostrarConfigSaveMensaje(
+            "Revisá los valores de proxies."
+        );
+
+        return;
+    }
+
+
+    nuevaConfig.proxies.cooldown =
+        proxyCooldown;
+
+    nuevaConfig.proxies["429_cooldown_base"] =
+        proxy429Base;
+
+    nuevaConfig.proxies["429_cooldown_max"] =
+        proxy429Max;
+
+
+    // -------------------------------------------------
+    // ENVIAR AL SERVIDOR
+    // -------------------------------------------------
+
+    try {
+
+        mostrarConfigSaveMensaje(
+            "Guardando..."
+        );
+
+        const respuesta = await fetch(
+            "/api/config/save",
+            {
+                method: "POST",
+
+                headers: {
+                    "Content-Type": "application/json"
+                },
+
+                body: JSON.stringify({
+                    config: nuevaConfig
+                })
+            }
+        );
+
+        const datos = await respuesta.json();
+
+
+        // -------------------------------------------------
+        // SESIÓN EXPIRADA
+        // -------------------------------------------------
+
+        if (respuesta.status === 401) {
+
+            CONFIG_ACTUAL = null;
+
+            actualizarEstadoConfig(false);
+
+            mostrarConfigSaveMensaje(
+                "La sesión expiró. Volvé a iniciar sesión."
+            );
+
+            return;
+        }
+
+
+        // -------------------------------------------------
+        // ERROR DE VALIDACIÓN
+        // -------------------------------------------------
+
+        if (!respuesta.ok || !datos.ok) {
+
+            console.error(
+                "[CONFIG] Error guardando:",
+                datos
+            );
+
+            let mensaje =
+                datos.error ||
+                "No se pudo guardar la configuración.";
+
+
+            if (
+                Array.isArray(
+                    datos.errores
+                )
+            ) {
+
+                mensaje +=
+                    " " +
+                    datos.errores.join(" | ");
+            }
+
+
+            mostrarConfigSaveMensaje(
+                mensaje
+            );
+
+            return;
+        }
+
+
+        // -------------------------------------------------
+        // ÉXITO
+        // -------------------------------------------------
+
+        CONFIG_ACTUAL =
+            datos.config;
+
+        rellenarFormularioConfiguracion(
+            CONFIG_ACTUAL
+        );
+
+        mostrarConfigSaveMensaje(
+            "✓ Configuración guardada correctamente.",
+            "ok"
+        );
+
+    } catch (error) {
+
+        console.error(
+            "[CONFIG] Error:",
+            error
+        );
+
+        mostrarConfigSaveMensaje(
+            "No se pudo conectar con el servidor."
+        );
+    }
+}
+    
 </script>
 
 </body>
