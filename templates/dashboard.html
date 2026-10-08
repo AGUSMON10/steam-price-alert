@@ -969,6 +969,68 @@ select:focus {
 }
 
 /* =========================================================
+   CONFIGURACIÓN - DISEÑO AMPLIO
+========================================================= */
+
+#configuracion {
+    width: 100%;
+    max-width: none;
+}
+
+#configuracion .card {
+    width: 100%;
+    max-width: none;
+    box-sizing: border-box;
+}
+
+#configuracion .config-grid {
+    width: 100%;
+    box-sizing: border-box;
+}
+
+#configuracion .config-row {
+    width: 100%;
+    box-sizing: border-box;
+}
+
+#configuracion .section-header {
+    width: 100%;
+    box-sizing: border-box;
+}
+
+#configuracion .config-actions {
+    width: 100%;
+    box-sizing: border-box;
+}
+
+#configuracion input[type="number"],
+#configuracion input[type="text"],
+#configuracion input[type="password"] {
+    box-sizing: border-box;
+}
+
+#configuracion #listaPreciosMaximos {
+    width: 100%;
+    box-sizing: border-box;
+}
+
+#configuracion #listaPreciosMaximos .config-row {
+    min-height: 58px;
+}
+
+@media (max-width: 900px) {
+
+    #configuracion .config-grid {
+        grid-template-columns: 1fr;
+    }
+
+    #configuracion .config-row {
+        flex-wrap: wrap;
+    }
+
+}
+
+/* =========================================================
    PROXIES
 ========================================================= */
 
