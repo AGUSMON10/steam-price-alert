@@ -1229,6 +1229,7 @@ def guardar_estado(forzar=False):
             "estado_app": estado_app,
             "skins_revisadas_total": skins_revisadas_total,
             "fecha_estadisticas": fecha_estadisticas.isoformat(),
+            "skins_a_vigilar": copy.deepcopy(skins_a_vigilar),
 
             # Configuración editable del bot.
             #
@@ -1359,6 +1360,7 @@ def cargar_estado():
     global price_cache
     global ESTADO_CARGA_FALLIDA
     global CONFIG
+    global skins_a_vigilar
 
     try:
         github_token = os.getenv("GITHUB_TOKEN")
@@ -1464,6 +1466,34 @@ def cargar_estado():
         # Aplicar inmediatamente la configuración recuperada
         # a las variables reales del bot.
         aplicar_configuracion()
+
+        # ==========================================================
+        # RECUPERAR PRECIOS MÁXIMOS DE LAS SKINS
+        # ==========================================================
+
+        skins_guardadas = estado.get(
+            "skins_a_vigilar",
+            {}
+        )
+
+        if isinstance(skins_guardadas, dict):
+
+            for skin_name, precio_max in skins_guardadas.items():
+
+                try:
+
+                    precio_max = float(precio_max)
+
+                    if precio_max >= 0:
+
+                        skins_a_vigilar[skin_name] = precio_max
+
+                except (TypeError, ValueError):
+
+                    print(
+                        f"[GITHUB] Precio inválido para "
+                        f"{skin_name}: {precio_max}"
+                    )
 
         # ====================================================
         # RECUPERAR ESTADÍSTICAS DIARIAS
@@ -4468,6 +4498,22 @@ def worker(grupo_skins, worker_id):
         )
 
         for skin_name, precio_max in skins_ordenadas:
+                # ==================================================
+                # PRECIO MÁXIMO ACTUALIZADO EN TIEMPO REAL
+                # ==================================================
+                #
+                # El valor de precio_max que viene de skins_ordenadas
+                # puede ser antiguo.
+                #
+                # Siempre consultamos el valor actual de
+                # skins_a_vigilar para permitir modificar el objetivo
+                # desde el dashboard sin reiniciar el bot.
+                # ==================================================
+
+                precio_max = skins_a_vigilar.get(
+                    skin_name,
+                    precio_max
+                )
             
             LAST_WORKER_ACTIVITY = time.time()
             
