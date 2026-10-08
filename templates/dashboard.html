@@ -3455,6 +3455,7 @@ function showTab(tabName, button) {
 
     if (tabName === "configuracion") {
         cargarConfiguracion();
+        cargarPreciosMaximos();
     }
 
     }
@@ -6758,6 +6759,411 @@ async function guardarConfiguracion() {
             "No se pudo conectar con el servidor."
         );
     }
+}
+
+// =====================================================
+// PRECIOS MÁXIMOS POR SKIN
+// =====================================================
+
+let PRECIOS_MAXIMOS_CONFIG = {};
+
+
+// =====================================================
+// CARGAR PRECIOS DESDE EL BACKEND
+// =====================================================
+
+async function cargarPreciosMaximos() {
+
+    const lista = document.getElementById(
+        "listaPreciosMaximos"
+    );
+
+    if (!lista) {
+        return;
+    }
+
+    lista.innerHTML = `
+        <div class="config-help">
+            Cargando skins...
+        </div>
+    `;
+
+    try {
+
+        const respuesta = await fetch(
+            "/api/config/skins"
+        );
+
+        if (respuesta.status === 401) {
+
+            lista.innerHTML = `
+                <div class="config-message error">
+                    Iniciá sesión para ver los precios.
+                </div>
+            `;
+
+            return;
+        }
+
+        if (!respuesta.ok) {
+
+            throw new Error(
+                "No se pudieron cargar los precios"
+            );
+
+        }
+
+        const datos = await respuesta.json();
+
+        if (
+            !datos.ok ||
+            !datos.skins_a_vigilar
+        ) {
+
+            throw new Error(
+                "Respuesta inválida del servidor"
+            );
+
+        }
+
+        PRECIOS_MAXIMOS_CONFIG =
+            datos.skins_a_vigilar;
+
+        renderizarPreciosMaximos();
+
+    } catch (error) {
+
+        console.error(
+            "Error cargando precios máximos:",
+            error
+        );
+
+        lista.innerHTML = `
+            <div class="config-message error">
+                No se pudieron cargar las skins.
+            </div>
+        `;
+
+    }
+
+}
+
+
+// =====================================================
+// MOSTRAR SKINS
+// =====================================================
+
+function renderizarPreciosMaximos() {
+
+    const lista = document.getElementById(
+        "listaPreciosMaximos"
+    );
+
+    if (!lista) {
+        return;
+    }
+
+    const filtro =
+        (
+            document.getElementById(
+                "buscarSkinConfig"
+            )?.value || ""
+        )
+        .trim()
+        .toLowerCase();
+
+
+    const skins = Object.entries(
+        PRECIOS_MAXIMOS_CONFIG
+    )
+    .filter(
+        ([nombre]) =>
+            nombre
+                .toLowerCase()
+                .includes(filtro)
+    );
+
+
+    if (!skins.length) {
+
+        lista.innerHTML = `
+            <div class="config-help">
+                No se encontraron skins.
+            </div>
+        `;
+
+        return;
+    }
+
+
+    lista.innerHTML = skins
+        .map(
+            ([nombre, precio]) => {
+
+                return `
+                    <div
+                        class="config-row"
+                        data-skin-name="${escapeHtmlConfig(nombre)}"
+                    >
+
+                        <div class="config-row-info">
+
+                            <div class="config-row-title">
+                                ${escapeHtmlConfig(nombre)}
+                            </div>
+
+                        </div>
+
+
+                        <div
+                            style="
+                                display:flex;
+                                align-items:center;
+                                gap:8px;
+                            "
+                        >
+
+                            <span
+                                style="
+                                    color:var(--muted);
+                                    font-size:13px;
+                                "
+                            >
+                                USD
+                            </span>
+
+
+                            <input
+                                class="precio-maximo-input"
+                                type="number"
+                                min="0"
+                                step="0.01"
+                                value="${Number(precio).toFixed(2)}"
+                                data-skin="${escapeHtmlConfig(nombre)}"
+                                style="
+                                    width:120px;
+                                    box-sizing:border-box;
+                                    padding:9px 10px;
+                                    border-radius:8px;
+                                    border:1px solid var(--border);
+                                    background:var(--panel3);
+                                    color:var(--text);
+                                    outline:none;
+                                    font-family:inherit;
+                                    font-size:14px;
+                                "
+                            >
+
+                        </div>
+
+                    </div>
+                `;
+
+            }
+        )
+        .join("");
+
+}
+
+
+// =====================================================
+// BUSCAR SKIN
+// =====================================================
+
+function filtrarPreciosMaximos() {
+
+    renderizarPreciosMaximos();
+
+}
+
+
+// =====================================================
+// ESCAPAR HTML
+// =====================================================
+
+function escapeHtmlConfig(texto) {
+
+    return String(texto)
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#039;");
+
+}
+
+
+// =====================================================
+// GUARDAR PRECIOS
+// =====================================================
+
+async function guardarPreciosMaximos() {
+
+    const inputs =
+        document.querySelectorAll(
+            ".precio-maximo-input"
+        );
+
+
+    if (!inputs.length) {
+
+        return;
+
+    }
+
+
+    /*
+     * Actualizar los valores modificados
+     * dentro del objeto local.
+     */
+
+    inputs.forEach(input => {
+
+        const nombre =
+            input.dataset.skin;
+
+        const valor =
+            Number(input.value);
+
+
+        if (
+            Number.isFinite(valor) &&
+            valor >= 0
+        ) {
+
+            PRECIOS_MAXIMOS_CONFIG[
+                nombre
+            ] = valor;
+
+        }
+
+    });
+
+
+    try {
+
+        const respuesta = await fetch(
+            "/api/config/skins",
+            {
+                method: "POST",
+
+                headers: {
+                    "Content-Type":
+                        "application/json"
+                },
+
+                body: JSON.stringify({
+                    skins_a_vigilar:
+                        PRECIOS_MAXIMOS_CONFIG
+                })
+            }
+        );
+
+
+        const datos =
+            await respuesta.json();
+
+
+        if (respuesta.status === 401) {
+
+            mostrarPreciosMaximosMensaje(
+                "Sesión no autorizada. Volvé a iniciar sesión.",
+                "error"
+            );
+
+            return;
+        }
+
+
+        if (!respuesta.ok || !datos.ok) {
+
+            const detalle =
+                datos.errores
+                    ? datos.errores.join(" | ")
+                    : (
+                        datos.error ||
+                        "No se pudieron guardar los precios."
+                    );
+
+
+            mostrarPreciosMaximosMensaje(
+                detalle,
+                "error"
+            );
+
+            return;
+        }
+
+
+        /*
+         * Usamos la respuesta del servidor
+         * como fuente oficial.
+         */
+
+        PRECIOS_MAXIMOS_CONFIG =
+            datos.skins_a_vigilar;
+
+
+        renderizarPreciosMaximos();
+
+
+        mostrarPreciosMaximosMensaje(
+            datos.mensaje ||
+            "Precios guardados correctamente.",
+            "success"
+        );
+
+
+    } catch (error) {
+
+        console.error(
+            "Error guardando precios máximos:",
+            error
+        );
+
+
+        mostrarPreciosMaximosMensaje(
+            "No se pudo conectar con el servidor.",
+            "error"
+        );
+
+    }
+
+}
+
+
+// =====================================================
+// MENSAJE
+// =====================================================
+
+function mostrarPreciosMaximosMensaje(
+    mensaje,
+    tipo = ""
+) {
+
+    const elemento =
+        document.getElementById(
+            "preciosMaximosMessage"
+        );
+
+
+    if (!elemento) {
+        return;
+    }
+
+
+    elemento.textContent =
+        mensaje;
+
+
+    elemento.className =
+        "config-message" +
+        (
+            tipo
+                ? " " + tipo
+                : ""
+        );
+
 }
     
 </script>
