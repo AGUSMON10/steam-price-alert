@@ -4498,23 +4498,24 @@ def worker(grupo_skins, worker_id):
         )
 
         for skin_name, precio_max in skins_ordenadas:
-                # ==================================================
-                # PRECIO MÁXIMO ACTUALIZADO EN TIEMPO REAL
-                # ==================================================
-                #
-                # El valor de precio_max que viene de skins_ordenadas
-                # puede ser antiguo.
-                #
-                # Siempre consultamos el valor actual de
-                # skins_a_vigilar para permitir modificar el objetivo
-                # desde el dashboard sin reiniciar el bot.
-                # ==================================================
 
-                precio_max = skins_a_vigilar.get(
-                    skin_name,
-                    precio_max
-                )
-            
+            # ==================================================
+            # PRECIO MÁXIMO ACTUALIZADO EN TIEMPO REAL
+            # ==================================================
+            #
+            # El valor de precio_max que viene de skins_ordenadas
+            # puede ser antiguo.
+            #
+            # Siempre consultamos el valor actual de
+            # skins_a_vigilar para permitir modificar el objetivo
+            # desde el dashboard sin reiniciar el bot.
+            # ==================================================
+
+            precio_max = skins_a_vigilar.get(
+                skin_name,
+                precio_max
+            )
+
             LAST_WORKER_ACTIVITY = time.time()
             
             # ====================================================
