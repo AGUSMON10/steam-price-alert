@@ -74,7 +74,7 @@ CONFIG_DEFAULTS = {
         "proxy_min_interval": 10,
 
         # TTL máximo de caché.
-        "cache_max_ttl": 240,
+        "cache_max_ttl": 241,
     },
 
     # ======================================================
@@ -1460,6 +1460,10 @@ def cargar_estado():
             CONFIG_DEFAULTS,
             configuracion_guardada
         )
+
+        # Aplicar inmediatamente la configuración recuperada
+        # a las variables reales del bot.
+        aplicar_configuracion()
 
         # ====================================================
         # RECUPERAR ESTADÍSTICAS DIARIAS
