@@ -3196,6 +3196,97 @@ select:focus {
 
         </div>
 
+        <!-- =====================================================
+         PRECIOS MÁXIMOS POR SKIN
+         ===================================================== -->
+
+    <div class="card" style="margin-top: 20px;">
+
+        <div class="section-header">
+
+            <div>
+                <div class="card-title">
+                    Precios máximos por skin
+                </div>
+
+                <div class="card-subtitle">
+                    Modificá cuánto estás dispuesto a pagar por cada skin.
+                    Los cambios se aplican al bot al guardar.
+                </div>
+            </div>
+
+            <button
+                class="btn"
+                type="button"
+                onclick="cargarPreciosMaximos()"
+            >
+                🔄 Recargar
+            </button>
+
+        </div>
+
+
+        <!-- BUSCADOR -->
+
+        <div style="margin-top: 18px;">
+
+            <input
+                id="buscarSkinConfig"
+                type="text"
+                placeholder="🔎 Buscar una skin..."
+                autocomplete="off"
+                style="
+                    width: 100%;
+                    box-sizing: border-box;
+                    padding: 12px 14px;
+                    border-radius: 8px;
+                    border: 1px solid var(--border);
+                    background: var(--panel3);
+                    color: var(--text);
+                    outline: none;
+                    font-family: inherit;
+                    font-size: 14px;
+                "
+                oninput="filtrarPreciosMaximos()"
+            >
+
+        </div>
+
+
+        <!-- LISTA -->
+
+        <div
+            id="listaPreciosMaximos"
+            style="margin-top: 16px;"
+        >
+            <div class="config-help">
+                Cargando skins...
+            </div>
+        </div>
+
+
+        <!-- ACCIONES -->
+
+        <div class="config-actions">
+
+            <button
+                class="btn"
+                type="button"
+                onclick="guardarPreciosMaximos()"
+            >
+                💾 Guardar precios máximos
+            </button>
+
+        </div>
+
+
+        <div
+            id="preciosMaximosMessage"
+            class="config-message"
+        ></div>
+
+    </div>
+
 
         <!-- =============================================
              BOTONES
