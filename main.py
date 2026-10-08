@@ -34,6 +34,248 @@ def nombre_proxy(proxy):
     except ValueError:
         return "Proxy desconocido"
 
+# ==========================================================
+# CONFIGURACIÓN EDITABLE DEL BOT
+# ==========================================================
+#
+# Estos valores serán administrables desde el dashboard.
+#
+# IMPORTANTE:
+# - Los secretos NO están acá.
+# - Las URLs de proxies NO están acá.
+# - Los ITEM_NAME_IDS NO están acá.
+# - Los tokens de Telegram/GitHub NO están acá.
+#
+# Esta estructura solamente contiene parámetros de
+# funcionamiento del bot.
+# ==========================================================
+
+CONFIG_DEFAULTS = {
+
+    # ======================================================
+    # BOT
+    # ======================================================
+
+    "bot": {
+        "pausa_manual": False,
+    },
+
+    # ======================================================
+    # CONSULTAS A STEAM
+    # ======================================================
+
+    "steam": {
+
+        # Tiempo mínimo entre requests globales.
+        "global_min_request_interval": 3,
+
+        # Tiempo mínimo entre requests utilizando
+        # el mismo proxy.
+        "proxy_min_interval": 10,
+
+        # TTL máximo de caché.
+        "cache_max_ttl": 240,
+    },
+
+    # ======================================================
+    # PROXIES
+    # ======================================================
+
+    "proxies": {
+
+        # Cooldown normal de un proxy.
+        "cooldown": 37,
+
+        # Cooldown inicial cuando Steam devuelve HTTP 429.
+        "429_cooldown_base": 90,
+
+        # Cooldown máximo por 429.
+        "429_cooldown_max": 600,
+    },
+
+    # ======================================================
+    # PROTECCIÓN GLOBAL CONTRA HTTP 429
+    # ======================================================
+
+    "steam_429": {
+
+        # Cantidad de 429 consecutivos antes de activar
+        # la pausa global.
+        "umbral": 2,
+
+        # Pausa inicial.
+        "pausa_base": 300,
+
+        # Pausa máxima.
+        "pausa_max": 900,
+    },
+
+    # ======================================================
+    # AUTO-TUNER
+    # ======================================================
+
+    "auto_tuner": {
+
+        # Activado por defecto.
+        "activo": True,
+
+        # Cada cuánto se ejecuta el Auto-Tuner.
+        "intervalo": 300,
+
+        # Límites permitidos para el intervalo global.
+        "global_min": 3,
+        "global_max": 8,
+
+        # Límites permitidos para el intervalo por proxy.
+        "proxy_min": 10,
+        "proxy_max": 25,
+
+        # Límites utilizados para ajustar el cooldown
+        # base ante HTTP 429.
+        "429_base_min": 90,
+        "429_base_max": 300,
+    },
+
+    # ======================================================
+    # PAUSAS PROGRAMADAS
+    # ======================================================
+
+    "pausas_programadas": {
+
+        # Activadas por defecto.
+        "activas": True,
+
+        # Tiempo mínimo entre pausas.
+        # 7200 = 2 horas.
+        "intervalo_min": 7200,
+
+        # Tiempo máximo entre pausas.
+        # 10800 = 3 horas.
+        "intervalo_max": 10800,
+
+        # Duración mínima de una pausa.
+        # 600 = 10 minutos.
+        "duracion_min": 600,
+
+        # Duración máxima de una pausa.
+        # 1200 = 20 minutos.
+        "duracion_max": 1200,
+
+        # Tiempo mínimo de espera entre ciclos normales.
+        "sleep_min": 6,
+
+        # Tiempo máximo de espera entre ciclos normales.
+        "sleep_max": 12,
+    },
+
+    # ======================================================
+    # ALERTAS
+    # ======================================================
+
+    "alertas": {
+
+        # Alertas de precio normales.
+        "activas": True,
+
+        # Segunda alerta especial por descuento.
+        "doble_alerta_activa": True,
+
+        # Umbral actual de descuento.
+        "doble_alerta_descuento": 0.133,
+
+        # Intervalo de la segunda alerta.
+        "doble_alerta_intervalo": 15,
+    },
+
+    # ======================================================
+    # ERRORES Y REINTENTOS
+    # ======================================================
+
+    "errores": {
+
+        # Cantidad máxima de intentos por consulta.
+        "max_intentos": 2,
+
+        # Espera ante timeout.
+        "retry_timeout_min": 1,
+        "retry_timeout_max": 3,
+
+        # Espera ante error HTTP.
+        "retry_http_min": 2,
+        "retry_http_max": 5,
+
+        # Espera ante error JSON/respuesta.
+        "retry_json_min": 2,
+        "retry_json_max": 4,
+
+        # Espera ante otros errores.
+        "retry_otro_min": 3,
+        "retry_otro_max": 6,
+
+        # Cantidad de fallos consecutivos de una skin
+        # antes de ponerla en cooldown.
+        "skin_max_fails": 3,
+
+        # Tiempo de cooldown de una skin con demasiados fallos.
+        "skin_cooldown": 600,
+    },
+
+    # ======================================================
+    # HISTORIAL
+    # ======================================================
+
+    "historial": {
+
+        # Cantidad de horas conservadas.
+        "horas": 48,
+
+        # Cantidad máxima de puntos.
+        "max_puntos": 300,
+    },
+
+    # ======================================================
+    # PERSISTENCIA
+    # ======================================================
+
+    "persistencia": {
+
+        # Cada cuánto se guarda el estado.
+        "guardar_estado_intervalo": 900,
+    },
+}
+
+
+# ==========================================================
+# CONFIGURACIÓN ACTUAL
+# ==========================================================
+#
+# Se crea una copia independiente de los valores por defecto.
+#
+# No usamos directamente CONFIG_DEFAULTS porque necesitamos
+# poder modificar CONFIG sin alterar los valores originales.
+# ==========================================================
+
+import copy
+
+CONFIG = copy.deepcopy(CONFIG_DEFAULTS)
+
+
+# ==========================================================
+# PAUSA MANUAL
+# ==========================================================
+#
+# IMPORTANTE:
+# NO utilizamos estado_app["activo"] para esto.
+#
+# estado_app["activo"] controla la vida completa del worker.
+# Si lo ponemos en False, podríamos terminar los workers.
+#
+# Esta variable solamente indica que el bot debe quedarse
+# temporalmente sin consultar Steam.
+# ==========================================================
+
+PAUSA_MANUAL_ACTIVA = False
+
 PROXY_COOLDOWN = 600  # 10 min
 
 PROXY_429_COOLDOWN_BASE = 90
@@ -176,6 +418,199 @@ def registrar_exito_steam_global():
             )
 
         STEAM_429_CONSECUTIVOS = 0
+
+# ==========================================================
+# APLICAR CONFIGURACIÓN
+# ==========================================================
+
+def aplicar_configuracion():
+    """
+    Copia los valores almacenados en CONFIG hacia las
+    variables globales que utiliza actualmente el bot.
+
+    En este paso todavía no reemplazamos el funcionamiento
+    existente; simplemente dejamos preparada la conexión.
+    """
+
+    global PROXY_COOLDOWN
+    global PROXY_429_COOLDOWN_BASE
+    global PROXY_429_COOLDOWN_MAX
+
+    global GLOBAL_MIN_REQUEST_INTERVAL
+    global PROXY_MIN_INTERVAL
+
+    global CACHE_MAX_TTL
+
+    global STEAM_429_UMBRAL
+    global STEAM_429_PAUSA_BASE
+    global STEAM_429_PAUSA_MAX
+
+    global AUTO_TUNER_ACTIVO
+    global AUTO_TUNER_INTERVALO
+    global AUTO_GLOBAL_MIN
+    global AUTO_GLOBAL_MAX
+    global AUTO_PROXY_MIN
+    global AUTO_PROXY_MAX
+    global AUTO_429_BASE_MIN
+    global AUTO_429_BASE_MAX
+
+    global SKIN_MAX_FAILS
+    global SKIN_COOLDOWN
+
+    global HISTORIAL_HORAS
+    global HISTORIAL_MAX_PUNTOS
+
+    global ALERTA_DOBLE_DESCUENTO
+    global ALERTA_DOBLE_INTERVALO
+
+    global GUARDAR_ESTADO_INTERVALO
+
+    global PAUSA_MANUAL_ACTIVA
+
+
+    # ======================================================
+    # STEAM
+    # ======================================================
+
+    GLOBAL_MIN_REQUEST_INTERVAL = CONFIG["steam"][
+        "global_min_request_interval"
+    ]
+
+    PROXY_MIN_INTERVAL = CONFIG["steam"][
+        "proxy_min_interval"
+    ]
+
+    CACHE_MAX_TTL = CONFIG["steam"][
+        "cache_max_ttl"
+    ]
+
+
+    # ======================================================
+    # PROXIES
+    # ======================================================
+
+    PROXY_COOLDOWN = CONFIG["proxies"][
+        "cooldown"
+    ]
+
+    PROXY_429_COOLDOWN_BASE = CONFIG["proxies"][
+        "429_cooldown_base"
+    ]
+
+    PROXY_429_COOLDOWN_MAX = CONFIG["proxies"][
+        "429_cooldown_max"
+    ]
+
+
+    # ======================================================
+    # STEAM 429
+    # ======================================================
+
+    STEAM_429_UMBRAL = CONFIG["steam_429"][
+        "umbral"
+    ]
+
+    STEAM_429_PAUSA_BASE = CONFIG["steam_429"][
+        "pausa_base"
+    ]
+
+    STEAM_429_PAUSA_MAX = CONFIG["steam_429"][
+        "pausa_max"
+    ]
+
+
+    # ======================================================
+    # AUTO-TUNER
+    # ======================================================
+
+    AUTO_TUNER_ACTIVO = CONFIG["auto_tuner"][
+        "activo"
+    ]
+
+    AUTO_TUNER_INTERVALO = CONFIG["auto_tuner"][
+        "intervalo"
+    ]
+
+    AUTO_GLOBAL_MIN = CONFIG["auto_tuner"][
+        "global_min"
+    ]
+
+    AUTO_GLOBAL_MAX = CONFIG["auto_tuner"][
+        "global_max"
+    ]
+
+    AUTO_PROXY_MIN = CONFIG["auto_tuner"][
+        "proxy_min"
+    ]
+
+    AUTO_PROXY_MAX = CONFIG["auto_tuner"][
+        "proxy_max"
+    ]
+
+    AUTO_429_BASE_MIN = CONFIG["auto_tuner"][
+        "429_base_min"
+    ]
+
+    AUTO_429_BASE_MAX = CONFIG["auto_tuner"][
+        "429_base_max"
+    ]
+
+
+    # ======================================================
+    # ERRORES
+    # ======================================================
+
+    SKIN_MAX_FAILS = CONFIG["errores"][
+        "skin_max_fails"
+    ]
+
+    SKIN_COOLDOWN = CONFIG["errores"][
+        "skin_cooldown"
+    ]
+
+
+    # ======================================================
+    # HISTORIAL
+    # ======================================================
+
+    HISTORIAL_HORAS = CONFIG["historial"][
+        "horas"
+    ]
+
+    HISTORIAL_MAX_PUNTOS = CONFIG["historial"][
+        "max_puntos"
+    ]
+
+
+    # ======================================================
+    # ALERTAS
+    # ======================================================
+
+    ALERTA_DOBLE_DESCUENTO = CONFIG["alertas"][
+        "doble_alerta_descuento"
+    ]
+
+    ALERTA_DOBLE_INTERVALO = CONFIG["alertas"][
+        "doble_alerta_intervalo"
+    ]
+
+
+    # ======================================================
+    # PERSISTENCIA
+    # ======================================================
+
+    GUARDAR_ESTADO_INTERVALO = CONFIG["persistencia"][
+        "guardar_estado_intervalo"
+    ]
+
+
+    # ======================================================
+    # PAUSA MANUAL
+    # ======================================================
+
+    PAUSA_MANUAL_ACTIVA = CONFIG["bot"][
+        "pausa_manual"
+    ]
 
 # =========================================================
 # AUTO-TUNER
