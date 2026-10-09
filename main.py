@@ -6,6 +6,7 @@ import secrets
 import threading
 import re
 import json
+import math
 from flask import Flask, jsonify, render_template, request, session
 from datetime import datetime
 import builtins
@@ -902,6 +903,7 @@ PROXY_MIN_INTERVAL = 10
 # Tiempo mínimo entre requests reales a Steam
 GLOBAL_MIN_REQUEST_INTERVAL = 3.0
 LAST_STEAM_REQUEST = 0
+LAST_STEAM_SUCCESS = 0
 LAST_WORKER_ACTIVITY = time.time()
 
 # ==========================================================
@@ -1755,8 +1757,31 @@ fecha_estadisticas = datetime.now(ZONA_ARG).date()
 GUARDAR_ESTADO_INTERVALO = 900  # 15 minutos
 ULTIMO_GUARDADO_ESTADO = 0
 
+# Evita que el worker y el dashboard escriban bot_state.json
+# simultáneamente y compitan por el SHA de GitHub.
+ESTADO_GUARDADO_LOCK = threading.Lock()
+
 
 def guardar_estado(forzar=False):
+    """Guarda el estado de forma serializada y comunica el resultado."""
+    with ESTADO_GUARDADO_LOCK:
+        ultimo_guardado_anterior = ULTIMO_GUARDADO_ESTADO
+        _guardar_estado_interno(forzar=forzar)
+
+        # La función interna actualiza este timestamp solamente
+        # cuando GitHub confirma HTTP 200/201.
+        if ULTIMO_GUARDADO_ESTADO > ultimo_guardado_anterior:
+            return True
+
+        # Para guardados no forzados puede haberse aplicado el límite
+        # de frecuencia; no se interpreta como un error.
+        if not forzar and not ESTADO_CARGA_FALLIDA:
+            return None
+
+        return False
+
+
+def _guardar_estado_interno(forzar=False):
 
     global ULTIMO_GUARDADO_ESTADO
     
@@ -2588,10 +2613,18 @@ def obtener_proxy():
 
 app = Flask(__name__)
 
-app.secret_key = os.getenv(
+DASHBOARD_SESSION_SECRET = os.getenv(
     "DASHBOARD_SESSION_SECRET",
     ""
-)
+).strip()
+
+if len(DASHBOARD_SESSION_SECRET) < 32:
+    raise RuntimeError(
+        "DASHBOARD_SESSION_SECRET no está configurado o es demasiado corto. "
+        "Configurá en Render un secreto aleatorio de al menos 32 caracteres."
+    )
+
+app.secret_key = DASHBOARD_SESSION_SECRET
 
 app.config["SESSION_COOKIE_HTTPONLY"] = True
 app.config["SESSION_COOKIE_SAMESITE"] = "Lax"
@@ -2730,19 +2763,31 @@ def api_config_save():
                 "errores": errores_config
             }), 400
 
+        configuracion_anterior = copy.deepcopy(CONFIG)
+
         CONFIG.clear()
-
-        CONFIG.update(
-            nueva_config
-        )
-
+        CONFIG.update(nueva_config)
         aplicar_configuracion()
 
-        guardar_estado(forzar=True)
+        guardado_ok = guardar_estado(forzar=True)
+
+        if guardado_ok is not True:
+            CONFIG.clear()
+            CONFIG.update(configuracion_anterior)
+            aplicar_configuracion()
+
+            return jsonify({
+                "ok": False,
+                "error": (
+                    "La configuración se validó, pero no se pudo "
+                    "confirmar el guardado en GitHub. Se restauró "
+                    "la configuración anterior en memoria."
+                )
+            }), 500
 
         return jsonify({
             "ok": True,
-            "mensaje": "Configuración guardada",
+            "mensaje": "Configuración guardada en GitHub",
             "config": copy.deepcopy(CONFIG)
         })
 
@@ -2863,14 +2908,9 @@ def api_config_skins():
 
         try:
 
-            precio = float(
-                precio
-            )
+            precio = float(precio)
 
-        except (
-            TypeError,
-            ValueError
-        ):
+        except (TypeError, ValueError):
 
             errores.append(
                 f"Precio inválido para {skin_name}"
@@ -2878,6 +2918,11 @@ def api_config_skins():
 
             continue
 
+        if not math.isfinite(precio):
+            errores.append(
+                f"El precio debe ser un número finito: {skin_name}"
+            )
+            continue
 
         if precio < 0:
 
@@ -2922,6 +2967,7 @@ def api_config_skins():
     # ACTUALIZAR SOLAMENTE SKINS EXISTENTES
     # =====================================================
 
+    skins_anteriores = copy.deepcopy(skins_a_vigilar)
     skins_actualizadas = 0
 
 
@@ -2942,7 +2988,23 @@ def api_config_skins():
 
     try:
 
-        guardar_estado()
+        precios_anteriores = copy.deepcopy(skins_a_vigilar)
+        # Los precios ya fueron actualizados arriba; la copia anterior
+        # se obtiene del estado persistido antes de cambiarlo en la próxima
+        # versión. Este bloque se conserva para capturar errores de guardado.
+        guardado_ok = guardar_estado(forzar=True)
+
+        if guardado_ok is not True:
+            skins_a_vigilar.clear()
+            skins_a_vigilar.update(skins_anteriores)
+            print("[CONFIG SKINS] GitHub no confirmó el guardado; precios restaurados en memoria.")
+            return jsonify({
+                "ok": False,
+                "error": (
+                    "No se pudo confirmar el guardado en GitHub. "
+                    "Revisá la conexión y volvé a intentarlo."
+                )
+            }), 500
 
     except Exception as e:
 
@@ -3130,6 +3192,13 @@ def api_monitor():
     segundos_desde_request = (
         max(0, ahora - ultimo_request)
         if ultimo_request
+        else None
+    )
+
+    ultimo_exito = globals().get("LAST_STEAM_SUCCESS", 0)
+    segundos_desde_exito = (
+        max(0, ahora - ultimo_exito)
+        if ultimo_exito
         else None
     )
 
@@ -3613,6 +3682,12 @@ def api_monitor():
                 if ultimo_request
                 else None
             ),
+
+            "segundos_desde_request": segundos_desde_request,
+
+            "ultimo_exito": ultimo_exito if ultimo_exito else None,
+
+            "segundos_desde_exito": segundos_desde_exito,
 
             "segundos_desde_request":
                 segundos_desde_request,
@@ -4258,6 +4333,7 @@ def registrar_historial_precio(
 def buscar_precio(market_hash_name, session, proxy):
 
     global LAST_STEAM_REQUEST
+    global LAST_STEAM_SUCCESS
 
     ahora = time.time()
 
@@ -4712,6 +4788,11 @@ def buscar_precio(market_hash_name, session, proxy):
             precio,
             buy_price
         )
+
+        # Solo se actualiza después de una respuesta válida de Steam
+        # y de interpretar un precio de venta correcto.
+        with lock:
+            LAST_STEAM_SUCCESS = time.time()
 
         return {
             "price": precio,
@@ -5388,8 +5469,10 @@ def supervisor_workers(grupos):
 
     worker_alertado = False
     sin_consultas_alertado = False
+    sin_respuesta_valida_alertado = False
 
     ultimo_request_visto = LAST_STEAM_REQUEST
+    ultimo_exito_visto = LAST_STEAM_SUCCESS
 
     # Iniciar los workers por primera vez.
     for i, grupo in enumerate(grupos):
@@ -5477,7 +5560,39 @@ def supervisor_workers(grupos):
             sin_consultas_alertado = True
 
         # ====================================================
-        # 3. AVISAR CUANDO SE RECUPERA
+        # 3. CONTROLAR RESPUESTAS VÁLIDAS DE STEAM
+        # ====================================================
+
+        with lock:
+            ultimo_exito = LAST_STEAM_SUCCESS
+
+        referencia_exito = ultimo_exito or BOT_START_TIME
+        tiempo_sin_respuesta_valida = ahora - referencia_exito
+
+        if (
+            tiempo_sin_respuesta_valida >= 2700
+            and not sin_respuesta_valida_alertado
+        ):
+            minutos_sin_exito = int(tiempo_sin_respuesta_valida / 60)
+            enviar_telegram(
+                "🚨 ALERTA: STEAM NO DEVUELVE PRECIOS VÁLIDOS\n\n"
+                f"Hace aproximadamente {minutos_sin_exito} minutos "
+                "que el bot no registra una respuesta válida con precio.\n\n"
+                "Puede estar intentando consultar, pero las respuestas fallan."
+            )
+            sin_respuesta_valida_alertado = True
+
+        if ultimo_exito > ultimo_exito_visto:
+            if sin_respuesta_valida_alertado:
+                enviar_telegram(
+                    "✅ STEAM RECUPERADO\n\n"
+                    "El bot volvió a recibir una respuesta válida con precio."
+                )
+                sin_respuesta_valida_alertado = False
+            ultimo_exito_visto = ultimo_exito
+
+        # ====================================================
+        # 4. AVISAR CUANDO SE RECUPERA LA ACTIVIDAD
         # ====================================================
 
         if ultimo_request > ultimo_request_visto:
@@ -5512,6 +5627,11 @@ def worker(grupo_skins, worker_id):
     global LAST_WORKER_ACTIVITY
 
     while estado_app["activo"]:
+
+        # Pausa manual configurable desde el dashboard.
+        if PAUSA_MANUAL_ACTIVA:
+            time.sleep(5)
+            continue
 
         # ====================================================
         # CAMBIO DE DÍA → ENVIAR RESUMEN DEL DÍA ANTERIOR
@@ -5604,7 +5724,7 @@ def worker(grupo_skins, worker_id):
                 SKIN_COOLDOWN_UNTIL[skin_name] = 0
 
             resultado = None
-            MAX_INTENTOS = 2
+            MAX_INTENTOS = int(CONFIG["errores"]["max_intentos"])
 
             for intento in range(MAX_INTENTOS):
 
@@ -5722,19 +5842,19 @@ def worker(grupo_skins, worker_id):
 
                 elif error == "timeout":
 
-                    espera = random.uniform(1, 3)
+                    espera = random.uniform(CONFIG["errores"]["retry_timeout_min"], CONFIG["errores"]["retry_timeout_max"])
 
                 elif error in ("http", "request"):
 
-                    espera = random.uniform(2, 5)
+                    espera = random.uniform(CONFIG["errores"]["retry_http_min"], CONFIG["errores"]["retry_http_max"])
 
                 elif error in ("json", "steam"):
 
-                    espera = random.uniform(2, 4)
+                    espera = random.uniform(CONFIG["errores"]["retry_json_min"], CONFIG["errores"]["retry_json_max"])
 
                 else:
 
-                    espera = random.uniform(3, 6)
+                    espera = random.uniform(CONFIG["errores"]["retry_otro_min"], CONFIG["errores"]["retry_otro_max"])
 
                 print(
                     f"[RETRY] "
@@ -5759,9 +5879,18 @@ def worker(grupo_skins, worker_id):
 
             ultima_alerta = notificados.get(skin_name)
 
-            if precio_actual <= precio_max and (
-                ultima_alerta is None
-                or precio_actual != ultima_alerta
+            try:
+                ultima_alerta_numero = (
+                    float(ultima_alerta)
+                    if ultima_alerta is not None
+                    else None
+                )
+            except (TypeError, ValueError):
+                ultima_alerta_numero = None
+
+            if CONFIG["alertas"]["activas"] and precio_actual <= precio_max and (
+                ultima_alerta_numero is None
+                or precio_actual < ultima_alerta_numero
             ):
                 steam_url = (
                     "steam://openurl/https://steamcommunity.com/market/listings/730/"
@@ -5814,7 +5943,10 @@ def worker(grupo_skins, worker_id):
                 # SEGUNDA ALERTA
                 # =========================
 
-                if descuento >= ALERTA_DOBLE_DESCUENTO:
+                if (
+                    CONFIG["alertas"]["doble_alerta_activa"]
+                    and descuento >= ALERTA_DOBLE_DESCUENTO
+                ):
                     print(
                         f"[ALERTA DOBLE] "
                         f"{skin_name} | "
@@ -5989,11 +6121,17 @@ def worker(grupo_skins, worker_id):
 
         guardar_estado()
 
-        if time.time() >= PROXIMA_PAUSA:
+        if (
+            CONFIG["pausas_programadas"]["activas"]
+            and time.time() >= PROXIMA_PAUSA
+        ):
 
             inicio_pausa = time.time()
 
-            pausa = random.uniform(600, 1200)
+            pausa = random.uniform(
+                CONFIG["pausas_programadas"]["duracion_min"],
+                CONFIG["pausas_programadas"]["duracion_max"]
+            )
 
             # ======================================================
             # MARCAR PAUSA PROGRAMADA
@@ -6030,7 +6168,10 @@ def worker(grupo_skins, worker_id):
 
             PROXIMA_PAUSA = (
                 time.time()
-                + random.uniform(7200, 10800)
+                + random.uniform(
+                    CONFIG["pausas_programadas"]["intervalo_min"],
+                    CONFIG["pausas_programadas"]["intervalo_max"]
+                )
             )
 
             guardar_estado()
@@ -6038,7 +6179,10 @@ def worker(grupo_skins, worker_id):
         else:
 
             time.sleep(
-                random.uniform(6, 12)
+                random.uniform(
+                    CONFIG["pausas_programadas"]["sleep_min"],
+                    CONFIG["pausas_programadas"]["sleep_max"]
+                )
             )
 
 # 🔁 Ejecutar el servidor Flask en hilo separado
@@ -6056,6 +6200,12 @@ if __name__ == "__main__":
     print("==============================================")
 
     cargar_estado()
+
+    # Recalcular la próxima pausa con los valores recuperados del panel.
+    PROXIMA_PAUSA = time.time() + random.uniform(
+        CONFIG["pausas_programadas"]["intervalo_min"],
+        CONFIG["pausas_programadas"]["intervalo_max"]
+    )
 
     # Iniciar el contador de tiempo sin consultas.
     LAST_STEAM_REQUEST = time.time()
