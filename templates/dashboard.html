@@ -16,18 +16,18 @@
 <style>
 
 :root {
-    --bg: #080d14;
-    --panel: #101824;
-    --panel2: #141f2d;
-    --panel3: #0c131d;
-    --border: rgba(148,163,184,.12);
-    --text: #edf4fc;
-    --muted: #8292a7;
-    --green: #39df9b;
+    --bg: #0b0e12;
+    --panel: #15191f;
+    --panel2: #1c222b;
+    --panel3: #101419;
+    --border: rgba(161,171,185,.15);
+    --text: #f1f3f5;
+    --muted: #929ba7;
+    --green: #ff982f;
     --red: #ff687d;
     --yellow: #f8c65c;
-    --blue: #57a9ff;
-    --purple: #a78bfa;
+    --blue: #f5a142;
+    --purple: #e6a15b;
     --radius: 16px;
 }
 
@@ -40,7 +40,7 @@ body {
     background:
         radial-gradient(
             ellipse at 75% -15%,
-            rgba(38,103,157,.16),
+            rgba(205,111,35,.12),
             transparent 40%
         ),
         var(--bg);
@@ -64,27 +64,34 @@ button {
 }
 
 /* =========================================================
-   SIDEBAR
+   NAVEGACIÓN SUPERIOR — DISEÑO PROFESIONAL
 ========================================================= */
 
 .sidebar {
-    width: 248px;
+    width: 100%;
     flex-shrink: 0;
-    background: rgba(12,19,29,.96);
-    border-right: 1px solid var(--border);
-    padding: 25px 16px;
+    background: rgba(14,17,21,.96);
+    border-right: none;
+    border-bottom: 1px solid var(--border);
+    padding: 14px clamp(16px, 2.5vw, 38px);
     display: flex;
-    flex-direction: column;
-    position: fixed;
-    inset: 0 auto 0 0;
-    z-index: 10;
+    flex-direction: row;
+    align-items: center;
+    gap: clamp(16px, 2vw, 30px);
+    position: sticky;
+    top: 0;
+    z-index: 20;
+    backdrop-filter: blur(18px);
+    box-shadow: 0 8px 30px rgba(0,0,0,.12);
 }
 
 .brand {
     display: flex;
     align-items: center;
     gap: 12px;
-    padding: 0 10px 30px;
+    padding: 0;
+    flex: 0 0 auto;
+    min-width: max-content;
 }
 
 .brand-icon {
@@ -93,9 +100,9 @@ button {
     border-radius: 13px;
     display: grid;
     place-items: center;
-    background: linear-gradient(135deg,#176d65,#174b78);
+    background: linear-gradient(135deg,#b65b19,#f39a38);
     font-size: 21px;
-    box-shadow: 0 5px 25px rgba(36,190,153,.15);
+    box-shadow: 0 5px 25px rgba(255,152,47,.18);
 }
 
 .brand-name {
@@ -122,22 +129,31 @@ button {
 
 nav {
     display: flex;
-    flex-direction: column;
-    gap: 5px;
+    flex-direction: row;
+    align-items: center;
+    gap: 4px;
+    min-width: 0;
+    flex: 1;
+    overflow-x: auto;
+    scrollbar-width: thin;
+    scrollbar-color: rgba(130,146,167,.35) transparent;
+    padding: 3px 0;
 }
 
 .tab {
     display: flex;
     align-items: center;
     gap: 12px;
-    width: 100%;
+    width: auto;
+    flex: 0 0 auto;
+    white-space: nowrap;
     border: 1px solid transparent;
     border-radius: 10px;
     background: transparent;
     color: #91a1b5;
-    padding: 12px 13px;
+    padding: 10px 12px;
     text-align: left;
-    font-size: 13px;
+    font-size: 12px;
     font-weight: 600;
     transition: .2s;
 }
@@ -154,9 +170,10 @@ nav {
 }
 
 .tab.active {
-    color: #72e5bd;
-    background: rgba(57,223,155,.09);
-    border-color: rgba(57,223,155,.16);
+    color: #ffb15e;
+    background: rgba(255,152,47,.10);
+    border-color: rgba(255,152,47,.24);
+    box-shadow: inset 0 -2px 0 rgba(255,152,47,.85);
 }
 
 .sidebar-bottom {
@@ -186,8 +203,8 @@ nav {
 ========================================================= */
 
 .main-area {
-    margin-left: 248px;
-    width: calc(100% - 248px);
+    margin-left: 0;
+    width: 100%;
     min-width: 0;
 }
 
@@ -513,7 +530,7 @@ tbody tr:last-child td {
 
 .badge-good {
     color: var(--green);
-    background: rgba(57,223,155,.10);
+    background: rgba(255,152,47,.10);
     border: 1px solid rgba(57,223,155,.15);
 }
 
@@ -673,7 +690,7 @@ select:focus {
 
 .period-button.active {
     color: #75e6bd;
-    background: rgba(57,223,155,.10);
+    background: rgba(255,152,47,.10);
     border-color: rgba(57,223,155,.28);
 }
 
@@ -1159,30 +1176,47 @@ select:focus {
     }
 }
 
-@media (max-width: 760px) {
-
+@media (max-width: 1050px) {
     .sidebar {
-        position: sticky;
-        top: 0;
-        inset: auto;
-        width: 100%;
-        height: auto;
-        padding: 10px 12px;
-        border-right: none;
-        border-bottom: 1px solid var(--border);
+        align-items: flex-start;
+        flex-direction: column;
+        gap: 10px;
+        padding: 12px 18px 10px;
     }
 
+    .brand {
+        padding: 0;
+    }
+
+    nav {
+        width: 100%;
+        flex: none;
+    }
+
+    .nav-label,
+    .sidebar-bottom {
+        display: none;
+    }
+}
+
+@media (max-width: 760px) {
     .app {
         display: block;
     }
 
-    .brand {
-        padding: 0 5px 10px;
+    .sidebar {
+        position: sticky;
+        top: 0;
+        width: 100%;
+        height: auto;
+        padding: 10px 12px 8px;
+        gap: 9px;
     }
 
     .brand-icon {
         width: 34px;
         height: 34px;
+        border-radius: 10px;
     }
 
     .brand-name {
@@ -1193,22 +1227,13 @@ select:focus {
         font-size: 9px;
     }
 
-    .nav-label,
-    .sidebar-bottom {
-        display: none;
-    }
-
     nav {
-        flex-direction: row;
-        overflow-x: auto;
-        gap: 5px;
-        padding-bottom: 2px;
+        gap: 4px;
+        padding-bottom: 3px;
     }
 
     .tab {
-        width: auto;
-        flex-shrink: 0;
-        padding: 9px 11px;
+        padding: 8px 10px;
         font-size: 11px;
     }
 
@@ -1234,391 +1259,8 @@ select:focus {
     h2 {
         font-size: 22px;
     }
-
-    .topbar-sub {
-        display: none;
-    }
-
-    #lastUpdate {
-        display: none;
-    }
-
-    .history-info {
-        grid-template-columns: repeat(2,minmax(0,1fr));
-    }
-
-    .history-controls {
-        grid-template-columns: 1fr;
-    }
-
-    .chart-wrapper {
-        height: 300px;
-    }
-
-    .monitor-grid,
-    .proxy-summary {
-        grid-template-columns: repeat(2,minmax(0,1fr));
-    }
 }
 
-@media (max-width: 430px) {
-
-    .cards,
-    .monitor-grid,
-    .proxy-summary {
-        grid-template-columns: repeat(2,minmax(0,1fr));
-        gap: 9px;
-    }
-
-    .card {
-        padding: 14px;
-    }
-
-    .card-value {
-        font-size: 22px;
-    }
-
-    .card-title {
-        font-size: 10px;
-    }
-
-    .card-foot {
-        font-size: 9px;
-    }
-
-    .card-icon {
-        width: 27px;
-        height: 27px;
-    }
-
-    .history-panel {
-        padding: 12px;
-    }
-
-    .history-stat {
-        padding: 11px;
-    }
-
-    .history-stat-value {
-        font-size: 14px;
-    }
-
-    .history-stat-label {
-        font-size: 9px;
-    }
-
-    .period-button {
-        padding: 8px 10px;
-    }
-
-    .radar-values {
-        gap: 5px;
-    }
-
-    .radar-value {
-        font-size: 11px;
-    }
-
-    .page-heading {
-        align-items: flex-start;
-    }
-
-    .monitor-card,
-    .proxy-card {
-        padding: 13px;
-    }
-
-    .monitor-card-value,
-    .proxy-card-value {
-        font-size: 18px;
-    }
-}
-
-/* =====================================================
-   CONFIGURACIÓN
-   ===================================================== */
-
-.config-grid {
-    display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 16px;
-    margin-top: 18px;
-}
-
-.config-field {
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-}
-
-.config-field label {
-    font-size: 13px;
-    font-weight: 600;
-    color: var(--text);
-}
-
-.config-field input[type="number"],
-.config-field input[type="text"],
-.config-field input[type="password"] {
-    width: 100%;
-    box-sizing: border-box;
-    padding: 11px 12px;
-    border-radius: 8px;
-    border: 1px solid var(--border);
-    background: var(--panel3);
-    color: var(--text);
-    outline: none;
-    font-family: inherit;
-    font-size: 14px;
-}
-
-.config-field input:focus {
-    border-color: var(--green);
-}
-
-.config-help {
-    font-size: 11px;
-    color: var(--muted);
-    line-height: 1.4;
-}
-
-.config-row {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 20px;
-    padding: 14px 0;
-    border-bottom: 1px solid var(--border);
-}
-
-.config-row:last-child {
-    border-bottom: none;
-}
-
-.config-row-info {
-    flex: 1;
-}
-
-.config-row-title {
-    font-size: 14px;
-    font-weight: 600;
-    color: var(--text);
-}
-
-.config-row-description {
-    margin-top: 4px;
-    font-size: 12px;
-    color: var(--muted);
-    line-height: 1.4;
-}
-
-/* Switch */
-
-.switch {
-    position: relative;
-    display: inline-block;
-    width: 46px;
-    min-width: 46px;
-    height: 24px;
-}
-
-.switch input {
-    opacity: 0;
-    width: 0;
-    height: 0;
-}
-
-.slider {
-    position: absolute;
-    cursor: pointer;
-    inset: 0;
-    background: #3a3f4b;
-    border-radius: 24px;
-    transition: 0.2s;
-}
-
-.slider::before {
-    content: "";
-    position: absolute;
-    width: 18px;
-    height: 18px;
-    left: 3px;
-    top: 3px;
-    background: white;
-    border-radius: 50%;
-    transition: 0.2s;
-}
-
-.switch input:checked + .slider {
-    background: var(--green);
-}
-
-.switch input:checked + .slider::before {
-    transform: translateX(22px);
-}
-
-/* Mensajes */
-
-.config-message {
-    margin-top: 12px;
-    font-size: 13px;
-    line-height: 1.4;
-}
-
-.config-message.success {
-    color: #4ade80;
-}
-
-.config-message.error {
-    color: #f87171;
-}
-
-/* Botones */
-
-.config-actions {
-    display: flex;
-    gap: 10px;
-    flex-wrap: wrap;
-    margin-top: 20px;
-}
-
-/* Responsive */
-
-@media (max-width: 800px) {
-
-    .config-grid {
-        grid-template-columns: 1fr;
-    }
-
-    .config-row {
-        align-items: flex-start;
-    }
-}
-    
-
-
-/* =========================================================
-   SKINS NOTIFICADAS
-========================================================= */
-.notified-summary {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 16px;
-    padding: 20px 22px;
-    margin-bottom: 20px;
-    background: linear-gradient(145deg, #111d2a, #0e1722);
-    border: 1px solid var(--border);
-    border-radius: var(--radius);
-}
-.notified-summary-label {
-    color: var(--muted);
-    font-size: 10px;
-    font-weight: 800;
-    letter-spacing: 1px;
-}
-.notified-summary-value {
-    margin-top: 7px;
-    font-family: 'Space Grotesk', sans-serif;
-    font-size: 30px;
-    font-weight: 700;
-}
-.notified-summary-note {
-    color: var(--muted);
-    font-size: 11px;
-    max-width: 340px;
-    line-height: 1.6;
-}
-.notified-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(245px, 1fr));
-    gap: 14px;
-}
-.notified-card {
-    min-width: 0;
-    padding: 17px;
-    background: linear-gradient(145deg, #121e2b, #0d1621);
-    border: 1px solid var(--border);
-    border-radius: 14px;
-    box-shadow: 0 8px 24px rgba(0,0,0,.12);
-}
-.notified-card-top {
-    display: flex;
-    align-items: flex-start;
-    justify-content: space-between;
-    gap: 10px;
-}
-.notified-skin-name {
-    color: #e7edf5;
-    font-size: 12px;
-    line-height: 1.55;
-    font-weight: 700;
-    overflow-wrap: anywhere;
-}
-.notified-chip {
-    flex-shrink: 0;
-    color: var(--green);
-    background: rgba(57,223,155,.09);
-    border: 1px solid rgba(57,223,155,.2);
-    border-radius: 20px;
-    padding: 5px 8px;
-    font-size: 9px;
-    font-weight: 800;
-}
-.notified-price {
-    margin-top: 18px;
-    color: var(--green);
-    font-family: 'Space Grotesk', sans-serif;
-    font-size: 25px;
-    font-weight: 700;
-}
-.notified-details {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 10px;
-    margin-top: 13px;
-    padding-top: 13px;
-    border-top: 1px solid var(--border);
-}
-.notified-detail-label {
-    color: var(--muted);
-    font-size: 9px;
-    text-transform: uppercase;
-    letter-spacing: .6px;
-}
-.notified-detail-value {
-    color: #cbd5e1;
-    font-size: 11px;
-    font-weight: 700;
-    margin-top: 5px;
-}
-.notified-time {
-    color: var(--muted);
-    font-size: 10px;
-    margin-top: 13px;
-}
-.notified-open {
-    display: inline-flex;
-    margin-top: 14px;
-    padding: 8px 11px;
-    border: 1px solid rgba(87,169,255,.24);
-    border-radius: 8px;
-    color: #80bdff;
-    text-decoration: none;
-    font-size: 10px;
-    font-weight: 700;
-}
-.notified-open:hover { background: rgba(87,169,255,.08); }
-.notified-empty {
-    grid-column: 1 / -1;
-    padding: 36px 20px;
-    border: 1px dashed var(--border);
-    border-radius: 14px;
-    color: var(--muted);
-    text-align: center;
-    font-size: 12px;
-    line-height: 1.7;
-}
 @media (max-width: 600px) {
     .notified-summary { align-items: flex-start; flex-direction: column; }
     .notified-grid { grid-template-columns: 1fr; }
@@ -1650,7 +1292,7 @@ select:focus {
             </div>
 
             <div class="brand-sub">
-                MARKET INTELLIGENCE
+                ANÁLISIS DEL MERCADO
             </div>
         </div>
 
@@ -1665,7 +1307,7 @@ select:focus {
         <button class="tab active"
                 onclick="showTab('dashboard',this)">
             <span class="nav-icon">◈</span>
-            Dashboard
+            Resumen
         </button>
 
         <button class="tab"
@@ -1765,13 +1407,13 @@ select:focus {
                 <span class="connection-dot"></span>
 
                 <span id="headerConnectionText">
-                    CONECTANDO
+CONECTANDO
                 </span>
 
             </div>
 
             <div id="lastUpdate">
-                Actualizando...
+                Actualizando…
             </div>
 
         </div>
@@ -1793,11 +1435,11 @@ select:focus {
                 <div>
 
                     <div class="eyebrow">
-                        OVERVIEW
+                        VISTA GENERAL
                     </div>
 
                     <h2>
-                        Dashboard
+                        Resumen
                     </h2>
 
                     <div class="description">
@@ -2084,7 +1726,7 @@ select:focus {
                 <div>
 
                     <div class="eyebrow">
-                        PRICE ANALYTICS
+                        ANÁLISIS DE PRECIOS
                     </div>
 
                     <h2>
@@ -2295,7 +1937,7 @@ select:focus {
 
             <div class="page-heading">
                 <div>
-                    <div class="eyebrow">TELEGRAM ALERT HISTORY</div>
+                    <div class="eyebrow">HISTORIAL DE ALERTAS DE TELEGRAM</div>
                     <h2>Skins Notificadas</h2>
                     <div class="description">
                         Skins que el bot envió a Telegram durante los últimos 7 días.
@@ -2543,7 +2185,7 @@ select:focus {
                             <tr>
 
                                 <td>
-                                    Requests a Steam
+                                    Consultas a Steam
                                 </td>
 
                                 <td id="monitorRequests">
@@ -2560,7 +2202,7 @@ select:focus {
                             <tr>
 
                                 <td>
-                                    Requests exitosas
+                                    Consultas exitosas
                                 </td>
 
                                 <td id="monitorSuccess">
@@ -2577,7 +2219,7 @@ select:focus {
                             <tr>
 
                                 <td>
-                                    Requests fallidas
+                                    Consultas fallidas
                                 </td>
 
                                 <td id="monitorFailed">
@@ -2797,7 +2439,7 @@ select:focus {
                             <tr>
                                 <th>Proxy</th>
                                 <th>Estado</th>
-                                <th>Requests</th>
+                                <th>Consultas</th>
                                 <th>Exitosas</th>
                                 <th>Fallidas</th>
                                 <th>429</th>
@@ -2805,7 +2447,7 @@ select:focus {
                                 <th>HTTP</th>
                                 <th>JSON</th>
                                 <th>Steam</th>
-                                <th>Request</th>
+                                <th>Consulta</th>
                                 <th>Cooldowns</th>
                                 <th>Éxito</th>
                                 <th>Último uso</th>
@@ -2837,7 +2479,7 @@ select:focus {
                 <div>
 
                     <div class="eyebrow">
-                        LIVE SYSTEM STATUS
+                        ESTADO DEL SISTEMA EN VIVO
                     </div>
 
                     <h2>
