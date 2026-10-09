@@ -4356,29 +4356,28 @@ function populateHistorySelect() {
    HISTORIAL - PERÍODO
 ========================================================= */
 
-function setPeriod(
-    hours,
-    button
-) {
+function setPeriod(hours, button) {
 
-    historyPeriod =
-        hours;
+    const periodo = Number(hours);
+    if (![1, 3, 6, 24, 48].includes(periodo)) {
+        console.warn("Período de historial no válido:", hours);
+        return;
+    }
 
-    document
-        .querySelectorAll(
-            ".period-button"
-        )
-        .forEach(
-            item => {
-                item.classList.remove(
-                    "active"
-                );
-            }
+    historyPeriod = periodo;
+
+    document.querySelectorAll(".period-button").forEach(item => {
+        item.classList.remove("active");
+    });
+
+    if (button) {
+        button.classList.add("active");
+    } else {
+        const boton = document.querySelector(
+            `.period-button[onclick*="${periodo}"]`
         );
-
-    button.classList.add(
-        "active"
-    );
+        if (boton) boton.classList.add("active");
+    }
 
     loadHistory();
 }
@@ -4388,52 +4387,45 @@ function setPeriod(
    HISTORIAL - CARGAR
 ========================================================= */
 
+let historyRequestId = 0;
+
 async function loadHistory() {
 
-    const skin =
-        document.getElementById(
-            "historySkin"
-        ).value;
+    const selector = document.getElementById("historySkin");
+    const message = document.getElementById("historyMessage");
+    const skin = selector ? selector.value : "";
+    const requestId = ++historyRequestId;
 
     if (!skin) {
+        if (message) message.textContent = "Seleccioná una skin para ver su historial.";
         return;
     }
 
-    try {
+    if (message) message.textContent = `Cargando historial de las últimas ${historyPeriod} h…`;
 
-        const response =
-            await fetch(
-                "/api/history?skin=" +
-                encodeURIComponent(
-                    skin
-                ) +
-                "&x=" +
-                Date.now()
-            );
+    try {
+        const response = await fetch(
+            "/api/history?skin=" + encodeURIComponent(skin) + "&x=" + Date.now(),
+            { cache: "no-store" }
+        );
 
         if (!response.ok) {
-            throw new Error(
-                "HTTP " +
-                response.status
-            );
+            throw new Error("HTTP " + response.status);
         }
 
-        const data =
-            await response.json();
+        const data = await response.json();
+
+        // Si se eligió otra skin/período mientras cargaba,
+        // ignoramos la respuesta vieja para que no pise el gráfico nuevo.
+        if (requestId !== historyRequestId) return;
+        if (selector.value !== skin) return;
 
         renderHistory(data);
 
     } catch (error) {
-
-        console.error(
-            "Error /api/history:",
-            error
-        );
-
-        document.getElementById(
-            "historyMessage"
-        ).textContent =
-            "Error cargando el historial.";
+        if (requestId !== historyRequestId) return;
+        console.error("Error /api/history:", error);
+        if (message) message.textContent = "Error cargando el historial. Revisá la conexión e intentá de nuevo.";
     }
 }
 
@@ -4458,10 +4450,21 @@ function renderHistory(data) {
     const filtered =
         points.filter(
             point =>
-                Number(
-                    point.timestamp
-                ) >= cutoff
+                Number(point.timestamp) >= cutoff
         );
+
+    const historyMessage = document.getElementById("historyMessage");
+    if (historyMessage) {
+        if (filtered.length) {
+            historyMessage.textContent =
+                `${filtered.length} puntos disponibles en las últimas ${historyPeriod} h. ` +
+                `El backend conserva hasta 48 h; si hay menos puntos, es porque todavía no se registraron más datos para esta skin.`;
+        } else {
+            historyMessage.textContent =
+                `No hay puntos registrados en las últimas ${historyPeriod} h para esta skin. ` +
+                `El historial no inventa datos: se completa a medida que el bot registra precios reales.`;
+        }
+    }
 
     const labels =
         filtered.map(
@@ -6104,59 +6107,41 @@ async function loadNotificadas() {
    ACTUALIZAR TODO
 ========================================================= */
 
+let updateAllEnCurso = false;
+
 async function updateAll() {
 
-    await loadStatus();
+    // Evita que una actualización lenta se superponga
+    // con la siguiente ejecución del temporizador.
+    if (updateAllEnCurso) {
+        return;
+    }
 
-    await loadSkins();
+    updateAllEnCurso = true;
 
-    /*
-       IMPORTANTE:
+    try {
+        await loadStatus();
+        await loadSkins();
 
-       El historial NO se actualiza automáticamente.
+        // El historial queda congelado hasta que el usuario
+        // cambie de skin o de período.
+        await loadMonitor();
+        await loadProxies();
 
-       El Monitor y Proxies sí se actualizan
-       automáticamente porque son datos operativos.
-    */
-
-    await loadMonitor();
-
-    await loadProxies();
+    } finally {
+        updateAllEnCurso = false;
+    }
 }
 
-
 /* =========================================================
-   INICIO
+   INICIO Y ACTUALIZACIÓN AUTOMÁTICA
 ========================================================= */
 
 updateAll();
 
-
-/*
-   Actualización general cada 15 segundos.
-*/
-
-setInterval(
-    updateAll,
-    15000
-);
-
-
-/*
-   Monitor y proxies también quedan
-   disponibles aunque el usuario esté
-   mirando otra pestaña.
-*/
-
-setInterval(
-    loadMonitor,
-    15000
-);
-
-setInterval(
-    loadProxies,
-    15000
-);
+// Una sola rutina cada 15 segundos. Monitor y Proxies ya
+// están incluidos en updateAll(), evitando requests duplicados.
+setInterval(updateAll, 15000);
 
 
 // =====================================================
