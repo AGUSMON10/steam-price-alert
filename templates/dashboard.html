@@ -1495,6 +1495,135 @@ select:focus {
     }
 }
     
+
+
+/* =========================================================
+   SKINS NOTIFICADAS
+========================================================= */
+.notified-summary {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    padding: 20px 22px;
+    margin-bottom: 20px;
+    background: linear-gradient(145deg, #111d2a, #0e1722);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+}
+.notified-summary-label {
+    color: var(--muted);
+    font-size: 10px;
+    font-weight: 800;
+    letter-spacing: 1px;
+}
+.notified-summary-value {
+    margin-top: 7px;
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 30px;
+    font-weight: 700;
+}
+.notified-summary-note {
+    color: var(--muted);
+    font-size: 11px;
+    max-width: 340px;
+    line-height: 1.6;
+}
+.notified-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(245px, 1fr));
+    gap: 14px;
+}
+.notified-card {
+    min-width: 0;
+    padding: 17px;
+    background: linear-gradient(145deg, #121e2b, #0d1621);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    box-shadow: 0 8px 24px rgba(0,0,0,.12);
+}
+.notified-card-top {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 10px;
+}
+.notified-skin-name {
+    color: #e7edf5;
+    font-size: 12px;
+    line-height: 1.55;
+    font-weight: 700;
+    overflow-wrap: anywhere;
+}
+.notified-chip {
+    flex-shrink: 0;
+    color: var(--green);
+    background: rgba(57,223,155,.09);
+    border: 1px solid rgba(57,223,155,.2);
+    border-radius: 20px;
+    padding: 5px 8px;
+    font-size: 9px;
+    font-weight: 800;
+}
+.notified-price {
+    margin-top: 18px;
+    color: var(--green);
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 25px;
+    font-weight: 700;
+}
+.notified-details {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    margin-top: 13px;
+    padding-top: 13px;
+    border-top: 1px solid var(--border);
+}
+.notified-detail-label {
+    color: var(--muted);
+    font-size: 9px;
+    text-transform: uppercase;
+    letter-spacing: .6px;
+}
+.notified-detail-value {
+    color: #cbd5e1;
+    font-size: 11px;
+    font-weight: 700;
+    margin-top: 5px;
+}
+.notified-time {
+    color: var(--muted);
+    font-size: 10px;
+    margin-top: 13px;
+}
+.notified-open {
+    display: inline-flex;
+    margin-top: 14px;
+    padding: 8px 11px;
+    border: 1px solid rgba(87,169,255,.24);
+    border-radius: 8px;
+    color: #80bdff;
+    text-decoration: none;
+    font-size: 10px;
+    font-weight: 700;
+}
+.notified-open:hover { background: rgba(87,169,255,.08); }
+.notified-empty {
+    grid-column: 1 / -1;
+    padding: 36px 20px;
+    border: 1px dashed var(--border);
+    border-radius: 14px;
+    color: var(--muted);
+    text-align: center;
+    font-size: 12px;
+    line-height: 1.7;
+}
+@media (max-width: 600px) {
+    .notified-summary { align-items: flex-start; flex-direction: column; }
+    .notified-grid { grid-template-columns: 1fr; }
+}
+
 </style>
 
 </head>
@@ -1558,9 +1687,9 @@ select:focus {
         </button>
 
         <button class="tab"
-                onclick="showTab('estadisticas',this)">
-            <span class="nav-icon">▥</span>
-            Estadísticas
+                onclick="showTab('notificadas',this)">
+            <span class="nav-icon">✉</span>
+            Skins Notificadas
         </button>
 
         <button class="tab"
@@ -2159,138 +2288,35 @@ select:focus {
 
 
         <!-- =================================================
-             ESTADISTICAS
+             SKINS NOTIFICADAS
         ================================================== -->
 
-        <section id="estadisticas"
-                 class="section">
+        <section id="notificadas" class="section">
 
             <div class="page-heading">
-
                 <div>
-
-                    <div class="eyebrow">
-                        SYSTEM ANALYTICS
-                    </div>
-
-                    <h2>
-                        Estadísticas
-                    </h2>
-
+                    <div class="eyebrow">TELEGRAM ALERT HISTORY</div>
+                    <h2>Skins Notificadas</h2>
                     <div class="description">
-                        Indicadores generales de actividad y rendimiento.
+                        Skins que el bot envió a Telegram durante los últimos 7 días.
+                        Los registros más antiguos se eliminan automáticamente.
                     </div>
-
                 </div>
-
+                <button class="pill" type="button" onclick="loadNotificadas()" style="cursor:pointer;font-family:inherit;">
+                    ↻ Actualizar
+                </button>
             </div>
 
-
-            <div class="cards">
-
-                <div class="card">
-
-                    <div class="card-head">
-
-                        <div class="card-title">
-                            Alertas enviadas
-                        </div>
-
-                        <div class="card-icon">
-                            ✉
-                        </div>
-
-                    </div>
-
-                    <div id="statsAlerts"
-                         class="card-value">
-                        -
-                    </div>
-
-                    <div class="card-foot">
-                        Notificaciones de oportunidades
-                    </div>
-
+            <div class="notified-summary">
+                <div>
+                    <div class="notified-summary-label">NOTIFICACIONES · ÚLTIMOS 7 DÍAS</div>
+                    <div class="notified-summary-value" id="notificadasCount">—</div>
                 </div>
+                <div class="notified-summary-note">Se registra cada oferta cuando se envía correctamente a Telegram.</div>
+            </div>
 
-
-                <div class="card">
-
-                    <div class="card-head">
-
-                        <div class="card-title">
-                            Errores
-                        </div>
-
-                        <div class="card-icon">
-                            ⚠
-                        </div>
-
-                    </div>
-
-                    <div id="statsErrors"
-                         class="card-value">
-                        -
-                    </div>
-
-                    <div class="card-foot">
-                        Errores registrados
-                    </div>
-
-                </div>
-
-
-                <div class="card">
-
-                    <div class="card-head">
-
-                        <div class="card-title">
-                            Proxies totales
-                        </div>
-
-                        <div class="card-icon">
-                            ◈
-                        </div>
-
-                    </div>
-
-                    <div id="statsProxies"
-                         class="card-value">
-                        -
-                    </div>
-
-                    <div class="card-foot">
-                        Conexiones configuradas
-                    </div>
-
-                </div>
-
-
-                <div class="card">
-
-                    <div class="card-head">
-
-                        <div class="card-title">
-                            Steam 429
-                        </div>
-
-                        <div class="card-icon">
-                            ↻
-                        </div>
-
-                    </div>
-
-                    <div id="stats429"
-                         class="card-value">
-                        -
-                    </div>
-
-                    <div class="card-foot">
-                        Respuestas consecutivas
-                    </div>
-
-                </div>
-
+            <div id="notificadasGrid" class="notified-grid">
+                <div class="notified-empty">Cargando notificaciones…</div>
             </div>
 
         </section>
@@ -3451,6 +3477,10 @@ function showTab(tabName, button) {
         loadMonitor();
     }
 
+    if (tabName === "notificadas") {
+        loadNotificadas();
+    }
+
     if (tabName === "proxies") {
         loadProxies();
     }
@@ -3780,26 +3810,6 @@ function updateStatus() {
         "cardErrors"
     ).textContent =
         statusData.errores_totales ?? "-";
-
-    document.getElementById(
-        "statsAlerts"
-    ).textContent =
-        statusData.notificaciones_enviadas ?? "-";
-
-    document.getElementById(
-        "statsErrors"
-    ).textContent =
-        statusData.errores_totales ?? "-";
-
-    document.getElementById(
-        "statsProxies"
-    ).textContent =
-        statusData.proxies_totales ?? "-";
-
-    document.getElementById(
-        "stats429"
-    ).textContent =
-        statusData.steam_429_consecutivos ?? "-";
 
     document.getElementById(
         "botStatus"
@@ -6023,6 +6033,70 @@ function escapeHtml(text) {
 
 function escapeAttribute(text) {
     return escapeHtml(text);
+}
+
+
+/* =========================================================
+   SKINS NOTIFICADAS
+========================================================= */
+
+async function loadNotificadas() {
+    const grid = document.getElementById("notificadasGrid");
+    const count = document.getElementById("notificadasCount");
+    if (!grid || !count) return;
+
+    try {
+        const response = await fetch("/api/notificaciones?x=" + Date.now());
+        if (!response.ok) throw new Error("HTTP " + response.status);
+
+        const data = await response.json();
+        const items = Array.isArray(data.notificaciones) ? data.notificaciones : [];
+        count.textContent = String(items.length);
+
+        if (!items.length) {
+            grid.innerHTML = '<div class="notified-empty">Todavía no hay notificaciones registradas en los últimos 7 días.<br>Las nuevas ofertas enviadas a Telegram aparecerán acá automáticamente.</div>';
+            return;
+        }
+
+        grid.innerHTML = items.map(item => {
+            const name = escapeHtml(item.name || "Skin sin nombre");
+            const price = money(item.price);
+            const max = money(item.max_price);
+            const discount = Number(item.discount_pct);
+            const discountText = Number.isFinite(discount) ? discount.toFixed(1) + "%" : "—";
+            const timestamp = Number(item.timestamp);
+            const dateText = Number.isFinite(timestamp) && timestamp > 0
+                ? new Date(timestamp * 1000).toLocaleString("es-AR", {
+                    day: "2-digit", month: "2-digit", year: "numeric",
+                    hour: "2-digit", minute: "2-digit"
+                  })
+                : "Fecha no disponible";
+            const link = typeof item.steam_url === "string" && item.steam_url.startsWith("steam://")
+                ? item.steam_url
+                : "";
+            const openLink = link
+                ? '<a class="notified-open" href="' + escapeAttribute(link) + '">↗ Abrir en Steam</a>'
+                : "";
+
+            return '<article class="notified-card">' +
+                '<div class="notified-card-top">' +
+                    '<div class="notified-skin-name">' + name + '</div>' +
+                    '<span class="notified-chip">ENVIADA</span>' +
+                '</div>' +
+                '<div class="notified-price">' + escapeHtml(price) + ' <span style="font-size:11px;font-weight:500;color:var(--muted)">USD</span></div>' +
+                '<div class="notified-details">' +
+                    '<div><div class="notified-detail-label">Precio máximo</div><div class="notified-detail-value">' + escapeHtml(max) + '</div></div>' +
+                    '<div><div class="notified-detail-label">Descuento</div><div class="notified-detail-value">' + escapeHtml(discountText) + '</div></div>' +
+                '</div>' +
+                '<div class="notified-time">✉ Telegram · ' + escapeHtml(dateText) + '</div>' +
+                openLink +
+            '</article>';
+        }).join("");
+    } catch (error) {
+        console.error("Error cargando notificaciones:", error);
+        count.textContent = "—";
+        grid.innerHTML = '<div class="notified-empty">No se pudieron cargar las notificaciones.<br>Verificá que también esté actualizado el archivo <code>main.py</code>.</div>';
+    }
 }
 
 
