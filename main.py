@@ -2700,7 +2700,7 @@ def api_config_save():
 
         aplicar_configuracion()
 
-        guardar_estado()
+        guardar_estado(forzar=True)
 
         return jsonify({
             "ok": True,
