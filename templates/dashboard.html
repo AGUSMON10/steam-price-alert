@@ -2923,476 +2923,475 @@ select:focus {
 
         </section>
 
-        <!-- =====================================================
-             CONFIGURACIÓN
-        ====================================================== -->
-
-        <section id="configuracion" class="section">
-
-            <div class="section-header">
-
-                <div>
-
-                    <h2>
-                        Configuración
-                    </h2>
-
-                    <p>
-                        Control avanzado del comportamiento del bot
-                    </p>
-
-                </div>
-
-                <div id="configStatus"
-                     class="status-badge">
-                    🔒 No autenticado
-                </div>
-
-            </div>
-
-
-            <!-- =================================================
-                 LOGIN
-            ================================================== -->
-
-            <div id="configLoginCard"
-                 class="card">
-
-                <div class="card-title">
-                    🔐 Acceso de administrador
-                </div>
-
-                <div class="card-subtitle">
-                    Ingresá la contraseña para modificar
-                    la configuración del bot.
-                </div>
-
-                <div style="
-                    display:flex;
-                    gap:10px;
-                    margin-top:18px;
-                    max-width:500px;
-                ">
-
-                    <input
-                        type="password"
-                        id="configPassword"
-                        placeholder="Contraseña de administrador"
-                        autocomplete="current-password"
-                        style="
-                            flex:1;
-                            padding:12px;
-                        "
-                    >
-
-                    <button
-                        class="btn"
-                        onclick="loginConfiguracion()"
-                    >
-                        Ingresar
-                    </button>
-
-                </div>
-
-                <div
-                    id="configLoginMessage"
-                    style="
-                        margin-top:12px;
-                        display:none;
-                    "
-                ></div>
-
-            </div>
-
-
-            <!-- =================================================
-                 PANEL PROTEGIDO
-            ================================================== -->
-
-            <div id="configPanel"
-                 style="display:none;">
-
-                <div class="card">
-
-                    <div class="card-title">
-                        ⚙️ Configuración del bot
-                    </div>
-
-                    <div class="card-subtitle">
-                        Los cambios se validan en el servidor
-                        antes de guardarse.
-                    </div>
-
-                    <div style="
-                        margin-top:20px;
-                        display:flex;
-                        justify-content:space-between;
-                        align-items:center;
-                        gap:15px;
-                        flex-wrap:wrap;
-                    ">
-
-                        <div>
-
-                            <strong>
-                                Sesión de administrador activa
-                            </strong>
-
-                            <div style="
-                                opacity:.65;
-                                margin-top:4px;
-                            ">
-                                Podés modificar la configuración
-                                mientras esta sesión esté activa.
-                            </div>
-
-                        </div>
-
-                        <button
-                            class="btn"
-                            onclick="logoutConfiguracion()"
-                        >
-                            🔒 Cerrar sesión
-                        </button>
-
-                    </div>
-
-                </div>
-
-
-                <!-- =============================================
-                     CONFIGURACIÓN GENERAL
-                ============================================== -->
-
-            <div class="card">
-
-                    <div class="card-title">
-                        🤖 Estado y funcionamiento
-                    </div>
-
-                    <div class="config-row">
-
-                        <div>
-
-                            <strong>
-                                Pausa manual
-                            </strong>
-
-                            <div class="config-help">
-                                Detiene temporalmente las consultas
-                                sin apagar el proceso del bot.
-                            </div>
-
-                        </div>
-
-                        <label class="switch">
-
-                            <input
-                                type="checkbox"
-                                id="configPausaManual"
-                            >
-
-                            <span class="slider"></span>
-
-                        </label>
-
-                    </div>
-
-                </div>
-
-
-                <!-- =============================================
-                     STEAM
-                ============================================== -->
-
-                <div class="card">
-
-                    <div class="card-title">
-                        🎮 Consultas a Steam
-                    </div>
-
-                    <div class="config-grid">
-
-                        <div class="config-field">
-
-                            <label>
-                                Intervalo global mínimo
-                            </label>
-
-                            <input
-                                type="number"
-                                id="configGlobalInterval"
-                                min="2"
-                                max="30"
-                                step="1"
-                            >
-
-                            <small>
-                                Segundos
-                            </small>
-
-                        </div>
-
-                        <div class="config-field">
-
-                            <label>
-                                Intervalo mínimo por proxy
-                            </label>
-
-                            <input
-                                type="number"
-                                id="configProxyInterval"
-                                min="5"
-                                max="60"
-                                step="1"
-                            >
-
-                            <small>
-                                Segundos
-                            </small>
-
-                        </div>
-
-                        <div class="config-field">
-
-                            <label>
-                                TTL máximo de caché
-                            </label>
-
-                            <input
-                                type="number"
-                                id="configCacheTTL"
-                                min="30"
-                                max="900"
-                                step="1"
-                            >
-
-                            <small>
-                                Segundos
-                            </small>
-
-                        </div>
-
-                    </div>
-
-                </div>
-
-
-                <!-- =============================================
-                     PROXIES
-                ============================================== -->
-
-                <div class="card">
-
-                    <div class="card-title">
-                        🌐 Proxies
-                    </div>
-
-                    <div class="config-grid">
-
-                        <div class="config-field">
-
-                            <label>
-                                Cooldown
-                            </label>
-
-                            <input
-                                type="number"
-                                id="configProxyCooldown"
-                                min="10"
-                                max="3600"
-                                step="1"
-                            >
-
-                            <small>
-                                Segundos
-                            </small>
-
-                        </div>
-
-                        <div class="config-field">
-
-                            <label>
-                                Cooldown base por 429
-                            </label>
-
-                            <input
-                                type="number"
-                                id="configProxy429Base"
-                                min="30"
-                                max="1800"
-                                step="1"
-                            >
-
-                            <small>
-                                Segundos
-                            </small>
-        
-                        </div>
-
-                        <div class="config-field">
-
-                            <label>
-                                Cooldown máximo por 429
-                            </label>
-
-                            <input
-                                type="number"
-                                id="configProxy429Max"
-                                min="60"
-                                max="3600"
-                                step="1"
-                            >
-
-                            <small>
-                                Segundos
-                            </small>
-
-                        </div>
-
-                    </div>
-
-                </div>
-
-                <!-- =====================================================
-                 PRECIOS MÁXIMOS POR SKIN
-                 ===================================================== -->
-
-            <div class="card" style="margin-top: 20px;">
-
-                <div class="section-header">
-
-                    <div>
-                        <div class="card-title">
-                            Precios máximos por skin
-                        </div>
-
-                        <div class="card-subtitle">
-                            Modificá cuánto estás dispuesto a pagar por cada skin.
-                            Los cambios se aplican al bot al guardar.
-                        </div>
-                    </div>
-
-                    <button
-                        class="btn"
-                        type="button"
-                        onclick="cargarPreciosMaximos()"
-                    >
-                        🔄 Recargar
-                    </button>
-
-                </div>
-
-
-                <!-- BUSCADOR -->
-
-                <div style="margin-top: 18px;">
-
-                    <input
-                        id="buscarSkinConfig"
-                        type="text"
-                        placeholder="🔎 Buscar una skin..."
-                        autocomplete="off"
-                        style="
-                            width: 100%;
-                            box-sizing: border-box;
-                            padding: 12px 14px;
-                            border-radius: 8px;
-                            border: 1px solid var(--border);
-                            background: var(--panel3);
-                            color: var(--text);
-                            outline: none;
-                            font-family: inherit;
-                            font-size: 14px;
-                        "
-                        oninput="filtrarPreciosMaximos()"
-                    >
-
-                </div>
-
-
-                <!-- LISTA -->
-
-                <div
-                    id="listaPreciosMaximos"
-                    style="margin-top: 16px;"
-                >
-                    <div class="config-help">
-                        Cargando skins...
-                    </div>
-                </div>
-
-
-                <!-- ACCIONES -->
-
-                <div class="config-actions">
-
-                    <button
-                        class="btn"
-                        type="button"
-                        onclick="guardarPreciosMaximos()"
-                    >
-                        💾 Guardar precios máximos
-                    </button>
-
-                </div>
-
-
-                <div
-                    id="preciosMaximosMessage"
-                    class="config-message"
-                ></div>
-
-            </div>
-
-
-                <!-- =============================================
-                     BOTONES
-                ============================================== -->
-
-                <div class="card">
-
-                    <div style="
-                        display:flex;
-                        justify-content:flex-end;
-                        gap:10px;
-                        flex-wrap:wrap;
-                    ">
-
-                        <button
-                            class="btn"
-                            onclick="cargarConfiguracion()"
-                        >
-                            ↻ Recargar
-                        </button>
-
-                        <button
-                            class="btn"
-                            onclick="guardarConfiguracion()"
-                        >
-                            💾 Guardar cambios
-                        </button>
-
-                    </div>
-
-                    <div
-                        id="configSaveMessage"
-                        style="
-                            margin-top:14px;
-                            display:none;
-                        "
-                    ></div>
-
-                </div>
-
-            </div>
-
-        </section>
-
-
     </main>
 
 </div>
+
+<!-- =====================================================
+     CONFIGURACIÓN
+====================================================== -->
+
+<section id="configuracion" class="section">
+
+    <div class="section-header">
+
+        <div>
+
+            <h2>
+                Configuración
+            </h2>
+
+            <p>
+                Control avanzado del comportamiento del bot
+            </p>
+
+        </div>
+
+        <div id="configStatus"
+             class="status-badge">
+            🔒 No autenticado
+        </div>
+
+    </div>
+
+
+    <!-- =================================================
+         LOGIN
+    ================================================== -->
+
+    <div id="configLoginCard"
+         class="card">
+
+        <div class="card-title">
+            🔐 Acceso de administrador
+        </div>
+
+        <div class="card-subtitle">
+            Ingresá la contraseña para modificar
+            la configuración del bot.
+        </div>
+
+        <div style="
+            display:flex;
+            gap:10px;
+            margin-top:18px;
+            max-width:500px;
+        ">
+
+            <input
+                type="password"
+                id="configPassword"
+                placeholder="Contraseña de administrador"
+                autocomplete="current-password"
+                style="
+                    flex:1;
+                    padding:12px;
+                "
+            >
+
+            <button
+                class="btn"
+                onclick="loginConfiguracion()"
+            >
+                Ingresar
+            </button>
+
+        </div>
+
+        <div
+            id="configLoginMessage"
+            style="
+                margin-top:12px;
+                display:none;
+            "
+        ></div>
+
+    </div>
+
+
+    <!-- =================================================
+         PANEL PROTEGIDO
+    ================================================== -->
+
+    <div id="configPanel"
+         style="display:none;">
+
+        <div class="card">
+
+            <div class="card-title">
+                ⚙️ Configuración del bot
+            </div>
+
+            <div class="card-subtitle">
+                Los cambios se validan en el servidor
+                antes de guardarse.
+            </div>
+
+            <div style="
+                margin-top:20px;
+                display:flex;
+                justify-content:space-between;
+                align-items:center;
+                gap:15px;
+                flex-wrap:wrap;
+            ">
+
+                <div>
+
+                    <strong>
+                        Sesión de administrador activa
+                    </strong>
+
+                    <div style="
+                        opacity:.65;
+                        margin-top:4px;
+                    ">
+                        Podés modificar la configuración
+                        mientras esta sesión esté activa.
+                    </div>
+
+                </div>
+
+                <button
+                    class="btn"
+                    onclick="logoutConfiguracion()"
+                >
+                    🔒 Cerrar sesión
+                </button>
+
+            </div>
+
+        </div>
+
+
+        <!-- =============================================
+             CONFIGURACIÓN GENERAL
+        ============================================== -->
+
+        <div class="card">
+
+            <div class="card-title">
+                🤖 Estado y funcionamiento
+            </div>
+
+            <div class="config-row">
+
+                <div>
+
+                    <strong>
+                        Pausa manual
+                    </strong>
+
+                    <div class="config-help">
+                        Detiene temporalmente las consultas
+                        sin apagar el proceso del bot.
+                    </div>
+
+                </div>
+
+                <label class="switch">
+
+                    <input
+                        type="checkbox"
+                        id="configPausaManual"
+                    >
+
+                    <span class="slider"></span>
+
+                </label>
+
+            </div>
+
+        </div>
+
+
+        <!-- =============================================
+             STEAM
+        ============================================== -->
+
+        <div class="card">
+
+            <div class="card-title">
+                🎮 Consultas a Steam
+            </div>
+
+            <div class="config-grid">
+
+                <div class="config-field">
+
+                    <label>
+                        Intervalo global mínimo
+                    </label>
+
+                    <input
+                        type="number"
+                        id="configGlobalInterval"
+                        min="2"
+                        max="30"
+                        step="1"
+                    >
+
+                    <small>
+                        Segundos
+                    </small>
+
+                </div>
+
+                <div class="config-field">
+
+                    <label>
+                        Intervalo mínimo por proxy
+                    </label>
+
+                    <input
+                        type="number"
+                        id="configProxyInterval"
+                        min="5"
+                        max="60"
+                        step="1"
+                    >
+
+                    <small>
+                        Segundos
+                    </small>
+
+                </div>
+
+                <div class="config-field">
+
+                    <label>
+                        TTL máximo de caché
+                    </label>
+
+                    <input
+                        type="number"
+                        id="configCacheTTL"
+                        min="30"
+                        max="900"
+                        step="1"
+                    >
+
+                    <small>
+                        Segundos
+                    </small>
+
+                </div>
+
+            </div>
+
+        </div>
+
+
+        <!-- =============================================
+             PROXIES
+        ============================================== -->
+
+        <div class="card">
+
+            <div class="card-title">
+                🌐 Proxies
+            </div>
+
+            <div class="config-grid">
+
+                <div class="config-field">
+
+                    <label>
+                        Cooldown
+                    </label>
+
+                    <input
+                        type="number"
+                        id="configProxyCooldown"
+                        min="10"
+                        max="3600"
+                        step="1"
+                    >
+
+                    <small>
+                        Segundos
+                    </small>
+
+                </div>
+
+                <div class="config-field">
+
+                    <label>
+                        Cooldown base por 429
+                    </label>
+
+                    <input
+                        type="number"
+                        id="configProxy429Base"
+                        min="30"
+                        max="1800"
+                        step="1"
+                    >
+
+                    <small>
+                        Segundos
+                    </small>
+
+                </div>
+
+                <div class="config-field">
+
+                    <label>
+                        Cooldown máximo por 429
+                    </label>
+
+                    <input
+                        type="number"
+                        id="configProxy429Max"
+                        min="60"
+                        max="3600"
+                        step="1"
+                    >
+
+                    <small>
+                        Segundos
+                    </small>
+
+                </div>
+
+            </div>
+
+        </div>
+
+        <!-- =====================================================
+         PRECIOS MÁXIMOS POR SKIN
+         ===================================================== -->
+
+    <div class="card" style="margin-top: 20px;">
+
+        <div class="section-header">
+
+            <div>
+                <div class="card-title">
+                    Precios máximos por skin
+                </div>
+
+                <div class="card-subtitle">
+                    Modificá cuánto estás dispuesto a pagar por cada skin.
+                    Los cambios se aplican al bot al guardar.
+                </div>
+            </div>
+
+            <button
+                class="btn"
+                type="button"
+                onclick="cargarPreciosMaximos()"
+            >
+                🔄 Recargar
+            </button>
+
+        </div>
+
+
+        <!-- BUSCADOR -->
+
+        <div style="margin-top: 18px;">
+
+            <input
+                id="buscarSkinConfig"
+                type="text"
+                placeholder="🔎 Buscar una skin..."
+                autocomplete="off"
+                style="
+                    width: 100%;
+                    box-sizing: border-box;
+                    padding: 12px 14px;
+                    border-radius: 8px;
+                    border: 1px solid var(--border);
+                    background: var(--panel3);
+                    color: var(--text);
+                    outline: none;
+                    font-family: inherit;
+                    font-size: 14px;
+                "
+                oninput="filtrarPreciosMaximos()"
+            >
+
+        </div>
+
+
+        <!-- LISTA -->
+
+        <div
+            id="listaPreciosMaximos"
+            style="margin-top: 16px;"
+        >
+            <div class="config-help">
+                Cargando skins...
+            </div>
+        </div>
+
+
+        <!-- ACCIONES -->
+
+        <div class="config-actions">
+
+            <button
+                class="btn"
+                type="button"
+                onclick="guardarPreciosMaximos()"
+            >
+                💾 Guardar precios máximos
+            </button>
+
+        </div>
+
+
+        <div
+            id="preciosMaximosMessage"
+            class="config-message"
+        ></div>
+
+    </div>
+
+
+        <!-- =============================================
+             BOTONES
+        ============================================== -->
+
+        <div class="card">
+
+            <div style="
+                display:flex;
+                justify-content:flex-end;
+                gap:10px;
+                flex-wrap:wrap;
+            ">
+
+                <button
+                    class="btn"
+                    onclick="cargarConfiguracion()"
+                >
+                    ↻ Recargar
+                </button>
+
+                <button
+                    class="btn"
+                    onclick="guardarConfiguracion()"
+                >
+                    💾 Guardar cambios
+                </button>
+
+            </div>
+
+            <div
+                id="configSaveMessage"
+                style="
+                    margin-top:14px;
+                    display:none;
+                "
+            ></div>
+
+        </div>
+
+    </div>
+
+</section>
 
 <script>
 
@@ -3892,6 +3891,7 @@ async function loadSkins() {
         renderDashboard();
         renderRadar();
         populateHistorySelect();
+        actualizarPreciosActualesConfig();
 
     } catch (error) {
 
@@ -6873,17 +6873,22 @@ function renderizarPreciosMaximos() {
         .trim()
         .toLowerCase();
 
+    // Respetar el mismo orden de la pestaña "Skins".
+    // Las skins que no estén en /api/skins se agregan al final.
+    const nombresOrdenados = [
+        ...skinsData.map(skin => skin.name),
+        ...Object.keys(PRECIOS_MAXIMOS_CONFIG)
+            .filter(nombre => !skinsData.some(skin => skin.name === nombre))
+    ];
 
-    const skins = Object.entries(
-        PRECIOS_MAXIMOS_CONFIG
-    )
-    .filter(
-        ([nombre]) =>
-            nombre
-                .toLowerCase()
-                .includes(filtro)
-    );
-
+    const skins = [...new Set(nombresOrdenados)]
+        .filter(nombre =>
+            Object.prototype.hasOwnProperty.call(
+                PRECIOS_MAXIMOS_CONFIG,
+                nombre
+            ) && nombre.toLowerCase().includes(filtro)
+        )
+        .map(nombre => [nombre, PRECIOS_MAXIMOS_CONFIG[nombre]]);
 
     if (!skins.length) {
 
@@ -6896,75 +6901,108 @@ function renderizarPreciosMaximos() {
         return;
     }
 
-
     lista.innerHTML = skins
-        .map(
-            ([nombre, precio]) => {
+        .map(([nombre, precio]) => {
 
-                return `
-                    <div
-                        class="config-row"
-                        data-skin-name="${escapeHtmlConfig(nombre)}"
-                    >
+            const skinActual = skinsData.find(
+                skin => skin.name === nombre
+            );
+            const precioActual = skinActual?.price;
+            const precioActualTexto =
+                precioActual !== null &&
+                precioActual !== undefined &&
+                precioActual !== "" &&
+                Number.isFinite(Number(precioActual))
+                    ? money(Number(precioActual))
+                    : "Sin datos";
 
-                        <div class="config-row-info">
-
-                            <div class="config-row-title">
-                                ${escapeHtmlConfig(nombre)}
-                            </div>
-
+            return `
+                <div
+                    class="config-row"
+                    data-skin-name="${escapeHtmlConfig(nombre)}"
+                    style="gap:16px; align-items:center;"
+                >
+                    <div class="config-row-info" style="flex:1; min-width:0;">
+                        <div class="config-row-title">
+                            ${escapeHtmlConfig(nombre)}
                         </div>
-
-
+                        <div style="margin-top:5px; color:var(--muted); font-size:12px;">
+                            Precio actual de venta
+                        </div>
                         <div
+                            class="precio-actual-config"
+                            data-skin="${escapeHtmlConfig(nombre)}"
+                            style="margin-top:2px; font-size:16px; font-weight:700; color:${precioActualTexto === "Sin datos" ? 'var(--muted)' : 'var(--green)'};"
+                        >
+                            ${precioActualTexto}
+                        </div>
+                    </div>
+
+                    <div style="display:flex; flex-direction:column; gap:5px; width:135px; flex-shrink:0;">
+                        <label style="color:var(--muted); font-size:11px; line-height:1.3;">
+                            Tu precio máximo (USD)
+                        </label>
+                        <input
+                            class="precio-maximo-input"
+                            type="number"
+                            min="0"
+                            step="0.01"
+                            value="${Number(precio).toFixed(2)}"
+                            data-skin="${escapeHtmlConfig(nombre)}"
                             style="
-                                display:flex;
-                                align-items:center;
-                                gap:8px;
+                                width:100%;
+                                box-sizing:border-box;
+                                padding:9px 10px;
+                                border-radius:8px;
+                                border:1px solid var(--border);
+                                background:var(--panel3);
+                                color:var(--text);
+                                outline:none;
+                                font-family:inherit;
+                                font-size:14px;
                             "
                         >
-
-                            <span
-                                style="
-                                    color:var(--muted);
-                                    font-size:13px;
-                                "
-                            >
-                                USD
-                            </span>
-
-
-                            <input
-                                class="precio-maximo-input"
-                                type="number"
-                                min="0"
-                                step="0.01"
-                                value="${Number(precio).toFixed(2)}"
-                                data-skin="${escapeHtmlConfig(nombre)}"
-                                style="
-                                    width:120px;
-                                    box-sizing:border-box;
-                                    padding:9px 10px;
-                                    border-radius:8px;
-                                    border:1px solid var(--border);
-                                    background:var(--panel3);
-                                    color:var(--text);
-                                    outline:none;
-                                    font-family:inherit;
-                                    font-size:14px;
-                                "
-                            >
-
-                        </div>
-
                     </div>
-                `;
-
-            }
-        )
+                </div>
+            `;
+        })
         .join("");
 
+    actualizarPreciosActualesConfig();
 }
+
+
+// Actualiza los precios actuales sin reconstruir la lista ni
+// borrar cambios que el usuario esté escribiendo en los inputs.
+function actualizarPreciosActualesConfig() {
+
+    const elementos = document.querySelectorAll(
+        ".precio-actual-config"
+    );
+
+    elementos.forEach(elemento => {
+
+        const nombre = elemento.dataset.skin;
+        const skinActual = skinsData.find(
+            skin => skin.name === nombre
+        );
+        const precio = skinActual?.price;
+        const valido =
+            precio !== null &&
+            precio !== undefined &&
+            precio !== "" &&
+            Number.isFinite(Number(precio));
+
+        elemento.textContent = valido
+            ? money(Number(precio))
+            : "Sin datos";
+
+        elemento.style.color = valido
+            ? "var(--green)"
+            : "var(--muted)";
+    });
+}
+
 
 
 // =====================================================
