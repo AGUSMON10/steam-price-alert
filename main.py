@@ -1541,6 +1541,9 @@ skins_a_vigilar = {
     "★ Flip Knife | Lore (Field-Tested)": 180.00,
     "★ StatTrak™ Flip Knife | Blue Steel (Minimal Wear)": 210.00,
     "StatTrak™ AWP | Asiimov (Well-Worn)": 191.00,
+    "★ Classic Knife | Blue Steel (Field-Tested)": 111.00,
+    "★ StatTrak™ Classic Knife | Blue Steel (Battle-Scarred)": 111.00,
+    "★ StatTrak™ Classic Knife | Stained (Field-Tested)": 111.00,
     
 }
 
@@ -1581,6 +1584,9 @@ ITEM_NAME_IDS = {
     "★ Flip Knife | Lore (Field-Tested)": 156219676,
     "★ StatTrak™ Flip Knife | Blue Steel (Minimal Wear)": 9672792,
     "StatTrak™ AWP | Asiimov (Well-Worn)": 7203621,
+    "★ Classic Knife | Blue Steel (Field-Tested)": 176091827,
+    "★ StatTrak™ Classic Knife | Blue Steel (Battle-Scarred)": 176092010,
+    "★ StatTrak™ Classic Knife | Stained (Field-Tested)": 176092256,
 
 }
 
