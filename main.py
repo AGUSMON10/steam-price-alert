@@ -5888,9 +5888,14 @@ def worker(grupo_skins, worker_id):
             except (TypeError, ValueError):
                 ultima_alerta_numero = None
 
-            if CONFIG["alertas"]["activas"] and precio_actual <= precio_max and (
-                ultima_alerta_numero is None
-                or precio_actual < ultima_alerta_numero
+            if (
+                CONFIG["alertas"]["activas"]
+                and precio_actual <= precio_max
+                and (
+                    ultima_alerta_numero is None
+                    or round(precio_actual, 2)
+                    != round(ultima_alerta_numero, 2)
+                )
             ):
                 steam_url = (
                     "steam://openurl/https://steamcommunity.com/market/listings/730/"
