@@ -1591,6 +1591,11 @@ ITEM_NAME_IDS = {
 }
 
 notificados = {}
+
+# Historial de alertas reales enviadas a Telegram (ventana de 7 días).
+historial_notificaciones = []
+NOTIFICACIONES_HORAS = 7 * 24
+
 skins_revisadas_total = 0
 ciclo_numero = 0
 
@@ -1812,8 +1817,21 @@ def guardar_estado(forzar=False):
                 "ultimo_uso": PROXY_LAST_USED.get(proxy, 0),
             })
 
+        # Conservar solamente las notificaciones de los últimos 7 días.
+        limite_notificaciones = time.time() - (NOTIFICACIONES_HORAS * 60 * 60)
+
+        with lock:
+            historial_notificaciones[:] = [
+                item for item in historial_notificaciones
+                if isinstance(item, dict)
+                and float(item.get("timestamp", 0) or 0) >= limite_notificaciones
+            ]
+
+            historial_notificaciones_guardadas = list(historial_notificaciones)
+
         estado = {
             "notificados": notificados,
+            "historial_notificaciones": historial_notificaciones_guardadas,
             "stats_diarias": stats_diarias,
             "stats_proxies": stats_proxies_guardadas,
             "price_cache": price_cache,
@@ -1943,6 +1961,7 @@ def guardar_estado(forzar=False):
 
 def cargar_estado():
     global notificados
+    global historial_notificaciones
     global stats_diarias
     global stats_proxies
     global historial_precios
@@ -2041,6 +2060,19 @@ def cargar_estado():
             )
 
         notificados = estado.get("notificados", {})
+
+        historial_cargado = estado.get("historial_notificaciones", [])
+
+        if not isinstance(historial_cargado, list):
+            historial_cargado = []
+
+        limite_notificaciones = time.time() - (NOTIFICACIONES_HORAS * 60 * 60)
+
+        historial_notificaciones = [
+            item for item in historial_cargado
+            if isinstance(item, dict)
+            and float(item.get("timestamp", 0) or 0) >= limite_notificaciones
+        ]
 
         # ==========================================================
         # RECUPERAR CONFIGURACIÓN
@@ -3041,6 +3073,32 @@ def api_skins():
         })
 
     return jsonify(resultado)
+
+@app.route("/api/notificaciones")
+def api_notificaciones():
+    """Devuelve las notificaciones reales de Telegram de los últimos 7 días."""
+    ahora = time.time()
+    limite = ahora - (NOTIFICACIONES_HORAS * 60 * 60)
+
+    with lock:
+        historial_notificaciones[:] = [
+            item for item in historial_notificaciones
+            if isinstance(item, dict)
+            and float(item.get("timestamp", 0) or 0) >= limite
+        ]
+        resultado = [dict(item) for item in historial_notificaciones]
+
+    resultado.sort(
+        key=lambda item: float(item.get("timestamp", 0) or 0),
+        reverse=True
+    )
+
+    return jsonify({
+        "ventana_horas": NOTIFICACIONES_HORAS,
+        "total": len(resultado),
+        "notificaciones": resultado,
+        "timestamp": ahora
+    })
 
 # ==========================================================
 # API MONITOR DEL BOT
@@ -4809,6 +4867,28 @@ def enviar_telegram(mensaje):
 
         return False
 
+def registrar_notificacion_skin(skin_name, precio, precio_max, descuento, steam_url):
+    """Registra una oferta solo después de confirmar el envío a Telegram."""
+    ahora = time.time()
+    limite = ahora - (NOTIFICACIONES_HORAS * 60 * 60)
+
+    registro = {
+        "name": str(skin_name),
+        "price": float(precio),
+        "max_price": float(precio_max),
+        "discount_pct": round(float(descuento) * 100, 2),
+        "timestamp": ahora,
+        "steam_url": str(steam_url)
+    }
+
+    with lock:
+        historial_notificaciones[:] = [
+            item for item in historial_notificaciones
+            if isinstance(item, dict)
+            and float(item.get("timestamp", 0) or 0) >= limite
+        ]
+        historial_notificaciones.append(registro)
+
 def enviar_resumen_diario(reiniciar=True):
     global stats_diarias
     global fecha_estadisticas
@@ -5719,6 +5799,16 @@ def worker(grupo_skins, worker_id):
                     )
 
                     continue
+
+                # Registrar la skin después de confirmar el primer envío.
+                # La segunda alerta especial no crea una tarjeta duplicada.
+                registrar_notificacion_skin(
+                    skin_name,
+                    precio_actual,
+                    precio_max,
+                    descuento,
+                    steam_url
+                )
 
                 # =========================
                 # SEGUNDA ALERTA
