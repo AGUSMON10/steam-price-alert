@@ -1615,6 +1615,9 @@ lock = threading.Lock()
 # Cache temporal de precios
 price_cache = {}
 
+# Skins pausadas manualmente desde el dashboard.
+SKINS_PAUSADAS = set()
+
 # ==========================================================
 # HISTORIAL DE PRECIOS
 # ==========================================================
@@ -1866,6 +1869,7 @@ def _guardar_estado_interno(forzar=False):
             "skins_revisadas_total": skins_revisadas_total,
             "fecha_estadisticas": fecha_estadisticas.isoformat(),
             "skins_a_vigilar": copy.deepcopy(skins_a_vigilar),
+            "skins_pausadas": sorted(SKINS_PAUSADAS),
 
             # Configuración editable del bot.
             #
@@ -1998,6 +2002,7 @@ def cargar_estado():
     global ESTADO_CARGA_FALLIDA
     global CONFIG
     global skins_a_vigilar
+    global SKINS_PAUSADAS
 
     try:
         github_token = os.getenv("GITHUB_TOKEN")
@@ -2144,6 +2149,18 @@ def cargar_estado():
                         f"[GITHUB] Precio inválido para "
                         f"{skin_name}: {precio_max}"
                     )
+
+        # ====================================================
+        # RECUPERAR SKINS PAUSADAS MANUALMENTE
+        # ====================================================
+        pausadas_guardadas = estado.get("skins_pausadas", [])
+        if isinstance(pausadas_guardadas, list):
+            SKINS_PAUSADAS = {
+                nombre for nombre in pausadas_guardadas
+                if isinstance(nombre, str) and nombre in skins_a_vigilar
+            }
+        else:
+            SKINS_PAUSADAS = set()
 
         # ====================================================
         # RECUPERAR ESTADÍSTICAS DIARIAS
@@ -3131,10 +3148,42 @@ def api_skins():
             "buy_price": datos.get("buy_price"),
             "max": float(precio_max),
             "timestamp": datos.get("timestamp"),
-            "steam_url": steam_url
+            "steam_url": steam_url,
+            "paused": skin_name in SKINS_PAUSADAS
         })
 
     return jsonify(resultado)
+
+
+@app.route("/api/skins/pausar", methods=["POST"])
+def api_pausar_skin():
+    datos = request.get_json(silent=True)
+    if not isinstance(datos, dict):
+        return jsonify({"ok": False, "error": "Solicitud inválida"}), 400
+
+    nombre = datos.get("name")
+    pausada = datos.get("paused")
+    if not isinstance(nombre, str) or nombre not in skins_a_vigilar:
+        return jsonify({"ok": False, "error": "Skin no encontrada"}), 404
+    if not isinstance(pausada, bool):
+        return jsonify({"ok": False, "error": "Estado de pausa inválido"}), 400
+
+    with lock:
+        if pausada:
+            SKINS_PAUSADAS.add(nombre)
+        else:
+            SKINS_PAUSADAS.discard(nombre)
+
+    print(f"[SKIN {'PAUSADA' if pausada else 'REACTIVADA'}] {nombre}")
+
+    # Guardado forzado en segundo plano para conservar el cambio tras reinicios.
+    threading.Thread(
+        target=lambda: guardar_estado(forzar=True),
+        daemon=True
+    ).start()
+
+    return jsonify({"ok": True, "name": nombre, "paused": pausada})
+
 
 @app.route("/api/notificaciones")
 def api_notificaciones():
@@ -5681,7 +5730,14 @@ def worker(grupo_skins, worker_id):
             )
 
             LAST_WORKER_ACTIVITY = time.time()
-            
+
+            # No consultar skins pausadas manualmente desde el dashboard.
+            if skin_name in SKINS_PAUSADAS:
+                print(f"[SKIN PAUSADA] Se omite consulta: {skin_name}")
+                with lock:
+                    skins_revisadas_total += 1
+                continue
+
             # ====================================================
             # PAUSA GLOBAL POR RATE LIMIT DE STEAM
             # ====================================================
