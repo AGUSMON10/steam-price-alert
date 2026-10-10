@@ -551,6 +551,24 @@ tbody tr:last-child td {
     background: rgba(87,169,255,.17);
 }
 
+.skin-pause-button {
+    display: inline-block; margin-left: 6px; padding: 7px 10px;
+    border: 1px solid rgba(248,198,92,.25); border-radius: 7px;
+    background: rgba(248,198,92,.09); color: #f8c65c;
+    font-size: 10px; font-weight: 700; white-space: nowrap;
+}
+.skin-pause-button:hover { background: rgba(248,198,92,.17); }
+.skin-pause-button.is-paused {
+    color: #39df9b; border-color: rgba(57,223,155,.25);
+    background: rgba(57,223,155,.09);
+}
+.skin-row-paused { opacity: .62; }
+.skin-paused-label {
+    display: inline-block; margin-left: 7px; padding: 4px 7px;
+    border-radius: 6px; color: #f8c65c;
+    background: rgba(248,198,92,.10); font-size: 9px; font-weight: 800;
+}
+
 /* =========================================================
    RADAR
 ========================================================= */
@@ -2018,7 +2036,7 @@ select:focus {
                             <th>Tu máximo</th>
                             <th>Diferencia</th>
                             <th>Estado</th>
-                            <th>Steam</th>
+                            <th>Acciones</th>
                         </tr>
 
                     </thead>
@@ -3919,6 +3937,30 @@ async function loadSkins() {
    TABLA SKINS
 ========================================================= */
 
+async function cambiarPausaSkin(nombre, pausada) {
+    const accion = pausada ? "pausar" : "reanudar";
+    if (!confirm(`¿Querés ${accion} las consultas de esta skin?\\n\\n${nombre}`)) {
+        return;
+    }
+
+    try {
+        const respuesta = await fetch("/api/skins/pausar", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ name: nombre, paused: pausada })
+        });
+        const datos = await respuesta.json();
+        if (!respuesta.ok || !datos.ok) {
+            throw new Error(datos.error || "No se pudo cambiar el estado");
+        }
+        await loadSkins();
+    } catch (error) {
+        console.error("Error cambiando pausa de skin:", error);
+        alert("No se pudo cambiar la pausa de la skin. Revisá la conexión e intentá de nuevo.");
+    }
+}
+
+
 function renderSkins() {
 
     const table =
@@ -3952,10 +3994,11 @@ function renderSkins() {
                     );
 
                 return `
-                    <tr>
+                    <tr class="${skin.paused ? "skin-row-paused" : ""}">
 
                         <td class="skin-name">
                             ${escapeHtml(skin.name)}
+                            ${skin.paused ? '<span class="skin-paused-label">PAUSADA</span>' : ''}
                         </td>
 
                         <td class="price">
@@ -4000,16 +4043,22 @@ function renderSkins() {
                         </td>
 
                         <td>
-
+                            <button
+                                class="skin-pause-button ${skin.paused ? "is-paused" : ""}"
+                                type="button"
+                                onclick="cambiarPausaSkin(decodeURIComponent('${encodeURIComponent(skin.name)}'), ${!skin.paused})"
+                                title="${skin.paused ? "Reanudar consultas de esta skin" : "Dejar de consultar esta skin"}"
+                            >
+                                ${skin.paused ? "▶ Reanudar" : "Ⅱ Pausar"}
+                            </button>
                             <a
                                 class="button"
                                 href="${escapeAttribute(skin.steam_url)}"
                                 target="_blank"
                                 rel="noopener noreferrer"
                             >
-                                Steam ↗
+                                Ver en Steam ↗
                             </a>
-
                         </td>
 
                     </tr>
