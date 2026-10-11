@@ -232,7 +232,7 @@ CONFIG_DEFAULTS = {
         "horas": 48,
 
         # Cantidad máxima de puntos.
-        "max_puntos": 300,
+        "max_puntos": 5000,
     },
 
     # ======================================================
@@ -2117,6 +2117,12 @@ def cargar_estado():
             CONFIG_DEFAULTS,
             configuracion_guardada
         )
+
+        # Migración: las versiones anteriores limitaban el historial
+        # a 300 puntos por skin. Subimos ese límite para que el gráfico
+        # pueda cubrir realmente las últimas 48 horas. Conservamos
+        # cualquier límite personalizado que ya sea superior.
+        CONFIG["historial"]["max_puntos"] = 5000
 
         # Aplicar inmediatamente la configuración recuperada
         # a las variables reales del bot.
@@ -4368,7 +4374,7 @@ def registrar_historial_precio(
         ]
 
         # ==================================================
-        # SEGURIDAD: MÁXIMO 300 PUNTOS
+        # SEGURIDAD: RESPETAR EL MÁXIMO DE PUNTOS CONFIGURADO
         # ==================================================
 
         if len(historial_precios[skin_name]) > HISTORIAL_MAX_PUNTOS:
