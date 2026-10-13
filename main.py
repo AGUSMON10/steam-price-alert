@@ -7,6 +7,9 @@ import threading
 import re
 import json
 import math
+import struct
+import zlib
+from urllib.parse import quote, unquote
 from flask import Flask, jsonify, render_template, request, session
 from datetime import datetime
 import builtins
@@ -4391,6 +4394,223 @@ def registrar_historial_precio(
                 ]
             )
 
+def _leer_varint_protobuf(datos, posicion):
+    valor = 0
+    desplazamiento = 0
+
+    while posicion < len(datos):
+        byte = datos[posicion]
+        posicion += 1
+        valor |= (byte & 0x7F) << desplazamiento
+
+        if not (byte & 0x80):
+            return valor, posicion
+
+        desplazamiento += 7
+        if desplazamiento > 70:
+            raise ValueError("Varint protobuf inválido")
+
+    raise ValueError("Varint protobuf incompleto")
+
+
+def _decodificar_float_inspect(inspect_link):
+    """Lee paintwear de un enlace moderno de inspección CS2 sin API externa."""
+    enlace = unquote(str(inspect_link or "")).strip()
+    coincidencia = re.search(
+        r"\+?csgo_econ_action_preview\s+([0-9A-Fa-f]+)",
+        enlace,
+        re.IGNORECASE
+    )
+
+    if not coincidencia:
+        return None
+
+    try:
+        buffer = bytes.fromhex(coincidencia.group(1))
+        if len(buffer) < 5:
+            return None
+
+        if buffer[0] == 0:
+            # Formato envuelto: byte inicial + protobuf + CRC32 de Steam/CSFloat.
+            payload = buffer[1:-4]
+            crc_esperado = int.from_bytes(buffer[-4:], "big")
+            crc = zlib.crc32(b"\x00" + payload)
+            crc_calculado = ((crc & 0xFFFF) ^ (len(payload) * crc)) & 0xFFFFFFFF
+            if crc_calculado != crc_esperado:
+                return None
+        else:
+            # Formato enmascarado: cada byte usa como XOR la primera cifra.
+            desenmascarado = bytes(byte ^ buffer[0] for byte in buffer)
+            if desenmascarado[0] != 0:
+                return None
+            payload = desenmascarado[1:-4]
+
+        posicion = 0
+        while posicion < len(payload):
+            etiqueta, posicion = _leer_varint_protobuf(payload, posicion)
+            numero_campo = etiqueta >> 3
+            tipo = etiqueta & 7
+
+            if numero_campo == 7 and tipo == 0:
+                bits, posicion = _leer_varint_protobuf(payload, posicion)
+                valor = struct.unpack("<f", struct.pack("<I", bits & 0xFFFFFFFF))[0]
+                if 0.0 <= valor <= 1.0:
+                    return valor
+                return None
+
+            if tipo == 0:
+                _, posicion = _leer_varint_protobuf(payload, posicion)
+            elif tipo == 1:
+                posicion += 8
+            elif tipo == 2:
+                longitud, posicion = _leer_varint_protobuf(payload, posicion)
+                posicion += longitud
+            elif tipo == 5:
+                posicion += 4
+            else:
+                return None
+
+            if posicion > len(payload):
+                return None
+
+    except Exception:
+        return None
+
+    return None
+
+
+def _buscar_enlaces_inspeccion(objeto):
+    enlaces = []
+
+    if isinstance(objeto, dict):
+        for clave, valor in objeto.items():
+            if isinstance(valor, str) and "csgo_econ_action_preview" in valor:
+                enlaces.append(valor)
+            else:
+                enlaces.extend(_buscar_enlaces_inspeccion(valor))
+    elif isinstance(objeto, list):
+        for valor in objeto:
+            enlaces.extend(_buscar_enlaces_inspeccion(valor))
+
+    # Mantener el orden y quitar duplicados.
+    return list(dict.fromkeys(enlaces))
+
+
+def _clasificar_float(float_value, nombre_skin):
+    """Clasificación orientativa según el exterior indicado en el nombre."""
+    nombre = nombre_skin.lower()
+
+    if "factory new" in nombre:
+        bueno, normal = 0.02, 0.05
+    elif "minimal wear" in nombre:
+        bueno, normal = 0.09, 0.13
+    elif "field-tested" in nombre:
+        bueno, normal = 0.20, 0.30
+    elif "well-worn" in nombre:
+        bueno, normal = 0.40, 0.43
+    elif "battle-scarred" in nombre:
+        bueno, normal = 0.50, 0.70
+    else:
+        return "MÁS O MENOS"
+
+    if float_value <= bueno:
+        return "BUENO"
+    if float_value <= normal:
+        return "MÁS O MENOS"
+    return "PÉSIMO"
+
+
+def obtener_float_publicacion(market_hash_name, session, proxy, precio_max=None):
+    """Busca una publicación concreta usando el mismo proxy/sesión del precio.
+
+    La consulta adicional solo se ejecuta cuando hay alerta. Si Steam no entrega
+    el enlace o limita la consulta, se devuelve None y la alerta de precio sigue.
+    """
+    if not proxy or session is None:
+        print(f"[FLOAT] Sin proxy/sesión asociados a {market_hash_name}; se omite")
+        return None
+
+    if steam_rate_limit_activo():
+        print(f"[FLOAT] Steam está en pausa; no se consulta float para {market_hash_name}")
+        return None
+
+    proxies = {"http": proxy, "https": proxy}
+    url = (
+        "https://steamcommunity.com/market/listings/730/"
+        + quote(market_hash_name, safe="")
+        + "/render/"
+    )
+    params = {
+        "start": 0,
+        "count": 10,
+        "currency": 1,
+        "language": "english",
+        "format": "json"
+    }
+
+    try:
+        # Respetar el intervalo global de consultas configurado.
+        with lock:
+            desde_ultimo = time.time() - LAST_STEAM_REQUEST
+        if desde_ultimo < GLOBAL_MIN_REQUEST_INTERVAL:
+            time.sleep(GLOBAL_MIN_REQUEST_INTERVAL - desde_ultimo + random.uniform(0.1, 0.4))
+
+        if steam_rate_limit_activo():
+            return None
+
+        with lock:
+            globals()["LAST_STEAM_REQUEST"] = time.time()
+            stats["requests_steam"] += 1
+            stats_diarias["requests_steam"] += 1
+            stats_proxies[proxy]["requests"] += 1
+
+        respuesta = session.get(
+            url,
+            params=params,
+            headers=get_headers(),
+            timeout=(6, 10),
+            proxies=proxies
+        )
+
+        if respuesta.status_code != 200:
+            print(
+                f"[FLOAT] No se pudo consultar publicación | {market_hash_name} | "
+                f"HTTP {respuesta.status_code} | {nombre_proxy(proxy)}"
+            )
+            # No penalizamos el proxy por una consulta opcional de float.
+            return None
+
+        try:
+            datos = respuesta.json()
+        except Exception:
+            datos = None
+
+        enlaces = _buscar_enlaces_inspeccion(datos) if datos is not None else []
+        if not enlaces:
+            enlaces = re.findall(
+                r"(?:steam://[^\"'<>]*?\+csgo_econ_action_preview(?:%20|\s)[0-9A-Fa-f]+)",
+                respuesta.text,
+                re.IGNORECASE
+            )
+
+        # Los enlaces de inspección modernos llevan el float codificado.
+        for enlace in enlaces:
+            valor = _decodificar_float_inspect(enlace)
+            if valor is not None:
+                print(
+                    f"[FLOAT] {market_hash_name} | Float {valor:.9f} | "
+                    f"{nombre_proxy(proxy)}"
+                )
+                return valor
+
+        print(f"[FLOAT] Steam no entregó un enlace de inspección usable para {market_hash_name}")
+        return None
+
+    except Exception as error:
+        print(f"[FLOAT] Error opcional para {market_hash_name}: {error}")
+        return None
+
+
 def buscar_precio(market_hash_name, session, proxy):
 
     global LAST_STEAM_REQUEST
@@ -4821,6 +5041,7 @@ def buscar_precio(market_hash_name, session, proxy):
                 "price": precio,
                 "buy_price": buy_price,
                 "name": market_hash_name,
+                "proxy": proxy,
                 "timestamp": ahora,
                 "next_refresh": proximo_refresh
             }
@@ -4859,6 +5080,7 @@ def buscar_precio(market_hash_name, session, proxy):
             "price": precio,
             "buy_price": buy_price,
             "name": market_hash_name,
+            "proxy": proxy,
             "from_cache": False
         }
 
@@ -5812,6 +6034,7 @@ def worker(grupo_skins, worker_id):
                         "price": cache_data["price"],
                         "buy_price": cache_data.get("buy_price"),
                         "name": cache_data["name"],
+                        "proxy": cache_data.get("proxy"),
                         "from_cache": True
                     }
 
@@ -5974,6 +6197,29 @@ def worker(grupo_skins, worker_id):
                 descuento = ahorro / precio_max
 
                 # =========================
+                # FLOAT DE LA PUBLICACIÓN
+                # =========================
+                # Usa exactamente el proxy/sesión que produjo el precio.
+                # Si viene de caché, se reutiliza el proxy guardado con ese precio.
+                proxy_float = resultado.get("proxy")
+                session_float = SESSIONS.get(proxy_float) if proxy_float else None
+                float_value = obtener_float_publicacion(
+                    skin_name,
+                    session_float,
+                    proxy_float,
+                    precio_max
+                )
+
+                if float_value is None:
+                    texto_float = "🔎 Float: No disponible"
+                else:
+                    calidad_float = _clasificar_float(float_value, skin_name)
+                    icono_float = "🟢" if calidad_float == "BUENO" else ("🟡" if calidad_float == "MÁS O MENOS" else "🔴")
+                    texto_float = (
+                        f"{icono_float} Float: {float_value:.9f} — {calidad_float}"
+                    )
+
+                # =========================
                 # PRIMERA ALERTA
                 # =========================
 
@@ -5984,7 +6230,8 @@ def worker(grupo_skins, worker_id):
                     f"💵 {precio_actual:.2f} USD\n"
                     f"📉 Máx {precio_max:.2f} USD\n"
                     f"💰 Ahorrás {ahorro:.2f} USD "
-                    f"({descuento * 100:.1f}%)"
+                    f"({descuento * 100:.1f}%)\n"
+                    f"{texto_float}"
                 )
 
                 if alerta_enviada:
@@ -6036,7 +6283,8 @@ def worker(grupo_skins, worker_id):
                         f"💵 {precio_actual:.2f} USD\n"
                         f"📉 Máx {precio_max:.2f} USD\n"
                         f"💰 Ahorrás {ahorro:.2f} USD "
-                        f"({descuento * 100:.1f}%)"
+                        f"({descuento * 100:.1f}%)\n"
+                        f"{texto_float}"
                     )
 
                     if segunda_alerta_enviada:
