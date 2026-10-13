@@ -1546,6 +1546,10 @@ skins_a_vigilar = {
     "★ Classic Knife | Blue Steel (Field-Tested)": 111.00,
     "★ StatTrak™ Classic Knife | Blue Steel (Battle-Scarred)": 111.00,
     "★ StatTrak™ Classic Knife | Stained (Field-Tested)": 111.00,
+    "★ StatTrak™ Falchion Knife | Damascus Steel (Factory New)": 126.00,
+    "★ Falchion Knife | Blue Steel (Minimal Wear)": 157.00,
+    "★ Bowie Knife | Autotronic (Factory New)": 155.00,
+    "★ Bowie Knife | Lore (Factory New)": 182.00,
     
 }
 
@@ -1589,6 +1593,10 @@ ITEM_NAME_IDS = {
     "★ Classic Knife | Blue Steel (Field-Tested)": 176091827,
     "★ StatTrak™ Classic Knife | Blue Steel (Battle-Scarred)": 176092010,
     "★ StatTrak™ Classic Knife | Stained (Field-Tested)": 176092256,
+    "★ StatTrak™ Falchion Knife | Damascus Steel (Factory New)": 175888063,
+    "★ Falchion Knife | Blue Steel (Minimal Wear)": 49461582,
+    "★ Bowie Knife | Autotronic (Factory New)": 176263285,
+    "★ Bowie Knife | Lore (Factory New)": 176263262,
 
 }
 
