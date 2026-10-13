@@ -6129,6 +6129,10 @@ async function loadNotificadas() {
             const openLink = link
                 ? '<a class="notified-open" href="' + escapeAttribute(link) + '">↗ Abrir en Steam</a>'
                 : "";
+            const mobileUrl = "https://steamcommunity.com/market/listings/730/" + encodeURIComponent(item.name || "");
+            const mobileLink = item.name
+                ? '<a class="notified-open" href="' + escapeAttribute(mobileUrl) + '" target="_blank" rel="noopener noreferrer">📱 Ver en celular</a>'
+                : "";
 
             return '<article class="notified-card">' +
                 '<div class="notified-card-top">' +
@@ -6141,7 +6145,7 @@ async function loadNotificadas() {
                     '<div><div class="notified-detail-label">Descuento</div><div class="notified-detail-value">' + escapeHtml(discountText) + '</div></div>' +
                 '</div>' +
                 '<div class="notified-time">✉ Telegram · ' + escapeHtml(dateText) + '</div>' +
-                openLink +
+                '<div style="display:flex;gap:8px;flex-wrap:wrap">' + openLink + mobileLink + '</div>' +
             '</article>';
         }).join("");
     } catch (error) {
