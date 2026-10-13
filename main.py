@@ -1549,6 +1549,12 @@ skins_a_vigilar = {
     "★ Falchion Knife | Blue Steel (Minimal Wear)": 157.00,
     "★ Bowie Knife | Autotronic (Factory New)": 155.00,
     "★ Bowie Knife | Lore (Factory New)": 182.00,
+    "★ StatTrak™ Kukri Knife | Crimson Web (Minimal Wear)": 145.00,
+    "★ StatTrak™ Classic Knife | Blue Steel (Minimal Wear)": 141.00,
+    "★ StatTrak™ Classic Knife | Crimson Web (Field-Tested)": 170.00,
+    "★ StatTrak™ Bayonet | Ultraviolet (Field-Tested)": 161.00,
+    "★ Nomad Knife | Blue Steel (Field-Tested)": 151.00,
+    "★ Nomad Knife | Ultraviolet (Minimal Wear)": 150.00,
     
 }
 
@@ -1595,6 +1601,12 @@ ITEM_NAME_IDS = {
     "★ Falchion Knife | Blue Steel (Minimal Wear)": 49461582,
     "★ Bowie Knife | Autotronic (Factory New)": 176263285,
     "★ Bowie Knife | Lore (Factory New)": 176263262,
+    "★ StatTrak™ Kukri Knife | Crimson Web (Minimal Wear)": 176414954,
+    "★ StatTrak™ Classic Knife | Blue Steel (Minimal Wear)": 176092154,
+    "★ StatTrak™ Classic Knife | Crimson Web (Field-Tested)": 176092100,
+    "★ StatTrak™ Bayonet | Ultraviolet (Field-Tested)": 29999431,
+    "★ Nomad Knife | Blue Steel (Field-Tested)": 176097750,
+    "★ Nomad Knife | Ultraviolet (Minimal Wear)": 176506620,
 
 }
 
