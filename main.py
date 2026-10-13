@@ -6338,3 +6338,4 @@ if __name__ == "__main__":
     telegram_thread.start()
 
     servidor_thread.join()
+
