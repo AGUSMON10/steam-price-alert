@@ -4538,17 +4538,48 @@ def _decodificar_pattern_inspect(inspect_link):
     return None
 
 def _buscar_enlaces_inspeccion(objeto):
+    """Busca enlaces inspect y resuelve plantillas Steam usando cada listing.
+
+    El endpoint /render/ puede devolver enlaces con marcadores como
+    %listingid% y %assetid% en lugar de una URL lista para decodificar.
+    """
     enlaces = []
 
+    def recorrer(valor):
+        if isinstance(valor, dict):
+            for subvalor in valor.values():
+                if isinstance(subvalor, str) and "csgo_econ_action_preview" in subvalor:
+                    enlaces.append(subvalor)
+                else:
+                    recorrer(subvalor)
+        elif isinstance(valor, list):
+            for subvalor in valor:
+                recorrer(subvalor)
+
+    recorrer(objeto)
+
+    # Resolver las plantillas de inspección con los datos de cada publicación.
+    # Steam suele exponer listinginfo[listingid].asset.id junto a market_actions.
     if isinstance(objeto, dict):
-        for clave, valor in objeto.items():
-            if isinstance(valor, str) and "csgo_econ_action_preview" in valor:
-                enlaces.append(valor)
-            else:
-                enlaces.extend(_buscar_enlaces_inspeccion(valor))
-    elif isinstance(objeto, list):
-        for valor in objeto:
-            enlaces.extend(_buscar_enlaces_inspeccion(valor))
+        listinginfo = objeto.get("listinginfo") or {}
+        if isinstance(listinginfo, dict):
+            plantillas = [
+                enlace for enlace in enlaces
+                if "%listingid%" in enlace or "%assetid%" in enlace
+            ]
+            for clave_listing, info in listinginfo.items():
+                if not isinstance(info, dict):
+                    continue
+                listing_id = str(info.get("listingid") or clave_listing or "")
+                asset = info.get("asset") or {}
+                asset_id = str(asset.get("id") or asset.get("assetid") or "") if isinstance(asset, dict) else ""
+                if not listing_id or not asset_id:
+                    continue
+                for plantilla in plantillas:
+                    enlace = plantilla.replace("%listingid%", listing_id).replace("%assetid%", asset_id)
+                    # Solo aceptar el enlace cuando ya no quedan marcadores.
+                    if not re.search(r"%[a-z_]+%", enlace, re.IGNORECASE):
+                        enlaces.append(enlace)
 
     # Mantener el orden y quitar duplicados.
     return list(dict.fromkeys(enlaces))
