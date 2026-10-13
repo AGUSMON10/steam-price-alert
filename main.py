@@ -4479,6 +4479,64 @@ def _decodificar_float_inspect(inspect_link):
     return None
 
 
+
+def _decodificar_pattern_inspect(inspect_link):
+    """Extrae paintseed/pattern del payload moderno del enlace de inspección."""
+    enlace = unquote(str(inspect_link or "")).strip()
+    coincidencia = re.search(
+        r"\+?csgo_econ_action_preview\s+([0-9A-Fa-f]+)",
+        enlace,
+        re.IGNORECASE
+    )
+    if not coincidencia:
+        return None
+
+    try:
+        buffer = bytes.fromhex(coincidencia.group(1))
+        if len(buffer) < 5:
+            return None
+
+        if buffer[0] == 0:
+            payload = buffer[1:-4]
+            crc_esperado = int.from_bytes(buffer[-4:], "big")
+            crc = zlib.crc32(b"\x00" + payload)
+            crc_calculado = ((crc & 0xFFFF) ^ (len(payload) * crc)) & 0xFFFFFFFF
+            if crc_calculado != crc_esperado:
+                return None
+        else:
+            desenmascarado = bytes(byte ^ buffer[0] for byte in buffer)
+            if desenmascarado[0] != 0:
+                return None
+            payload = desenmascarado[1:-4]
+
+        posicion = 0
+        while posicion < len(payload):
+            etiqueta, posicion = _leer_varint_protobuf(payload, posicion)
+            numero_campo = etiqueta >> 3
+            tipo = etiqueta & 7
+
+            if numero_campo == 8 and tipo == 0:
+                pattern, posicion = _leer_varint_protobuf(payload, posicion)
+                return pattern
+
+            if tipo == 0:
+                _, posicion = _leer_varint_protobuf(payload, posicion)
+            elif tipo == 1:
+                posicion += 8
+            elif tipo == 2:
+                longitud, posicion = _leer_varint_protobuf(payload, posicion)
+                posicion += longitud
+            elif tipo == 5:
+                posicion += 4
+            else:
+                return None
+
+            if posicion > len(payload):
+                return None
+    except Exception:
+        return None
+    return None
+
 def _buscar_enlaces_inspeccion(objeto):
     enlaces = []
 
@@ -4520,12 +4578,28 @@ def _clasificar_float(float_value, nombre_skin):
     return "PÉSIMO"
 
 
+# Si Steam limita el endpoint de publicaciones, pausamos solo las consultas
+# opcionales de float durante 10 minutos; el monitor de precios sigue funcionando.
+FLOAT_RATE_LIMIT_UNTIL = 0
+FLOAT_429_COOLDOWN = 600
+
+
 def obtener_float_publicacion(market_hash_name, session, proxy, precio_max=None):
     """Busca una publicación concreta usando el mismo proxy/sesión del precio.
 
     La consulta adicional solo se ejecuta cuando hay alerta. Si Steam no entrega
     el enlace o limita la consulta, se devuelve None y la alerta de precio sigue.
     """
+    global FLOAT_RATE_LIMIT_UNTIL
+
+    restante_float = FLOAT_RATE_LIMIT_UNTIL - time.time()
+    if restante_float > 0:
+        print(
+            f"[FLOAT] Consulta opcional pausada por rate limit de Steam | "
+            f"Restante: {restante_float:.0f}s"
+        )
+        return None
+
     if not proxy or session is None:
         print(f"[FLOAT] Sin proxy/sesión asociados a {market_hash_name}; se omite")
         return None
@@ -4573,11 +4647,38 @@ def obtener_float_publicacion(market_hash_name, session, proxy, precio_max=None)
         )
 
         if respuesta.status_code != 200:
+            codigo_http = respuesta.status_code
+
+            # Registrar la respuesta fallida en las métricas. La consulta de
+            # float es opcional: no reintentamos ni cambiamos de proxy.
+            with lock:
+                stats["requests_fallidas"] += 1
+                stats_diarias["requests_fallidas"] += 1
+                if proxy in stats_proxies:
+                    stats_proxies[proxy]["fallidas"] += 1
+                    if codigo_http == 429:
+                        stats_proxies[proxy]["429"] += 1
+
             print(
                 f"[FLOAT] No se pudo consultar publicación | {market_hash_name} | "
-                f"HTTP {respuesta.status_code} | {nombre_proxy(proxy)}"
+                f"HTTP {codigo_http} | {nombre_proxy(proxy)}"
             )
-            # No penalizamos el proxy por una consulta opcional de float.
+
+            # Un 429 de esta consulta también cuenta para la protección global
+            # de Steam. No hacemos otro intento; la alerta de precio continúa.
+            if codigo_http == 429:
+                registrar_429_global()
+                with lock:
+                    FLOAT_RATE_LIMIT_UNTIL = max(
+                        FLOAT_RATE_LIMIT_UNTIL,
+                        time.time() + FLOAT_429_COOLDOWN
+                    )
+                print(
+                    f"[FLOAT] Se pausa la búsqueda de float durante "
+                    f"{FLOAT_429_COOLDOWN}s para no repetir el 429."
+                )
+
+            # No penalizamos el score del proxy por una consulta opcional de float.
             return None
 
         try:
@@ -4597,11 +4698,13 @@ def obtener_float_publicacion(market_hash_name, session, proxy, precio_max=None)
         for enlace in enlaces:
             valor = _decodificar_float_inspect(enlace)
             if valor is not None:
+                pattern = _decodificar_pattern_inspect(enlace)
                 print(
                     f"[FLOAT] {market_hash_name} | Float {valor:.9f} | "
+                    f"Pattern {pattern if pattern is not None else 'No disponible'} | "
                     f"{nombre_proxy(proxy)}"
                 )
-                return valor
+                return {"float": valor, "pattern": pattern}
 
         print(f"[FLOAT] Steam no entregó un enlace de inspección usable para {market_hash_name}")
         return None
@@ -6211,12 +6314,22 @@ def worker(grupo_skins, worker_id):
                 )
 
                 if float_value is None:
-                    texto_float = "🔎 Float: No disponible"
+                    texto_float = "🔎 Float: No disponible\n🎨 Pattern: No disponible"
                 else:
-                    calidad_float = _clasificar_float(float_value, skin_name)
-                    icono_float = "🟢" if calidad_float == "BUENO" else ("🟡" if calidad_float == "MÁS O MENOS" else "🔴")
-                    texto_float = (
-                        f"{icono_float} Float: {float_value:.9f} — {calidad_float}"
+                    valor_float = float_value.get("float")
+                    pattern = float_value.get("pattern")
+                    if valor_float is None:
+                        texto_float = "🔎 Float: No disponible"
+                    else:
+                        calidad_float = _clasificar_float(valor_float, skin_name)
+                        icono_float = "🟢" if calidad_float == "BUENO" else ("🟡" if calidad_float == "MÁS O MENOS" else "🔴")
+                        texto_float = (
+                            f"{icono_float} Float: {valor_float:.9f} — {calidad_float}"
+                        )
+                    texto_float += (
+                        f"\n🎨 Pattern: {pattern}"
+                        if pattern is not None
+                        else "\n🎨 Pattern: No disponible"
                     )
 
                 # =========================
