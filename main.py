@@ -7,6 +7,7 @@ import threading
 import re
 import json
 import math
+import tempfile
 from flask import Flask, jsonify, render_template, request, session
 from datetime import datetime
 import builtins
@@ -1782,6 +1783,11 @@ ULTIMO_GUARDADO_ESTADO = 0
 # simultáneamente y compitan por el SHA de GitHub.
 ESTADO_GUARDADO_LOCK = threading.Lock()
 
+# Cartera virtual: movimientos manuales de compra/venta.
+# Se guarda dentro de bot_state.json para sobrevivir reinicios.
+cartera_virtual = []
+CARTERA_LOCK = threading.RLock()
+
 
 def guardar_estado(forzar=False):
     """Guarda el estado de forma serializada y comunica el resultado."""
@@ -1888,6 +1894,7 @@ def _guardar_estado_interno(forzar=False):
             "fecha_estadisticas": fecha_estadisticas.isoformat(),
             "skins_a_vigilar": copy.deepcopy(skins_a_vigilar),
             "skins_pausadas": sorted(SKINS_PAUSADAS),
+            "cartera_virtual": copy.deepcopy(cartera_virtual),
 
             # Configuración editable del bot.
             #
@@ -1900,13 +1907,55 @@ def _guardar_estado_interno(forzar=False):
         # GUARDAR ARCHIVO LOCAL
         # ====================================================
 
-        with open(ARCHIVO_ESTADO, "w", encoding="utf-8") as f:
-            json.dump(
-                estado,
-                f,
-                ensure_ascii=False,
-                indent=2
-            )
+        # Serializar y validar antes de tocar el archivo actual.
+        # allow_nan=False evita generar JSON no estándar si algún
+        # contador/precio quedó accidentalmente en NaN o infinito.
+        contenido_json = json.dumps(
+            estado,
+            ensure_ascii=False,
+            indent=2,
+            allow_nan=False
+        )
+
+        # Escritura atómica: el archivo definitivo se reemplaza solo
+        # después de completar la escritura y vaciar los buffers.
+        # Si el proceso se interrumpe antes de os.replace(), el estado
+        # anterior sigue intacto.
+        directorio_estado = os.path.dirname(
+            os.path.abspath(ARCHIVO_ESTADO)
+        )
+        archivo_temporal = None
+
+        try:
+            with tempfile.NamedTemporaryFile(
+                mode="w",
+                encoding="utf-8",
+                dir=directorio_estado,
+                prefix=".bot_state_",
+                suffix=".tmp",
+                delete=False
+            ) as f:
+                archivo_temporal = f.name
+                f.write(contenido_json)
+                f.flush()
+                os.fsync(f.fileno())
+
+            # Comprobar que el temporal es JSON válido antes del reemplazo.
+            with open(archivo_temporal, "r", encoding="utf-8") as f:
+                json.load(f)
+
+            os.replace(archivo_temporal, ARCHIVO_ESTADO)
+            archivo_temporal = None
+
+        finally:
+            if archivo_temporal and os.path.exists(archivo_temporal):
+                try:
+                    os.remove(archivo_temporal)
+                except OSError as error_limpieza:
+                    print(
+                        "[ESTADO] No se pudo eliminar archivo temporal: "
+                        f"{error_limpieza}"
+                    )
 
         github_token = os.getenv("GITHUB_TOKEN")
         github_repo = os.getenv("GITHUB_REPO")
@@ -2021,6 +2070,7 @@ def cargar_estado():
     global CONFIG
     global skins_a_vigilar
     global SKINS_PAUSADAS
+    global cartera_virtual
 
     try:
         github_token = os.getenv("GITHUB_TOKEN")
@@ -2108,6 +2158,16 @@ def cargar_estado():
             )
 
         notificados = estado.get("notificados", {})
+
+        cartera_cargada = estado.get("cartera_virtual", [])
+        if isinstance(cartera_cargada, list):
+            cartera_virtual = [
+                item for item in cartera_cargada
+                if isinstance(item, dict)
+                and item.get("tipo") in ("compra", "venta")
+            ]
+        else:
+            cartera_virtual = []
 
         historial_cargado = estado.get("historial_notificaciones", [])
 
@@ -3207,6 +3267,190 @@ def api_pausar_skin():
     ).start()
 
     return jsonify({"ok": True, "name": nombre, "paused": pausada})
+
+
+# ==========================================================
+# CARTERA VIRTUAL DE INVERSIONES
+# ==========================================================
+
+def _cartera_calcular():
+    """Calcula inventario por costo promedio ponderado y resultados realizados."""
+    movimientos = sorted(
+        [m for m in cartera_virtual if isinstance(m, dict)],
+        key=lambda m: (str(m.get("fecha", "")), float(m.get("timestamp", 0) or 0))
+    )
+    posiciones = {}
+    movimientos_salida = []
+    pnl_realizado_total = 0.0
+
+    for mov in movimientos:
+        tipo = mov.get("tipo")
+        skin = str(mov.get("skin", "")).strip()
+        try:
+            qty = int(mov.get("cantidad", 0))
+            unit = float(mov.get("precio_unitario", 0))
+            fees = float(mov.get("comisiones", 0))
+        except (TypeError, ValueError):
+            continue
+        if not skin or qty <= 0 or unit < 0 or fees < 0:
+            continue
+
+        pos = posiciones.setdefault(skin, {
+            "skin": skin, "cantidad": 0, "costo_total": 0.0,
+            "costo_promedio": 0.0, "compras": 0, "ventas": 0,
+            "pnl_realizado": 0.0, "fees_totales": 0.0,
+        })
+        pos["fees_totales"] += fees
+        if tipo == "compra":
+            costo = qty * unit + fees
+            pos["cantidad"] += qty
+            pos["costo_total"] += costo
+            pos["compras"] += qty
+            pos["costo_promedio"] = (
+                pos["costo_total"] / pos["cantidad"] if pos["cantidad"] else 0.0
+            )
+            pnl = 0.0
+        elif tipo == "venta":
+            # Las ventas deben haber sido validadas contra el inventario disponible.
+            if qty > pos["cantidad"]:
+                # Protege el cálculo si se encuentra un estado antiguo inconsistente.
+                qty = pos["cantidad"]
+            costo_base = pos["costo_promedio"] * qty
+            ingreso_neto = qty * unit - fees
+            pnl = ingreso_neto - costo_base
+            pos["cantidad"] -= qty
+            pos["costo_total"] = max(0.0, pos["costo_total"] - costo_base)
+            pos["ventas"] += qty
+            pos["pnl_realizado"] += pnl
+            pos["costo_promedio"] = (
+                pos["costo_total"] / pos["cantidad"] if pos["cantidad"] else 0.0
+            )
+            pnl_realizado_total += pnl
+        else:
+            continue
+        movimientos_salida.append({**mov, "pnl_realizado_movimiento": round(pnl, 2)})
+
+    posiciones_salida = []
+    valor_mercado_total = 0.0
+    costo_inventario_total = 0.0
+    pnl_no_realizado_total = 0.0
+    for skin, pos in posiciones.items():
+        qty = int(pos["cantidad"])
+        cache = price_cache.get(skin, {}) if isinstance(price_cache, dict) else {}
+        precio_actual = cache.get("price") if isinstance(cache, dict) else None
+        try:
+            precio_actual = float(precio_actual) if precio_actual is not None else None
+            if precio_actual is not None and (not math.isfinite(precio_actual) or precio_actual < 0):
+                precio_actual = None
+        except (TypeError, ValueError):
+            precio_actual = None
+        valor = precio_actual * qty if precio_actual is not None else None
+        costo = float(pos["costo_total"])
+        pnl_abierto = valor - costo if valor is not None else None
+        if qty > 0:
+            costo_inventario_total += costo
+            if valor is not None:
+                valor_mercado_total += valor
+                pnl_no_realizado_total += pnl_abierto
+        posiciones_salida.append({
+            **pos,
+            "cantidad": qty,
+            "costo_total": round(costo, 2),
+            "costo_promedio": round(float(pos["costo_promedio"]), 4),
+            "precio_actual": round(precio_actual, 4) if precio_actual is not None else None,
+            "valor_mercado": round(valor, 2) if valor is not None else None,
+            "pnl_no_realizado": round(pnl_abierto, 2) if pnl_abierto is not None else None,
+            "timestamp_precio": cache.get("timestamp") if isinstance(cache, dict) else None,
+        })
+
+    posiciones_salida.sort(key=lambda p: (p["cantidad"] <= 0, p["skin"].lower()))
+    posiciones_activas = [p for p in posiciones_salida if p["cantidad"] > 0]
+    return {
+        "ok": True,
+        "moneda": "USD",
+        "resumen": {
+            "skins_en_cartera": len(posiciones_activas),
+            "unidades": sum(p["cantidad"] for p in posiciones_activas),
+            "costo_inventario": round(costo_inventario_total, 2),
+            "valor_mercado_con_precio": round(valor_mercado_total, 2),
+            "pnl_no_realizado_con_precio": round(pnl_no_realizado_total, 2),
+            "pnl_realizado": round(pnl_realizado_total, 2),
+            "pnl_total_con_precio": round(pnl_realizado_total + pnl_no_realizado_total, 2),
+            "movimientos": len(movimientos_salida),
+        },
+        "posiciones": posiciones_salida,
+        "movimientos": sorted(movimientos_salida, key=lambda m: (str(m.get("fecha", "")), float(m.get("timestamp", 0) or 0)), reverse=True),
+        "timestamp": time.time(),
+    }
+
+
+@app.route("/api/cartera", methods=["GET", "POST"])
+def api_cartera():
+    global cartera_virtual
+    if request.method == "GET":
+        with CARTERA_LOCK:
+            return jsonify(_cartera_calcular())
+
+    datos = request.get_json(silent=True)
+    if not isinstance(datos, dict):
+        return jsonify({"ok": False, "error": "Solicitud inválida."}), 400
+
+    tipo = str(datos.get("tipo", "")).strip().lower()
+    skin = str(datos.get("skin", "")).strip()
+    try:
+        cantidad = int(datos.get("cantidad", 0))
+        precio_unitario = float(datos.get("precio_unitario", -1))
+        comisiones = float(datos.get("comisiones", 0))
+    except (TypeError, ValueError, OverflowError):
+        return jsonify({"ok": False, "error": "Cantidad, precio o comisiones inválidos."}), 400
+
+    fecha = str(datos.get("fecha", "")).strip() or datetime.now(ZONA_ARG).date().isoformat()
+    notas = str(datos.get("notas", "")).strip()[:1000]
+    if tipo not in ("compra", "venta"):
+        return jsonify({"ok": False, "error": "El tipo debe ser compra o venta."}), 400
+    if not skin or len(skin) > 250:
+        return jsonify({"ok": False, "error": "Indicá el nombre de la skin (máximo 250 caracteres)."}), 400
+    if cantidad < 1 or cantidad > 10000:
+        return jsonify({"ok": False, "error": "La cantidad debe estar entre 1 y 10000."}), 400
+    if not math.isfinite(precio_unitario) or precio_unitario < 0 or precio_unitario > 100000000:
+        return jsonify({"ok": False, "error": "El precio unitario debe ser un número válido no negativo."}), 400
+    if not math.isfinite(comisiones) or comisiones < 0 or comisiones > 100000000:
+        return jsonify({"ok": False, "error": "Las comisiones deben ser un número válido no negativo."}), 400
+    try:
+        datetime.strptime(fecha, "%Y-%m-%d")
+    except ValueError:
+        return jsonify({"ok": False, "error": "La fecha debe tener formato AAAA-MM-DD."}), 400
+
+    with CARTERA_LOCK:
+        actual = _cartera_calcular()
+        if tipo == "venta":
+            posicion = next((p for p in actual["posiciones"] if p["skin"] == skin), None)
+            disponible = int(posicion["cantidad"]) if posicion else 0
+            if cantidad > disponible:
+                return jsonify({"ok": False, "error": f"No hay unidades suficientes para vender. Disponibles: {disponible}."}), 400
+
+        movimiento = {
+            "id": secrets.token_hex(8),
+            "tipo": tipo,
+            "skin": skin,
+            "cantidad": cantidad,
+            "precio_unitario": round(precio_unitario, 4),
+            "comisiones": round(comisiones, 4),
+            "fecha": fecha,
+            "notas": notas,
+            "timestamp": time.time(),
+        }
+        cartera_virtual.append(movimiento)
+        guardado = guardar_estado(forzar=True)
+        if guardado is False:
+            cartera_virtual.pop()
+            # Mantener también el archivo local alineado con el estado previo.
+            # Si GitHub sigue fallando, se deja constancia en los logs.
+            guardar_estado(forzar=True)
+            return jsonify({"ok": False, "error": "No se pudo confirmar el guardado en GitHub. El movimiento no se confirmó; revisá los logs."}), 503
+        resultado = _cartera_calcular()
+
+    return jsonify({"ok": True, "mensaje": "Movimiento registrado.", "cartera": resultado}), 201
 
 
 @app.route("/api/notificaciones")
@@ -5687,7 +5931,7 @@ def supervisor_workers(grupos):
 
     print("[SUPERVISOR] Finalizado.")
 
-def worker(grupo_skins, worker_id):
+def _worker_run(grupo_skins, worker_id):
 
     print(f"[DEBUG] Worker {worker_id} arrancó")
 
@@ -6271,6 +6515,63 @@ def worker(grupo_skins, worker_id):
             )
 
 # 🔁 Ejecutar el servidor Flask en hilo separado
+def worker(grupo_skins, worker_id):
+    """Aísla excepciones del ciclo para que un error puntual no mate el worker."""
+    ultimo_aviso_error = 0
+    fallos_consecutivos = 0
+
+    while estado_app.get("activo", False):
+        try:
+            _worker_run(grupo_skins, worker_id)
+            # Si el worker terminó porque el bot se desactivó, salir normalmente.
+            if not estado_app.get("activo", False):
+                return
+            # Una salida inesperada sin excepción también requiere reintento.
+            fallos_consecutivos += 1
+            print(
+                f"[WORKER] Worker {worker_id} terminó inesperadamente; "
+                "se reintentará en 10 segundos."
+            )
+
+        except Exception as e:
+            fallos_consecutivos += 1
+            print(
+                f"[WORKER] Excepción no controlada en worker {worker_id} "
+                f"(fallo consecutivo {fallos_consecutivos}): "
+                f"{type(e).__name__}: {e}"
+            )
+
+            try:
+                with lock:
+                    estado_app["errores"] = int(
+                        estado_app.get("errores", 0) or 0
+                    ) + 1
+            except (TypeError, ValueError):
+                estado_app["errores"] = 1
+
+            ahora = time.time()
+            # Limitar alertas para no inundar Telegram si el error persiste.
+            if ahora - ultimo_aviso_error >= 300:
+                try:
+                    enviar_telegram(
+                        "⚠️ ERROR INTERNO DEL WORKER\n\n"
+                        f"Worker: {worker_id}\n"
+                        f"Error: {type(e).__name__}: {e}\n\n"
+                        "El bot intentará continuar automáticamente. "
+                        "Revisá los logs de Render si se repite."
+                    )
+                except Exception as error_telegram:
+                    print(
+                        "[WORKER] No se pudo enviar la alerta de error: "
+                        f"{error_telegram}"
+                    )
+                ultimo_aviso_error = ahora
+
+        # Espera incremental y limitada para evitar un bucle de reinicios.
+        espera = min(30, 5 * max(1, min(fallos_consecutivos, 6)))
+        time.sleep(espera)
+
+
 def iniciar_servidor():
     app.run(host="0.0.0.0", port=8080, threaded=True, use_reloader=False)
 
@@ -6338,4 +6639,3 @@ if __name__ == "__main__":
     telegram_thread.start()
 
     servidor_thread.join()
-
