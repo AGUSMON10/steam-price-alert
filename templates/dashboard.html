@@ -3019,7 +3019,7 @@ select:focus {
     <div class="portfolio-grid">
         <div class="portfolio-kpi"><div class="k-label">Costo del inventario</div><div class="k-value" id="carteraCosto">$0.00</div><div class="k-note">Costo promedio ponderado, incluyendo comisiones de compra.</div></div>
         <div class="portfolio-kpi"><div class="k-label">Valor de mercado estimado</div><div class="k-value" id="carteraValor">—</div><div class="k-note">Solo suma skins con precio reciente en caché.</div></div>
-        <div class="portfolio-kpi"><div class="k-label">Resultado no realizado</div><div class="k-value" id="carteraAbierto">—</div><div class="k-note">Estimación antes de comisiones de una futura venta.</div></div>
+        <div class="portfolio-kpi"><div class="k-label">Resultado no realizado</div><div class="k-value" id="carteraAbierto">—</div><div class="k-note">Valor neto estimado después de descontar la comisión Steam del 13,043478% al vender.</div></div>
         <div class="portfolio-kpi"><div class="k-label">Resultado realizado</div><div class="k-value" id="carteraRealizado">$0.00</div><div class="k-note">Ventas netas menos costo promedio de las unidades vendidas.</div></div>
     </div>
     <div class="portfolio-muted" id="carteraAviso" style="margin:-4px 0 18px">Los importes están expresados en USD. El resultado estimado no garantiza que puedas vender a ese precio.</div>
@@ -3027,7 +3027,7 @@ select:focus {
     <div class="portfolio-layout">
         <div class="portfolio-panel">
             <h3>Registrar movimiento</h3>
-            <div class="portfolio-muted">Cargá cada compra o venta. Las ventas no pueden superar las unidades disponibles. Las comisiones se ingresan como importe total de la operación.</div>
+            <div class="portfolio-muted">Cargá cada compra o venta. Las ventas no pueden superar las unidades disponibles. En las ventas se descuenta automáticamente el 13,043478% de comisión Steam; el campo de comisiones agrega otros costos si los hubiera.</div>
             <form id="carteraForm" class="portfolio-form" onsubmit="registrarMovimientoCartera(event)">
                 <div class="portfolio-field"><label for="carteraTipo">Movimiento</label><select id="carteraTipo" required onchange="actualizarFormularioCartera()"><option value="compra">Compra</option><option value="venta">Venta</option></select></div>
                 <div class="portfolio-field"><label for="carteraFecha">Fecha</label><input id="carteraFecha" type="date" required></div>
@@ -3653,7 +3653,7 @@ function actualizarPreviewCartera() {
     const price = Number(document.getElementById("carteraPrecio")?.value || 0);
     const fees = Number(document.getElementById("carteraComisiones")?.value || 0);
     const tipo = document.getElementById("carteraTipo")?.value || "compra";
-    const total = qty * price + (tipo === "compra" ? fees : -fees);
+    const total = tipo === "compra" ? qty * price + fees : qty * price * (1 - 0.130434782608695) - fees;
     const el = document.getElementById("carteraTotalPreview");
     if (el) el.value = formatoCartera(total);
 }
@@ -3684,7 +3684,7 @@ function renderCartera(data) {
     document.getElementById("carteraRealizado").textContent = formatoCartera(r.pnl_realizado || 0);
     document.getElementById("carteraAbierto").className = "k-value " + clasePnl(r.pnl_no_realizado_con_precio);
     document.getElementById("carteraRealizado").className = "k-value " + clasePnl(r.pnl_realizado);
-    document.getElementById("carteraAviso").textContent = `${r.skins_en_cartera || 0} skins en cartera · ${r.unidades || 0} unidades disponibles · ${r.movimientos || 0} movimientos. Resultado total estimado con cotizaciones disponibles: ${formatoCartera(r.pnl_total_con_precio)}. No incluye comisiones futuras de venta ni garantiza precio de ejecución.`;
+    document.getElementById("carteraAviso").textContent = `${r.skins_en_cartera || 0} skins en cartera · ${r.unidades || 0} unidades disponibles · ${r.movimientos || 0} movimientos. Resultado total estimado con cotizaciones disponibles: ${formatoCartera(r.pnl_total_con_precio)}. El P/L abierto ya descuenta la comisión Steam estimada del 13,043478%; no garantiza precio de ejecución.`;
 
     const posiciones = (data.posiciones || []).filter(p => Number(p.cantidad) > 0);
     const tbody = document.getElementById("carteraPosiciones");
@@ -3693,7 +3693,8 @@ function renderCartera(data) {
     const movs = data.movimientos || [];
     document.getElementById("carteraMovCount").textContent = `${movs.length} movimiento${movs.length === 1 ? "" : "s"}`;
     document.getElementById("carteraMovimientos").innerHTML = movs.length ? movs.map(m => {
-        const total = Number(m.cantidad || 0) * Number(m.precio_unitario || 0) + (m.tipo === "compra" ? Number(m.comisiones || 0) : -Number(m.comisiones || 0));
+        const bruto = Number(m.cantidad || 0) * Number(m.precio_unitario || 0);
+        const total = m.tipo === "compra" ? bruto + Number(m.comisiones || 0) : bruto * (1 - 0.130434782608695) - Number(m.comisiones || 0);
         const pnl = Number(m.pnl_realizado_movimiento || 0);
         return `<tr><td>${escapeHtml(m.fecha || "—")}</td><td><span class="portfolio-badge">${m.tipo === "compra" ? "COMPRA" : "VENTA"}</span></td><td>${escapeHtml(m.skin || "")}</td><td>${m.cantidad}</td><td>${formatoCartera(m.precio_unitario)}</td><td>${formatoCartera(m.comisiones || 0)}</td><td>${formatoCartera(total)}</td><td class="${m.tipo === "venta" ? clasePnl(pnl) : ""}">${m.tipo === "venta" ? formatoCartera(pnl) : "—"}</td><td title="${escapeAttribute(m.notas || "")}">${escapeHtml(m.notas || "—")}</td></tr>`;
     }).join("") : `<tr><td colspan="9" class="portfolio-empty">Todavía no hay movimientos registrados.</td></tr>`;
