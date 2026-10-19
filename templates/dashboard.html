@@ -28,35 +28,86 @@ async function portfolioRequest(url, options = {}) {
     if (!response.ok || data.ok === false) throw new Error(data.error || `Error HTTP ${response.status}`);
     return data;
 }
+let inventoryItems = [];
+let inventorySort = { key: "name", direction: 1 };
+
+function sortInventory(key) {
+    if (inventorySort.key === key) {
+        inventorySort.direction *= -1;
+    } else {
+        inventorySort = { key, direction: 1 };
+    }
+    renderInventoryRows();
+}
+
+function renderInventoryRows() {
+    const tbody = document.getElementById("inventoryRows");
+    if (!tbody) return;
+    const key = inventorySort.key;
+    const direction = inventorySort.direction;
+    const items = [...inventoryItems].sort((a, b) => {
+        let av, bv;
+        if (key === "quantity") {
+            av = Number(a.quantity) || 1; bv = Number(b.quantity) || 1;
+        } else if (key === "cost" || key === "total") {
+            av = a.cost == null ? -Infinity : Number(a.cost) || 0;
+            bv = b.cost == null ? -Infinity : Number(b.cost) || 0;
+            if (key === "total") {
+                av *= Number(a.quantity) || 1;
+                bv *= Number(b.quantity) || 1;
+            }
+        } else if (key === "buy_date") {
+            av = a.buy_date || a.created_at?.slice(0, 10) || "";
+            bv = b.buy_date || b.created_at?.slice(0, 10) || "";
+        } else {
+            av = String(a[key] ?? "").toLocaleLowerCase("es");
+            bv = String(b[key] ?? "").toLocaleLowerCase("es");
+        }
+        if (av < bv) return -1 * direction;
+        if (av > bv) return 1 * direction;
+        return 0;
+    });
+    const arrows = document.querySelectorAll("[data-inv-sort]");
+    arrows.forEach(el => {
+        const active = el.dataset.invSort === key;
+        el.classList.toggle("active", active);
+        el.setAttribute("aria-sort", active ? (direction === 1 ? "ascending" : "descending") : "none");
+        const indicator = el.querySelector(".sort-indicator");
+        if (indicator) indicator.textContent = active ? (direction === 1 ? "↑" : "↓") : "↕";
+    });
+    tbody.innerHTML = items.length ? items.map(x => `<tr>
+        <td class="skin-name">${escapePortfolio(x.name)}</td>
+        <td>${Number(x.quantity)||1}</td>
+        <td>${escapePortfolio(x.buy_date || (x.created_at ? x.created_at.slice(0,10) : "—"))}</td>
+        <td>${x.cost == null ? "—" : moneyPortfolio(x.cost)}</td>
+        <td>${x.cost == null ? "—" : moneyPortfolio(Number(x.cost)*(Number(x.quantity)||1))}</td>
+        <td>${escapePortfolio(x.notes || "—")}</td>
+        <td><div class="inventory-sale-box">
+            <label class="sold-check"><input type="checkbox" onchange="toggleInventorySale('${escapePortfolio(x.id)}', this.checked)"> ¿La vendiste?</label>
+            <div id="sellFields-${escapePortfolio(x.id)}" class="inventory-sale-fields" hidden>
+                <label>Precio de venta (USD)<input id="sellPrice-${escapePortfolio(x.id)}" type="number" min="0" step="0.01" placeholder="Ej. 185.00"></label>
+                <label>Fecha de venta<input id="sellDate-${escapePortfolio(x.id)}" type="date" value="${new Date().getFullYear()}-${String(new Date().getMonth()+1).padStart(2,'0')}-${String(new Date().getDate()).padStart(2,'0')}"></label>
+                <label>Precio de compra (USD)<input id="buyPrice-${escapePortfolio(x.id)}" type="number" min="0" step="0.01" value="${x.cost == null ? "" : Number(x.cost)}" placeholder="Necesario para calcular ganancia"></label>
+                <label>Cantidad vendida<input id="sellQty-${escapePortfolio(x.id)}" type="number" min="1" max="${Number(x.quantity)||1}" step="1" value="${Number(x.quantity)||1}"></label>
+                <button class="button" type="button" onclick="sellInventory('${escapePortfolio(x.id)}')">Confirmar venta</button>
+            </div>
+            <button class="portfolio-delete" onclick="deleteInventory('${escapePortfolio(x.id)}')">Eliminar</button>
+        </div></td>
+    </tr>`).join("") : '<tr><td colspan="7" class="empty">Todavía no agregaste skins al inventario.</td></tr>';
+}
+
 async function loadInventory() {
     const tbody = document.getElementById("inventoryRows");
     if (!tbody) return;
     try {
         const data = await portfolioRequest("/api/inventario");
-        const items = data.items || [];
-        document.getElementById("invTotal").textContent = items.length;
-        document.getElementById("invUnits").textContent = items.reduce((sum,x)=>sum+(Number(x.quantity)||0),0);
-        document.getElementById("invCost").textContent = moneyPortfolio(items.reduce((sum,x)=>sum+(x.cost == null ? 0 : Number(x.cost)||0)*(Number(x.quantity)||0),0));
-        tbody.innerHTML = items.length ? items.map(x => `<tr>
-            <td class="skin-name">${escapePortfolio(x.name)}</td>
-            <td>${Number(x.quantity)||1}</td>
-            <td>${x.cost == null ? "—" : moneyPortfolio(x.cost)}</td>
-            <td>${x.cost == null ? "—" : moneyPortfolio(Number(x.cost)*(Number(x.quantity)||1))}</td>
-            <td>${escapePortfolio(x.notes || "—")}</td>
-            <td><div class="inventory-sale-box">
-                <label class="sold-check"><input type="checkbox" onchange="toggleInventorySale('${escapePortfolio(x.id)}', this.checked)"> ¿La vendiste?</label>
-                <div id="sellFields-${escapePortfolio(x.id)}" class="inventory-sale-fields" hidden>
-                    <label>Precio de venta (USD)<input id="sellPrice-${escapePortfolio(x.id)}" type="number" min="0" step="0.01" placeholder="Ej. 185.00"></label>
-                    <label>Fecha de venta<input id="sellDate-${escapePortfolio(x.id)}" type="date" value="${new Date().getFullYear()}-${String(new Date().getMonth()+1).padStart(2,'0')}-${String(new Date().getDate()).padStart(2,'0')}"></label>
-                    <label>Precio de compra (USD)<input id="buyPrice-${escapePortfolio(x.id)}" type="number" min="0" step="0.01" value="${x.cost == null ? "" : Number(x.cost)}" placeholder="Necesario para calcular ganancia"></label>
-                    <label>Cantidad vendida<input id="sellQty-${escapePortfolio(x.id)}" type="number" min="1" max="${Number(x.quantity)||1}" step="1" value="${Number(x.quantity)||1}"></label>
-                    <button class="button" type="button" onclick="sellInventory('${escapePortfolio(x.id)}')">Confirmar venta</button>
-                </div>
-                <button class="portfolio-delete" onclick="deleteInventory('${escapePortfolio(x.id)}')">Eliminar</button>
-            </div></td>
-        </tr>`).join("") : '<tr><td colspan="6" class="empty">Todavía no agregaste skins al inventario.</td></tr>';
+        inventoryItems = data.items || [];
+        document.getElementById("invTotal").textContent = inventoryItems.length;
+        document.getElementById("invUnits").textContent = inventoryItems.reduce((sum,x)=>sum+(Number(x.quantity)||0),0);
+        document.getElementById("invCost").textContent = moneyPortfolio(inventoryItems.reduce((sum,x)=>sum+(x.cost == null ? 0 : Number(x.cost)||0)*(Number(x.quantity)||0),0));
+        renderInventoryRows();
     } catch (e) {
-        tbody.innerHTML = `<tr><td colspan="6" class="empty">${escapePortfolio(e.message)}</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="7" class="empty">${escapePortfolio(e.message)}</td></tr>`;
     }
 }
 function toggleInventorySale(id, checked) {
@@ -1803,6 +1854,11 @@ select:focus {
 
 
 /* Inventario y ventas */
+
+.sort-header { display:inline-flex; align-items:center; gap:6px; padding:4px 2px; border:0; background:transparent; color:var(--muted); font:inherit; font-weight:800; text-align:left; white-space:nowrap; cursor:pointer; }
+.sort-header:hover, .sort-header.active { color:var(--blue); }
+.sort-indicator { color:var(--blue); font-size:12px; opacity:.85; }
+
 .portfolio-form {
     display:grid; grid-template-columns:repeat(3,minmax(0,1fr));
     gap:14px; align-items:end;
@@ -3199,7 +3255,14 @@ select:focus {
         </div>
     </div>
     <div class="table-container">
-        <table><thead><tr><th>Skin</th><th>Cantidad</th><th>Costo unitario</th><th>Costo total</th><th>Notas</th><th>¿La vendiste? / Venta</th></tr></thead>
+        <table><thead><tr>
+            <th><button type="button" class="sort-header" data-inv-sort="name" onclick="sortInventory('name')">Skin <span class="sort-indicator">↑</span></button></th>
+            <th><button type="button" class="sort-header" data-inv-sort="quantity" onclick="sortInventory('quantity')">Cantidad <span class="sort-indicator">↕</span></button></th>
+            <th><button type="button" class="sort-header" data-inv-sort="buy_date" onclick="sortInventory('buy_date')">Fecha de compra <span class="sort-indicator">↕</span></button></th>
+            <th><button type="button" class="sort-header" data-inv-sort="cost" onclick="sortInventory('cost')">Costo unitario <span class="sort-indicator">↕</span></button></th>
+            <th><button type="button" class="sort-header" data-inv-sort="total" onclick="sortInventory('total')">Costo total <span class="sort-indicator">↕</span></button></th>
+            <th><button type="button" class="sort-header" data-inv-sort="notes" onclick="sortInventory('notes')">Notas <span class="sort-indicator">↕</span></button></th>
+            <th>¿La vendiste? / Venta</th></tr></thead>
         <tbody id="inventoryRows"><tr><td colspan="6" class="empty">Cargando inventario…</td></tr></tbody></table>
     </div>
 </section>
