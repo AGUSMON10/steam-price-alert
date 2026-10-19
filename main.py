@@ -17,6 +17,10 @@ ZONA_ARG = ZoneInfo("America/Argentina/Buenos_Aires")
 
 ARCHIVO_ESTADO = "bot_state.json"
 
+# Inventario manual y registro de operaciones de compra/venta.
+inventario_skins = []
+registro_ventas = []
+
 # Lista de proxies (pegá los tuyos de Webshare)
 
 PROXIES = [
@@ -1783,11 +1787,6 @@ ULTIMO_GUARDADO_ESTADO = 0
 # simultáneamente y compitan por el SHA de GitHub.
 ESTADO_GUARDADO_LOCK = threading.Lock()
 
-# Cartera virtual: movimientos manuales de compra/venta.
-# Se guarda dentro de bot_state.json para sobrevivir reinicios.
-cartera_virtual = []
-CARTERA_LOCK = threading.RLock()
-
 
 def guardar_estado(forzar=False):
     """Guarda el estado de forma serializada y comunica el resultado."""
@@ -1894,7 +1893,8 @@ def _guardar_estado_interno(forzar=False):
             "fecha_estadisticas": fecha_estadisticas.isoformat(),
             "skins_a_vigilar": copy.deepcopy(skins_a_vigilar),
             "skins_pausadas": sorted(SKINS_PAUSADAS),
-            "cartera_virtual": copy.deepcopy(cartera_virtual),
+            "inventario_skins": copy.deepcopy(inventario_skins),
+            "registro_ventas": copy.deepcopy(registro_ventas),
 
             # Configuración editable del bot.
             #
@@ -2070,7 +2070,8 @@ def cargar_estado():
     global CONFIG
     global skins_a_vigilar
     global SKINS_PAUSADAS
-    global cartera_virtual
+    global inventario_skins
+    global registro_ventas
 
     try:
         github_token = os.getenv("GITHUB_TOKEN")
@@ -2159,23 +2160,10 @@ def cargar_estado():
 
         notificados = estado.get("notificados", {})
 
-        cartera_cargada = estado.get("cartera_virtual", [])
-        if isinstance(cartera_cargada, list):
-            cartera_virtual = [
-                item for item in cartera_cargada
-                if isinstance(item, dict)
-                and item.get("tipo") in ("compra", "venta")
-            ]
-            # Los movimientos anteriores a la función de borrado no tenían ID.
-            for item in cartera_virtual:
-                if not item.get("id"):
-                    item["id"] = secrets.token_hex(8)
-                # En movimientos antiguos, el precio de venta se cargaba como importe neto
-                # cuando ya se había descontado Steam manualmente.
-                if item.get("tipo") == "venta" and "precio_ya_neto" not in item:
-                    item["precio_ya_neto"] = True
-        else:
-            cartera_virtual = []
+        inventario_guardado = estado.get("inventario_skins", [])
+        ventas_guardadas = estado.get("registro_ventas", [])
+        inventario_skins = inventario_guardado if isinstance(inventario_guardado, list) else []
+        registro_ventas = ventas_guardadas if isinstance(ventas_guardadas, list) else []
 
         historial_cargado = estado.get("historial_notificaciones", [])
 
@@ -3146,6 +3134,220 @@ def api_config_skins():
 
     })
 
+
+
+# ==========================================================
+# INVENTARIO MANUAL Y REGISTRO DE COMPRAS / VENTAS
+# ==========================================================
+
+def _guardar_datos_portafolio():
+    """Persistir los cambios sin bloquear la respuesta del dashboard."""
+    threading.Thread(
+        target=lambda: guardar_estado(forzar=True),
+        daemon=True
+    ).start()
+
+
+@app.route("/api/inventario", methods=["GET", "POST"])
+def api_inventario():
+    global inventario_skins
+
+    if request.method == "GET":
+        with lock:
+            items = copy.deepcopy(inventario_skins)
+        return jsonify({"items": items, "total": len(items)})
+
+    data = request.get_json(silent=True)
+    if not isinstance(data, dict):
+        return jsonify({"ok": False, "error": "Solicitud inválida"}), 400
+
+    nombre = str(data.get("name", "")).strip()
+    try:
+        cantidad = int(data.get("quantity", 1))
+        costo = data.get("cost")
+        costo = float(costo) if costo not in (None, "") else None
+        if cantidad < 1 or (costo is not None and (not math.isfinite(costo) or costo < 0)):
+            raise ValueError
+    except (TypeError, ValueError, OverflowError):
+        return jsonify({"ok": False, "error": "Cantidad o costo inválido"}), 400
+
+    if not nombre or len(nombre) > 200:
+        return jsonify({"ok": False, "error": "Ingresá un nombre de skin válido"}), 400
+
+    item_id = str(data.get("id") or secrets.token_hex(8))
+    fecha_compra = str(data.get("buy_date", "")).strip()
+    if fecha_compra:
+        try:
+            datetime.strptime(fecha_compra, "%Y-%m-%d")
+        except ValueError:
+            return jsonify({"ok": False, "error": "La fecha de compra no es válida"}), 400
+    else:
+        fecha_compra = datetime.now(ZONA_ARG).strftime("%Y-%m-%d")
+
+    item = {
+        "id": item_id,
+        "name": nombre,
+        "quantity": cantidad,
+        "cost": costo,
+        "buy_date": fecha_compra,
+        "notes": str(data.get("notes", "")).strip()[:500],
+        "created_at": datetime.now(ZONA_ARG).isoformat()
+    }
+
+    with lock:
+        idx = next((i for i, x in enumerate(inventario_skins)
+                    if isinstance(x, dict) and x.get("id") == item_id), None)
+        if idx is None:
+            inventario_skins.append(item)
+        else:
+            inventario_skins[idx] = item
+
+    _guardar_datos_portafolio()
+    return jsonify({"ok": True, "item": item})
+
+
+@app.route("/api/inventario/<item_id>/vender", methods=["POST"])
+def api_inventario_vender(item_id):
+    """Cierra una operación desde Inventario y la transfiere a Ventas."""
+    global inventario_skins, registro_ventas
+    data = request.get_json(silent=True)
+    if not isinstance(data, dict):
+        return jsonify({"ok": False, "error": "Solicitud inválida"}), 400
+
+    try:
+        precio_venta = float(data.get("sell_price"))
+        cantidad_vendida = int(data.get("quantity", 1))
+        fecha_venta = str(data.get("sell_date", "")).strip() or datetime.now(ZONA_ARG).strftime("%Y-%m-%d")
+        datetime.strptime(fecha_venta, "%Y-%m-%d")
+        if not math.isfinite(precio_venta) or precio_venta < 0 or cantidad_vendida < 1:
+            raise ValueError
+    except (TypeError, ValueError, OverflowError):
+        return jsonify({"ok": False, "error": "Revisá el precio de venta, la fecha y la cantidad"}), 400
+
+    with lock:
+        item = next((x for x in inventario_skins if isinstance(x, dict) and str(x.get("id")) == item_id), None)
+        if item is None:
+            return jsonify({"ok": False, "error": "Skin no encontrada en el inventario"}), 404
+        try:
+            precio_compra = float(data.get("buy_price", item.get("cost")))
+            if not math.isfinite(precio_compra) or precio_compra < 0:
+                raise ValueError
+        except (TypeError, ValueError, OverflowError):
+            return jsonify({"ok": False, "error": "Ingresá un precio de compra válido para calcular el resultado"}), 400
+
+        cantidad_inventario = int(item.get("quantity", 1) or 1)
+        if cantidad_vendida > cantidad_inventario:
+            return jsonify({"ok": False, "error": f"Solo tenés {cantidad_inventario} unidad(es) de esta skin en inventario"}), 400
+
+        fecha_compra = str(item.get("buy_date") or item.get("created_at", "")[:10])
+        try:
+            datetime.strptime(fecha_compra, "%Y-%m-%d")
+        except ValueError:
+            fecha_compra = datetime.now(ZONA_ARG).strftime("%Y-%m-%d")
+        venta = {
+            "id": secrets.token_hex(8),
+            "name": str(item.get("name", "Skin")),
+            "buy_date": fecha_compra,
+            "buy_price": round(precio_compra, 2),
+            "sell_date": fecha_venta,
+            "sell_price": round(precio_venta, 2),
+            "quantity": cantidad_vendida,
+            "profit": round((precio_venta - precio_compra) * cantidad_vendida, 2),
+            "created_at": datetime.now(ZONA_ARG).isoformat(),
+            "source": "inventario"
+        }
+        registro_ventas.append(venta)
+        if cantidad_vendida == cantidad_inventario:
+            inventario_skins = [x for x in inventario_skins if not (isinstance(x, dict) and str(x.get("id")) == item_id)]
+        else:
+            item["quantity"] = cantidad_inventario - cantidad_vendida
+
+    _guardar_datos_portafolio()
+    return jsonify({"ok": True, "item": venta, "message": "Venta registrada y trasladada a la solapa Ventas"})
+
+
+@app.route("/api/inventario/<item_id>", methods=["DELETE"])
+def api_inventario_eliminar(item_id):
+    global inventario_skins
+    with lock:
+        antes = len(inventario_skins)
+        inventario_skins = [
+            x for x in inventario_skins
+            if not isinstance(x, dict) or str(x.get("id")) != item_id
+        ]
+        eliminado = len(inventario_skins) < antes
+    if not eliminado:
+        return jsonify({"ok": False, "error": "Skin no encontrada"}), 404
+    _guardar_datos_portafolio()
+    return jsonify({"ok": True})
+
+
+@app.route("/api/ventas", methods=["GET", "POST"])
+def api_ventas():
+    global registro_ventas
+
+    if request.method == "GET":
+        with lock:
+            items = copy.deepcopy(registro_ventas)
+        return jsonify({"items": items, "total": len(items)})
+
+    data = request.get_json(silent=True)
+    if not isinstance(data, dict):
+        return jsonify({"ok": False, "error": "Solicitud inválida"}), 400
+
+    nombre = str(data.get("name", "")).strip()
+    fecha_compra = str(data.get("buy_date", "")).strip()
+    fecha_venta = str(data.get("sell_date", "")).strip()
+    try:
+        precio_compra = float(data.get("buy_price"))
+        precio_venta = float(data.get("sell_price"))
+        cantidad = int(data.get("quantity", 1))
+        datetime.strptime(fecha_compra, "%Y-%m-%d")
+        datetime.strptime(fecha_venta, "%Y-%m-%d")
+        if (not math.isfinite(precio_compra) or not math.isfinite(precio_venta)
+                or precio_compra < 0 or precio_venta < 0 or cantidad < 1):
+            raise ValueError
+        if fecha_venta < fecha_compra:
+            return jsonify({"ok": False, "error": "La fecha de venta no puede ser anterior a la compra"}), 400
+    except (TypeError, ValueError, OverflowError):
+        return jsonify({"ok": False, "error": "Revisá las fechas, precios y cantidad"}), 400
+
+    if not nombre or len(nombre) > 200:
+        return jsonify({"ok": False, "error": "Ingresá un nombre de skin válido"}), 400
+
+    venta = {
+        "id": str(data.get("id") or secrets.token_hex(8)),
+        "name": nombre,
+        "buy_date": fecha_compra,
+        "buy_price": round(precio_compra, 2),
+        "sell_date": fecha_venta,
+        "sell_price": round(precio_venta, 2),
+        "quantity": cantidad,
+        "profit": round((precio_venta - precio_compra) * cantidad, 2),
+        "created_at": datetime.now(ZONA_ARG).isoformat()
+    }
+    with lock:
+        registro_ventas.append(venta)
+    _guardar_datos_portafolio()
+    return jsonify({"ok": True, "item": venta})
+
+
+@app.route("/api/ventas/<item_id>", methods=["DELETE"])
+def api_ventas_eliminar(item_id):
+    global registro_ventas
+    with lock:
+        antes = len(registro_ventas)
+        registro_ventas = [
+            x for x in registro_ventas
+            if not isinstance(x, dict) or str(x.get("id")) != item_id
+        ]
+        eliminado = len(registro_ventas) < antes
+    if not eliminado:
+        return jsonify({"ok": False, "error": "Venta no encontrada"}), 404
+    _guardar_datos_portafolio()
+    return jsonify({"ok": True})
+
+
 @app.route("/")
 def home():
     return render_template("dashboard.html")
@@ -3275,218 +3477,6 @@ def api_pausar_skin():
     ).start()
 
     return jsonify({"ok": True, "name": nombre, "paused": pausada})
-
-
-# ==========================================================
-# CARTERA VIRTUAL DE INVERSIONES
-# ==========================================================
-
-CARTERA_COMISION_STEAM = 0.130434782608695
-
-def _cartera_calcular():
-    """Calcula inventario por costo promedio ponderado y resultados netos de comisión Steam."""
-    movimientos = sorted(
-        [m for m in cartera_virtual if isinstance(m, dict)],
-        key=lambda m: (str(m.get("fecha", "")), float(m.get("timestamp", 0) or 0))
-    )
-    posiciones = {}
-    movimientos_salida = []
-    pnl_realizado_total = 0.0
-
-    for mov in movimientos:
-        tipo = mov.get("tipo")
-        skin = str(mov.get("skin", "")).strip()
-        try:
-            qty = int(mov.get("cantidad", 0))
-            unit = float(mov.get("precio_unitario", 0))
-            fees = float(mov.get("comisiones", 0))
-        except (TypeError, ValueError):
-            continue
-        if not skin or qty <= 0 or unit < 0 or fees < 0:
-            continue
-
-        pos = posiciones.setdefault(skin, {
-            "skin": skin, "cantidad": 0, "costo_total": 0.0,
-            "costo_promedio": 0.0, "compras": 0, "ventas": 0,
-            "pnl_realizado": 0.0, "fees_totales": 0.0,
-        })
-        pos["fees_totales"] += fees
-        if tipo == "compra":
-            costo = qty * unit + fees
-            pos["cantidad"] += qty
-            pos["costo_total"] += costo
-            pos["compras"] += qty
-            pos["costo_promedio"] = (
-                pos["costo_total"] / pos["cantidad"] if pos["cantidad"] else 0.0
-            )
-            pnl = 0.0
-        elif tipo == "venta":
-            # Las ventas deben haber sido validadas contra el inventario disponible.
-            if qty > pos["cantidad"]:
-                # Protege el cálculo si se encuentra un estado antiguo inconsistente.
-                qty = pos["cantidad"]
-            costo_base = pos["costo_promedio"] * qty
-            ingreso_bruto = qty * unit
-            # Si el usuario cargó el importe que ya recibió (neto), no volver a descontar Steam.
-            comision_steam = 0.0 if mov.get("precio_ya_neto") else ingreso_bruto * CARTERA_COMISION_STEAM
-            ingreso_neto = ingreso_bruto - comision_steam - fees
-            pnl = ingreso_neto - costo_base
-            pos["cantidad"] -= qty
-            pos["costo_total"] = max(0.0, pos["costo_total"] - costo_base)
-            pos["ventas"] += qty
-            pos["pnl_realizado"] += pnl
-            pos["costo_promedio"] = (
-                pos["costo_total"] / pos["cantidad"] if pos["cantidad"] else 0.0
-            )
-            pnl_realizado_total += pnl
-        else:
-            continue
-        movimientos_salida.append({**mov, "pnl_realizado_movimiento": round(pnl, 2)})
-
-    posiciones_salida = []
-    valor_mercado_total = 0.0
-    costo_inventario_total = 0.0
-    pnl_no_realizado_total = 0.0
-    for skin, pos in posiciones.items():
-        qty = int(pos["cantidad"])
-        cache = price_cache.get(skin, {}) if isinstance(price_cache, dict) else {}
-        precio_actual = cache.get("price") if isinstance(cache, dict) else None
-        try:
-            precio_actual = float(precio_actual) if precio_actual is not None else None
-            if precio_actual is not None and (not math.isfinite(precio_actual) or precio_actual < 0):
-                precio_actual = None
-        except (TypeError, ValueError):
-            precio_actual = None
-        valor_bruto = precio_actual * qty if precio_actual is not None else None
-        comision_venta_estimada = valor_bruto * CARTERA_COMISION_STEAM if valor_bruto is not None else None
-        valor = valor_bruto - comision_venta_estimada if valor_bruto is not None else None
-        costo = float(pos["costo_total"])
-        pnl_abierto = valor - costo if valor is not None else None
-        if qty > 0:
-            costo_inventario_total += costo
-            if valor is not None:
-                valor_mercado_total += valor
-                pnl_no_realizado_total += pnl_abierto
-        posiciones_salida.append({
-            **pos,
-            "cantidad": qty,
-            "costo_total": round(costo, 2),
-            "costo_promedio": round(float(pos["costo_promedio"]), 4),
-            "precio_actual": round(precio_actual, 4) if precio_actual is not None else None,
-            "valor_mercado_bruto": round(valor_bruto, 2) if valor_bruto is not None else None,
-            "comision_venta_estimada": round(comision_venta_estimada, 2) if comision_venta_estimada is not None else None,
-            "valor_mercado": round(valor, 2) if valor is not None else None,
-            "pnl_no_realizado": round(pnl_abierto, 2) if pnl_abierto is not None else None,
-            "timestamp_precio": cache.get("timestamp") if isinstance(cache, dict) else None,
-        })
-
-    posiciones_salida.sort(key=lambda p: (p["cantidad"] <= 0, p["skin"].lower()))
-    posiciones_activas = [p for p in posiciones_salida if p["cantidad"] > 0]
-    return {
-        "ok": True,
-        "moneda": "USD",
-        "resumen": {
-            "skins_en_cartera": len(posiciones_activas),
-            "unidades": sum(p["cantidad"] for p in posiciones_activas),
-            "costo_inventario": round(costo_inventario_total, 2),
-            "valor_mercado_con_precio": round(valor_mercado_total, 2),
-            "comision_steam_venta_pct": round(CARTERA_COMISION_STEAM * 100, 10),
-            "pnl_no_realizado_con_precio": round(pnl_no_realizado_total, 2),
-            "pnl_realizado": round(pnl_realizado_total, 2),
-            "pnl_total_con_precio": round(pnl_realizado_total + pnl_no_realizado_total, 2),
-            "movimientos": len(movimientos_salida),
-        },
-        "posiciones": posiciones_salida,
-        "movimientos": sorted(movimientos_salida, key=lambda m: (str(m.get("fecha", "")), float(m.get("timestamp", 0) or 0)), reverse=True),
-        "timestamp": time.time(),
-    }
-
-
-@app.route("/api/cartera", methods=["GET", "POST", "DELETE"])
-def api_cartera():
-    global cartera_virtual
-    if request.method == "DELETE":
-        datos = request.get_json(silent=True) or {}
-        movimiento_id = str(datos.get("id", "")).strip()
-        if not movimiento_id:
-            return jsonify({"ok": False, "error": "Falta el identificador del movimiento."}), 400
-        with CARTERA_LOCK:
-            indice = next((i for i, m in enumerate(cartera_virtual)
-                           if isinstance(m, dict) and str(m.get("id", "")) == movimiento_id), None)
-            if indice is None:
-                return jsonify({"ok": False, "error": "No se encontró ese movimiento. Actualizá la cartera e intentá de nuevo."}), 404
-            eliminado = cartera_virtual.pop(indice)
-            guardado = guardar_estado(forzar=True)
-            if guardado is False:
-                cartera_virtual.insert(indice, eliminado)
-                guardar_estado(forzar=True)
-                return jsonify({"ok": False, "error": "No se pudo guardar el borrado en GitHub; el movimiento se restauró."}), 503
-            return jsonify({"ok": True, "mensaje": "Movimiento eliminado.", "cartera": _cartera_calcular()})
-    if request.method == "GET":
-        with CARTERA_LOCK:
-            return jsonify(_cartera_calcular())
-
-    datos = request.get_json(silent=True)
-    if not isinstance(datos, dict):
-        return jsonify({"ok": False, "error": "Solicitud inválida."}), 400
-
-    tipo = str(datos.get("tipo", "")).strip().lower()
-    skin = str(datos.get("skin", "")).strip()
-    try:
-        cantidad = int(datos.get("cantidad", 0))
-        precio_unitario = float(datos.get("precio_unitario", -1))
-        comisiones = float(datos.get("comisiones", 0))
-    except (TypeError, ValueError, OverflowError):
-        return jsonify({"ok": False, "error": "Cantidad, precio o comisiones inválidos."}), 400
-
-    fecha = str(datos.get("fecha", "")).strip() or datetime.now(ZONA_ARG).date().isoformat()
-    notas = str(datos.get("notas", "")).strip()[:1000]
-    if tipo not in ("compra", "venta"):
-        return jsonify({"ok": False, "error": "El tipo debe ser compra o venta."}), 400
-    if not skin or len(skin) > 250:
-        return jsonify({"ok": False, "error": "Indicá el nombre de la skin (máximo 250 caracteres)."}), 400
-    if cantidad < 1 or cantidad > 10000:
-        return jsonify({"ok": False, "error": "La cantidad debe estar entre 1 y 10000."}), 400
-    if not math.isfinite(precio_unitario) or precio_unitario < 0 or precio_unitario > 100000000:
-        return jsonify({"ok": False, "error": "El precio unitario debe ser un número válido no negativo."}), 400
-    if not math.isfinite(comisiones) or comisiones < 0 or comisiones > 100000000:
-        return jsonify({"ok": False, "error": "Las comisiones deben ser un número válido no negativo."}), 400
-    try:
-        datetime.strptime(fecha, "%Y-%m-%d")
-    except ValueError:
-        return jsonify({"ok": False, "error": "La fecha debe tener formato AAAA-MM-DD."}), 400
-
-    with CARTERA_LOCK:
-        actual = _cartera_calcular()
-        if tipo == "venta":
-            posicion = next((p for p in actual["posiciones"] if p["skin"] == skin), None)
-            disponible = int(posicion["cantidad"]) if posicion else 0
-            if cantidad > disponible:
-                return jsonify({"ok": False, "error": f"No hay unidades suficientes para vender. Disponibles: {disponible}."}), 400
-
-        movimiento = {
-            "id": secrets.token_hex(8),
-            "tipo": tipo,
-            "skin": skin,
-            "cantidad": cantidad,
-            "precio_unitario": round(precio_unitario, 4),
-            "comisiones": round(comisiones, 4),
-            "precio_ya_neto": bool(datos.get("precio_ya_neto", False)) if tipo == "venta" else False,
-            "fecha": fecha,
-            "notas": notas,
-            "timestamp": time.time(),
-        }
-        cartera_virtual.append(movimiento)
-        guardado = guardar_estado(forzar=True)
-        if guardado is False:
-            cartera_virtual.pop()
-            # Mantener también el archivo local alineado con el estado previo.
-            # Si GitHub sigue fallando, se deja constancia en los logs.
-            guardar_estado(forzar=True)
-            return jsonify({"ok": False, "error": "No se pudo confirmar el guardado en GitHub. El movimiento no se confirmó; revisá los logs."}), 503
-        resultado = _cartera_calcular()
-
-    return jsonify({"ok": True, "mensaje": "Movimiento registrado.", "cartera": resultado}), 201
 
 
 @app.route("/api/notificaciones")
