@@ -8,6 +8,155 @@
 <title>Steam Market Radar</title>
 
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+/* =========================================================
+   INVENTARIO Y VENTAS
+========================================================= */
+function moneyPortfolio(value) {
+    const n = Number(value);
+    return Number.isFinite(n) ? n.toLocaleString("en-US", {style:"currency", currency:"USD"}) : "—";
+}
+function escapePortfolio(value) {
+    return String(value ?? "").replace(/[&<>"']/g, ch => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[ch]));
+}
+async function portfolioRequest(url, options = {}) {
+    const response = await fetch(url, {
+        headers: {"Content-Type":"application/json"},
+        ...options
+    });
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok || data.ok === false) throw new Error(data.error || `Error HTTP ${response.status}`);
+    return data;
+}
+async function loadInventory() {
+    const tbody = document.getElementById("inventoryRows");
+    if (!tbody) return;
+    try {
+        const data = await portfolioRequest("/api/inventario");
+        const items = data.items || [];
+        document.getElementById("invTotal").textContent = items.length;
+        document.getElementById("invUnits").textContent = items.reduce((sum,x)=>sum+(Number(x.quantity)||0),0);
+        document.getElementById("invCost").textContent = moneyPortfolio(items.reduce((sum,x)=>sum+(x.cost == null ? 0 : Number(x.cost)||0)*(Number(x.quantity)||0),0));
+        tbody.innerHTML = items.length ? items.map(x => `<tr>
+            <td class="skin-name">${escapePortfolio(x.name)}</td>
+            <td>${Number(x.quantity)||1}</td>
+            <td>${x.cost == null ? "—" : moneyPortfolio(x.cost)}</td>
+            <td>${x.cost == null ? "—" : moneyPortfolio(Number(x.cost)*(Number(x.quantity)||1))}</td>
+            <td>${escapePortfolio(x.notes || "—")}</td>
+            <td><div class="inventory-sale-box">
+                <label class="sold-check"><input type="checkbox" onchange="toggleInventorySale('${escapePortfolio(x.id)}', this.checked)"> ¿La vendiste?</label>
+                <div id="sellFields-${escapePortfolio(x.id)}" class="inventory-sale-fields" hidden>
+                    <label>Precio de venta (USD)<input id="sellPrice-${escapePortfolio(x.id)}" type="number" min="0" step="0.01" placeholder="Ej. 185.00"></label>
+                    <label>Fecha de venta<input id="sellDate-${escapePortfolio(x.id)}" type="date" value="${new Date().getFullYear()}-${String(new Date().getMonth()+1).padStart(2,'0')}-${String(new Date().getDate()).padStart(2,'0')}"></label>
+                    <label>Precio de compra (USD)<input id="buyPrice-${escapePortfolio(x.id)}" type="number" min="0" step="0.01" value="${x.cost == null ? "" : Number(x.cost)}" placeholder="Necesario para calcular ganancia"></label>
+                    <label>Cantidad vendida<input id="sellQty-${escapePortfolio(x.id)}" type="number" min="1" max="${Number(x.quantity)||1}" step="1" value="${Number(x.quantity)||1}"></label>
+                    <button class="button" type="button" onclick="sellInventory('${escapePortfolio(x.id)}')">Confirmar venta</button>
+                </div>
+                <button class="portfolio-delete" onclick="deleteInventory('${escapePortfolio(x.id)}')">Eliminar</button>
+            </div></td>
+        </tr>`).join("") : '<tr><td colspan="6" class="empty">Todavía no agregaste skins al inventario.</td></tr>';
+    } catch (e) {
+        tbody.innerHTML = `<tr><td colspan="6" class="empty">${escapePortfolio(e.message)}</td></tr>`;
+    }
+}
+function toggleInventorySale(id, checked) {
+    const fields = document.getElementById(`sellFields-${id}`);
+    if (fields) fields.hidden = !checked;
+}
+async function sellInventory(id) {
+    const sellPrice = document.getElementById(`sellPrice-${id}`)?.value;
+    const buyPrice = document.getElementById(`buyPrice-${id}`)?.value;
+    const sellDate = document.getElementById(`sellDate-${id}`)?.value;
+    const quantity = document.getElementById(`sellQty-${id}`)?.value;
+    if (sellPrice === "" || sellPrice == null || buyPrice === "" || buyPrice == null || !sellDate) {
+        alert("Completá el precio de compra, el precio de venta y la fecha de venta.");
+        return;
+    }
+    if (!confirm("¿Confirmás la venta? Se registrará automáticamente en Ventas y se descontará del inventario.")) return;
+    try {
+        await portfolioRequest(`/api/inventario/${encodeURIComponent(id)}/vender`, {
+            method:"POST", body:JSON.stringify({sell_price:sellPrice, buy_price:buyPrice, sell_date:sellDate, quantity:quantity})
+        });
+        await Promise.all([loadInventory(), loadSales()]);
+        alert("Venta registrada. Ya aparece en la solapa Ventas.");
+    } catch(e) { alert(e.message); }
+}
+async function deleteInventory(id) {
+    if (!confirm("¿Eliminar esta skin del inventario?")) return;
+    try { await portfolioRequest(`/api/inventario/${encodeURIComponent(id)}`, {method:"DELETE"}); loadInventory(); }
+    catch(e) { alert(e.message); }
+}
+document.getElementById("inventoryForm")?.addEventListener("submit", async event => {
+    event.preventDefault();
+    const button = event.currentTarget.querySelector('button[type="submit"]');
+    button.disabled = true;
+    try {
+        await portfolioRequest("/api/inventario", {method:"POST", body:JSON.stringify({
+            name:document.getElementById("invName").value.trim(),
+            quantity:document.getElementById("invQuantity").value,
+            cost:document.getElementById("invUnitCost").value || null,
+            buy_date:document.getElementById("invBuyDate").value || null,
+            notes:document.getElementById("invNotes").value.trim()
+        })});
+        event.currentTarget.reset();
+        document.getElementById("invQuantity").value = 1;
+        loadInventory();
+    } catch(e) { alert(e.message); }
+    finally { button.disabled = false; }
+});
+async function loadSales() {
+    const tbody = document.getElementById("salesRows");
+    if (!tbody) return;
+    try {
+        const data = await portfolioRequest("/api/ventas");
+        const items = data.items || [];
+        const invested = items.reduce((s,x)=>s+(Number(x.buy_price)||0)*(Number(x.quantity)||1),0);
+        const revenue = items.reduce((s,x)=>s+(Number(x.sell_price)||0)*(Number(x.quantity)||1),0);
+        const profit = items.reduce((s,x)=>s+(Number(x.profit)||0),0);
+        document.getElementById("salesTotal").textContent = items.length;
+        document.getElementById("salesInvested").textContent = moneyPortfolio(invested);
+        document.getElementById("salesRevenue").textContent = moneyPortfolio(revenue);
+        const profitEl = document.getElementById("salesProfit");
+        profitEl.textContent = moneyPortfolio(profit);
+        profitEl.classList.toggle("good", profit >= 0);
+        profitEl.classList.toggle("danger", profit < 0);
+        tbody.innerHTML = items.length ? [...items].sort((a,b)=>(b.sell_date||"").localeCompare(a.sell_date||"")).map(x => `<tr>
+            <td class="skin-name">${escapePortfolio(x.name)}</td><td>${Number(x.quantity)||1}</td>
+            <td>${escapePortfolio(x.buy_date)}</td><td class="price">${moneyPortfolio(x.buy_price)}</td>
+            <td>${escapePortfolio(x.sell_date)}</td><td class="price">${moneyPortfolio(x.sell_price)}</td>
+            <td class="${Number(x.profit)>=0?'good':'danger'}">${moneyPortfolio(x.profit)}</td>
+            <td><button class="portfolio-delete" onclick="deleteSale('${escapePortfolio(x.id)}')">Eliminar</button></td>
+        </tr>`).join("") : '<tr><td colspan="8" class="empty">Todavía no registraste ventas.</td></tr>';
+    } catch(e) {
+        tbody.innerHTML = `<tr><td colspan="8" class="empty">${escapePortfolio(e.message)}</td></tr>`;
+    }
+}
+async function deleteSale(id) {
+    if (!confirm("¿Eliminar este registro de venta?")) return;
+    try { await portfolioRequest(`/api/ventas/${encodeURIComponent(id)}`, {method:"DELETE"}); loadSales(); }
+    catch(e) { alert(e.message); }
+}
+document.getElementById("salesForm")?.addEventListener("submit", async event => {
+    event.preventDefault();
+    const button = event.currentTarget.querySelector('button[type="submit"]');
+    button.disabled = true;
+    try {
+        await portfolioRequest("/api/ventas", {method:"POST", body:JSON.stringify({
+            name:document.getElementById("saleName").value.trim(),
+            quantity:document.getElementById("saleQuantity").value,
+            buy_date:document.getElementById("saleBuyDate").value,
+            buy_price:document.getElementById("saleBuyPrice").value,
+            sell_date:document.getElementById("saleSellDate").value,
+            sell_price:document.getElementById("saleSellPrice").value
+        })});
+        event.currentTarget.reset();
+        document.getElementById("saleQuantity").value = 1;
+        loadSales();
+    } catch(e) { alert(e.message); }
+    finally { button.disabled = false; }
+});
+
+</script>
 
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -1643,34 +1792,33 @@ select:focus {
 }
 
 
-/* CARTERA VIRTUAL */
-.portfolio-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px;margin:20px 0}
-.portfolio-kpi{background:var(--panel);border:1px solid var(--border);border-radius:14px;padding:18px;min-width:0}
-.portfolio-kpi .k-label{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.8px}
-.portfolio-kpi .k-value{font-family:'Space Grotesk',sans-serif;font-size:24px;font-weight:700;margin-top:10px;overflow-wrap:anywhere}
-.portfolio-kpi .k-note{font-size:11px;color:var(--muted);margin-top:7px}
-.portfolio-layout{display:grid;grid-template-columns:minmax(300px, .85fr) minmax(0,1.6fr);gap:16px;align-items:start}
-.portfolio-panel{background:var(--panel);border:1px solid var(--border);border-radius:16px;padding:20px;min-width:0}
-.portfolio-panel h3{margin:0 0 7px;font-size:16px}
-.portfolio-muted{color:var(--muted);font-size:12px;line-height:1.5}
-.portfolio-form{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:18px}
-.portfolio-field{display:flex;flex-direction:column;gap:6px;min-width:0}
-.portfolio-field.full{grid-column:1/-1}
-.portfolio-field label{font-size:12px;color:var(--muted)}
-.portfolio-field input,.portfolio-field select,.portfolio-field textarea{width:100%;min-width:0;border:1px solid var(--border);border-radius:9px;background:var(--panel3);color:var(--text);padding:11px;font:inherit;font-size:13px}
-.portfolio-field textarea{min-height:75px;resize:vertical}
-.portfolio-action{border:0;border-radius:9px;padding:12px 14px;background:var(--green);color:#062018;font-weight:800}
-.portfolio-action.secondary{background:var(--panel2);color:var(--text);border:1px solid var(--border)}
-.portfolio-table-wrap{width:100%;overflow:auto}
-.portfolio-table{width:100%;border-collapse:collapse;font-size:12px;white-space:nowrap}
-.portfolio-table th,.portfolio-table td{padding:11px 10px;text-align:left;border-bottom:1px solid var(--border)}
-.portfolio-table th{color:var(--muted);font-weight:700;font-size:10px;text-transform:uppercase;letter-spacing:.6px}
-.portfolio-positive{color:var(--green)!important}.portfolio-negative{color:var(--red)!important}
-.portfolio-empty{padding:22px;text-align:center;color:var(--muted);font-size:13px}
-.portfolio-toolbar{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin:18px 0 10px}
-.portfolio-badge{display:inline-block;padding:4px 7px;border-radius:6px;background:var(--panel2);font-size:10px}
-@media(max-width:1100px){.portfolio-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.portfolio-layout{grid-template-columns:1fr}}
-@media(max-width:560px){.portfolio-grid{grid-template-columns:1fr 1fr}.portfolio-kpi .k-value{font-size:19px}.portfolio-panel{padding:14px}.portfolio-form{grid-template-columns:1fr}.portfolio-field.full{grid-column:auto}}
+/* Inventario y ventas */
+.portfolio-form {
+    display:grid; grid-template-columns:repeat(3,minmax(0,1fr));
+    gap:14px; align-items:end;
+}
+.portfolio-form label { display:flex; flex-direction:column; gap:7px; color:var(--muted); font-size:11px; font-weight:600; }
+.portfolio-form input {
+    width:100%; min-width:0; background:#0b131e; color:#e8edf3;
+    border:1px solid #29394b; border-radius:9px; padding:11px 12px;
+    font:inherit; font-size:12px; outline:none;
+}
+.portfolio-form input:focus { border-color:var(--blue); }
+.portfolio-form button { min-height:39px; }
+.inventory-sale-box { display:flex; flex-direction:column; gap:8px; min-width:230px; }
+.sold-check { display:flex; align-items:center; gap:7px; color:var(--text); font-size:12px; font-weight:700; cursor:pointer; }
+.sold-check input { accent-color:var(--blue); width:15px; height:15px; }
+.inventory-sale-fields { display:grid; gap:7px; padding:10px; border:1px solid var(--border); border-radius:10px; background:var(--panel3); }
+.inventory-sale-fields[hidden] { display:none; }
+.inventory-sale-fields label { display:flex; flex-direction:column; gap:4px; color:var(--muted); font-size:10px; }
+.inventory-sale-fields input { width:100%; min-width:0; box-sizing:border-box; padding:8px; color:var(--text); background:var(--panel); border:1px solid var(--border); border-radius:7px; }
+.inventory-sale-fields .button { padding:8px 10px; font-size:11px; }
+.portfolio-delete {
+    background:rgba(255,104,125,.08); border:1px solid rgba(255,104,125,.22);
+    color:var(--red); border-radius:7px; padding:7px 10px; font-size:10px; font-weight:700;
+}
+@media(max-width:1000px) { .portfolio-form { grid-template-columns:repeat(2,minmax(0,1fr)); } }
+@media(max-width:600px) { .portfolio-form { grid-template-columns:1fr; } }
 
 </style>
 
@@ -1723,6 +1871,18 @@ select:focus {
         </button>
 
         <button class="tab"
+                onclick="showTab('inventario',this)">
+            <span class="nav-icon">▦</span>
+            Inventario
+        </button>
+
+        <button class="tab"
+                onclick="showTab('ventas',this)">
+            <span class="nav-icon">⇄</span>
+            Ventas
+        </button>
+
+        <button class="tab"
                 onclick="showTab('radar',this)">
             <span class="nav-icon">⌁</span>
             Radar
@@ -1750,12 +1910,6 @@ select:focus {
                 onclick="showTab('proxies',this)">
             <span class="nav-icon">◇</span>
             Proxies
-        </button>
-
-        <button class="tab"
-                onclick="showTab('cartera',this)">
-            <span class="nav-icon">＄</span>
-            Cartera virtual
         </button>
 
         <button class="tab"
@@ -3004,60 +3158,75 @@ select:focus {
         </section>
 
 <!-- =====================================================
-     CARTERA VIRTUAL DE INVERSIONES
+     CONFIGURACIÓN
 ====================================================== -->
-<section id="cartera" class="section">
+
+
+<section id="inventario" class="section">
     <div class="page-heading">
         <div>
-            <div class="eyebrow">PORTFOLIO TRACKING</div>
-            <h2>Cartera virtual</h2>
-            <div class="description">Registrá compras y ventas reales o simuladas, controlá el inventario y seguí rentabilidad realizada y estimada.</div>
+            <div class="eyebrow">PORTAFOLIO PERSONAL</div>
+            <h2>Inventario</h2>
+            <div class="description">Registrá las skins que tenés actualmente. Los datos se guardan con el estado del bot.</div>
         </div>
-        <button class="portfolio-action secondary" type="button" onclick="cargarCartera()">↻ Actualizar</button>
     </div>
-
-    <div class="portfolio-grid">
-        <div class="portfolio-kpi"><div class="k-label">Costo del inventario</div><div class="k-value" id="carteraCosto">$0.00</div><div class="k-note">Costo promedio ponderado, incluyendo comisiones de compra.</div></div>
-        <div class="portfolio-kpi"><div class="k-label">Valor de mercado estimado</div><div class="k-value" id="carteraValor">—</div><div class="k-note">Solo suma skins con precio reciente en caché.</div></div>
-        <div class="portfolio-kpi"><div class="k-label">Resultado no realizado</div><div class="k-value" id="carteraAbierto">—</div><div class="k-note">Valor neto estimado después de descontar la comisión Steam del 13,043478% al vender.</div></div>
-        <div class="portfolio-kpi"><div class="k-label">Resultado realizado</div><div class="k-value" id="carteraRealizado">$0.00</div><div class="k-note">Ventas netas menos costo promedio de las unidades vendidas.</div></div>
+    <div class="cards">
+        <div class="card"><div class="card-title">Skins registradas</div><div class="card-value" id="invTotal">0</div><div class="card-foot">Tipos de skins en inventario</div></div>
+        <div class="card"><div class="card-title">Unidades</div><div class="card-value" id="invUnits">0</div><div class="card-foot">Cantidad total registrada</div></div>
+        <div class="card"><div class="card-title">Costo registrado</div><div class="card-value" id="invCost">$0.00</div><div class="card-foot">Solo suma los costos informados</div></div>
     </div>
-    <div class="portfolio-muted" id="carteraAviso" style="margin:-4px 0 18px">Los importes están expresados en USD. El resultado estimado no garantiza que puedas vender a ese precio.</div>
-
-    <div class="portfolio-layout">
-        <div class="portfolio-panel">
-            <h3>Registrar movimiento</h3>
-            <div class="portfolio-muted">Cargá cada compra o venta. Las ventas no pueden superar las unidades disponibles. En las ventas se descuenta automáticamente el 13,043478% de comisión Steam; el campo de comisiones agrega otros costos si los hubiera.</div>
-            <form id="carteraForm" class="portfolio-form" onsubmit="registrarMovimientoCartera(event)">
-                <div class="portfolio-field"><label for="carteraTipo">Movimiento</label><select id="carteraTipo" required onchange="actualizarFormularioCartera()"><option value="compra">Compra</option><option value="venta">Venta</option></select></div>
-                <div class="portfolio-field"><label for="carteraFecha">Fecha</label><input id="carteraFecha" type="date" required></div>
-                <div class="portfolio-field full"><label for="carteraSkin">Skin</label><input id="carteraSkin" list="carteraSkinsList" maxlength="250" placeholder="Ej.: AK-47 | Redline (Field-Tested)" required><datalist id="carteraSkinsList"></datalist></div>
-                <div class="portfolio-field"><label for="carteraCantidad">Cantidad</label><input id="carteraCantidad" type="number" min="1" max="10000" step="1" value="1" required></div>
-                <div class="portfolio-field"><label for="carteraPrecio">Precio unitario (USD)</label><input id="carteraPrecio" type="number" min="0" max="100000000" step="0.0001" placeholder="0.00" required></div>
-                <div class="portfolio-field"><label for="carteraComisiones">Otros costos (USD)</label><input id="carteraComisiones" type="number" min="0" max="100000000" step="0.0001" value="0" required></div>
-                <div class="portfolio-field full" id="carteraNetoWrap" style="display:none"><label style="display:flex;gap:8px;align-items:center"><input id="carteraPrecioYaNeto" type="checkbox"> El precio de venta ya es neto (Steam ya descontó su comisión)</label></div>
-                <div class="portfolio-field"><label>Total estimado</label><input id="carteraTotalPreview" value="$0.00" readonly></div>
-                <div class="portfolio-field full"><label for="carteraNotas">Notas (opcional)</label><textarea id="carteraNotas" maxlength="1000" placeholder="Float, pattern, motivo de compra, precio objetivo, enlace, etc."></textarea></div>
-                <div class="portfolio-field full"><button id="carteraSubmit" class="portfolio-action" type="submit">＋ Registrar compra</button><div id="carteraFormMsg" class="portfolio-muted" role="status"></div></div>
+    <div class="panel">
+        <div class="panel-header"><div><div class="panel-title">Agregar skin al inventario</div><div class="panel-sub">Podés registrar cantidad, costo unitario opcional y notas.</div></div></div>
+        <div class="panel-body">
+            <form id="inventoryForm" class="portfolio-form">
+                <label>Nombre de la skin<input id="invName" required maxlength="200" placeholder="AK-47 | Asiimov (Field-Tested)"></label>
+                <label>Cantidad<input id="invQuantity" type="number" min="1" step="1" value="1" required></label>
+                <label>Costo unitario (USD)<input id="invUnitCost" type="number" min="0" step="0.01" placeholder="Opcional"></label>
+                <label>Fecha de compra<input id="invBuyDate" type="date"></label>
+                <label>Notas<input id="invNotes" maxlength="500" placeholder="Sticker, float, etc. (opcional)"></label>
+                <button class="button" type="submit">＋ Agregar al inventario</button>
             </form>
         </div>
-
-        <div class="portfolio-panel">
-            <h3>Posiciones abiertas</h3>
-            <div class="portfolio-muted">El precio de mercado usa la última cotización que el bot tenga en caché. Si no existe, se muestra como no disponible.</div>
-            <div class="portfolio-table-wrap" style="margin-top:14px"><table class="portfolio-table"><thead><tr><th>Skin</th><th>Unid.</th><th>Costo prom.</th><th>Costo total</th><th>Precio actual</th><th>Valor estimado</th><th>P/L abierto</th></tr></thead><tbody id="carteraPosiciones"><tr><td colspan="7" class="portfolio-empty">Cargando cartera…</td></tr></tbody></table></div>
-        </div>
     </div>
-
-    <div class="portfolio-panel" style="margin-top:16px">
-        <div class="portfolio-toolbar"><div><h3 style="margin:0">Historial de movimientos</h3><div class="portfolio-muted">Registro cronológico de compras y ventas, con resultado realizado por venta.</div></div><span class="portfolio-badge" id="carteraMovCount">0 movimientos</span></div>
-        <div class="portfolio-table-wrap"><table class="portfolio-table"><thead><tr><th>Fecha</th><th>Tipo</th><th>Skin</th><th>Cant.</th><th>Precio unit.</th><th>Comisiones</th><th>Total neto/bruto</th><th>Resultado realizado</th><th>Notas</th><th>Acción</th></tr></thead><tbody id="carteraMovimientos"><tr><td colspan="10" class="portfolio-empty">Todavía no hay movimientos.</td></tr></tbody></table></div>
+    <div class="table-container">
+        <table><thead><tr><th>Skin</th><th>Cantidad</th><th>Costo unitario</th><th>Costo total</th><th>Notas</th><th>¿La vendiste? / Venta</th></tr></thead>
+        <tbody id="inventoryRows"><tr><td colspan="6" class="empty">Cargando inventario…</td></tr></tbody></table>
     </div>
 </section>
 
-<!-- =====================================================
-     CONFIGURACIÓN
-====================================================== -->
+<section id="ventas" class="section">
+    <div class="page-heading">
+        <div>
+            <div class="eyebrow">RESULTADOS DE TRADING</div>
+            <h2>Ventas</h2>
+            <div class="description">Registrá cada operación con fecha y precio de compra y venta. La ganancia se calcula automáticamente antes de comisiones.</div>
+        </div>
+    </div>
+    <div class="cards">
+        <div class="card"><div class="card-title">Operaciones cerradas</div><div class="card-value" id="salesTotal">0</div><div class="card-foot">Ventas registradas</div></div>
+        <div class="card"><div class="card-title">Invertido</div><div class="card-value" id="salesInvested">$0.00</div><div class="card-foot">Compra × cantidad</div></div>
+        <div class="card"><div class="card-title">Ingresos por ventas</div><div class="card-value" id="salesRevenue">$0.00</div><div class="card-foot">Venta × cantidad</div></div>
+        <div class="card"><div class="card-title">Ganancia / pérdida</div><div class="card-value" id="salesProfit">$0.00</div><div class="card-foot">Sin descontar comisiones</div></div>
+    </div>
+    <div class="panel">
+        <div class="panel-header"><div><div class="panel-title">Registrar operación</div><div class="panel-sub">Una fila por operación de compra y venta completada.</div></div></div>
+        <div class="panel-body">
+            <form id="salesForm" class="portfolio-form">
+                <label>Nombre de la skin<input id="saleName" required maxlength="200" placeholder="AWP | Asiimov (Field-Tested)"></label>
+                <label>Cantidad<input id="saleQuantity" type="number" min="1" step="1" value="1" required></label>
+                <label>Fecha de compra<input id="saleBuyDate" type="date" required></label>
+                <label>Precio de compra unitario (USD)<input id="saleBuyPrice" type="number" min="0" step="0.01" required></label>
+                <label>Fecha de venta<input id="saleSellDate" type="date" required></label>
+                <label>Precio de venta unitario (USD)<input id="saleSellPrice" type="number" min="0" step="0.01" required></label>
+                <button class="button" type="submit">＋ Registrar venta</button>
+            </form>
+        </div>
+    </div>
+    <div class="table-container">
+        <table><thead><tr><th>Skin</th><th>Cant.</th><th>Compra</th><th>Precio compra</th><th>Venta</th><th>Precio venta</th><th>Resultado</th><th>Acción</th></tr></thead>
+        <tbody id="salesRows"><tr><td colspan="8" class="empty">Cargando ventas…</td></tr></tbody></table>
+    </div>
+</section>
 
 <section id="configuracion" class="section">
 
@@ -3540,15 +3709,6 @@ let proxiesData = [];
 let priceChart = null;
 let historyPeriod = 24;
 
-document.addEventListener("DOMContentLoaded", () => {
-    const dateInput = document.getElementById("carteraFecha");
-    if (dateInput) dateInput.value = fechaLocalISO();
-    ["carteraCantidad", "carteraPrecio", "carteraComisiones"].forEach(id => {
-        const el = document.getElementById(id);
-        if (el) el.addEventListener("input", actualizarPreviewCartera);
-    });
-});
-
 
 /* =========================================================
    TABS
@@ -3588,12 +3748,16 @@ function showTab(tabName, button) {
         loadHistory();
     }
 
-    if (tabName === "cartera") {
-        cargarCartera();
-    }
-
     if (tabName === "monitor") {
         loadMonitor();
+    }
+
+    if (tabName === "inventario") {
+        loadInventory();
+    }
+
+    if (tabName === "ventas") {
+        loadSales();
     }
 
     if (tabName === "notificadas") {
@@ -3630,136 +3794,6 @@ function money(value) {
     return "$" + Number(value).toFixed(2);
 }
 
-
-/* =========================================================
-   CARTERA VIRTUAL
-========================================================= */
-let carteraData = { posiciones: [], movimientos: [], resumen: {} };
-let carteraEnviando = false;
-
-function formatoCartera(value, dash = "—") {
-    if (value === null || value === undefined || value === "" || !Number.isFinite(Number(value))) return dash;
-    return "$" + Number(value).toLocaleString("en-US", {minimumFractionDigits:2, maximumFractionDigits:2});
-}
-function clasePnl(value) {
-    if (value === null || value === undefined || !Number.isFinite(Number(value))) return "";
-    return Number(value) > 0 ? "portfolio-positive" : Number(value) < 0 ? "portfolio-negative" : "";
-}
-function fechaLocalISO() {
-    const d = new Date();
-    return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`;
-}
-function actualizarPreviewCartera() {
-    const qty = Number(document.getElementById("carteraCantidad")?.value || 0);
-    const price = Number(document.getElementById("carteraPrecio")?.value || 0);
-    const fees = Number(document.getElementById("carteraComisiones")?.value || 0);
-    const tipo = document.getElementById("carteraTipo")?.value || "compra";
-    const yaNeto = document.getElementById("carteraPrecioYaNeto")?.checked || false;
-    const total = tipo === "compra" ? qty * price + fees : qty * price * (yaNeto ? 1 : (1 - 0.130434782608695)) - fees;
-    const el = document.getElementById("carteraTotalPreview");
-    if (el) el.value = formatoCartera(total);
-}
-function actualizarFormularioCartera() {
-    const tipo = document.getElementById("carteraTipo").value;
-    const btn = document.getElementById("carteraSubmit");
-    btn.textContent = tipo === "compra" ? "＋ Registrar compra" : "− Registrar venta";
-    btn.style.background = tipo === "compra" ? "var(--green)" : "var(--blue)";
-    const netoWrap = document.getElementById("carteraNetoWrap");
-    if (netoWrap) netoWrap.style.display = tipo === "venta" ? "" : "none";
-    actualizarPreviewCartera();
-}
-async function cargarCartera() {
-    try {
-        const response = await fetch("/api/cartera", { cache: "no-store" });
-        const data = await response.json();
-        if (!response.ok || !data.ok) throw new Error(data.error || "No se pudo cargar la cartera.");
-        carteraData = data;
-        renderCartera(data);
-    } catch (error) {
-        const msg = document.getElementById("carteraAviso");
-        if (msg) msg.textContent = "Error cargando cartera: " + error.message;
-    }
-}
-function renderCartera(data) {
-    const r = data.resumen || {};
-    document.getElementById("carteraCosto").textContent = formatoCartera(r.costo_inventario || 0);
-    document.getElementById("carteraValor").textContent = formatoCartera(r.valor_mercado_con_precio);
-    document.getElementById("carteraAbierto").textContent = formatoCartera(r.pnl_no_realizado_con_precio);
-    document.getElementById("carteraRealizado").textContent = formatoCartera(r.pnl_realizado || 0);
-    document.getElementById("carteraAbierto").className = "k-value " + clasePnl(r.pnl_no_realizado_con_precio);
-    document.getElementById("carteraRealizado").className = "k-value " + clasePnl(r.pnl_realizado);
-    document.getElementById("carteraAviso").textContent = `${r.skins_en_cartera || 0} skins en cartera · ${r.unidades || 0} unidades disponibles · ${r.movimientos || 0} movimientos. Resultado total estimado con cotizaciones disponibles: ${formatoCartera(r.pnl_total_con_precio)}. El P/L abierto ya descuenta la comisión Steam estimada del 13,043478%; no garantiza precio de ejecución.`;
-
-    const posiciones = (data.posiciones || []).filter(p => Number(p.cantidad) > 0);
-    const tbody = document.getElementById("carteraPosiciones");
-    tbody.innerHTML = posiciones.length ? posiciones.map(p => `<tr><td>${escapeHtml(p.skin)}</td><td>${p.cantidad}</td><td>${formatoCartera(p.costo_promedio)}</td><td>${formatoCartera(p.costo_total)}</td><td>${formatoCartera(p.precio_actual)}</td><td>${formatoCartera(p.valor_mercado)}</td><td class="${clasePnl(p.pnl_no_realizado)}">${formatoCartera(p.pnl_no_realizado)}</td></tr>`).join("") : `<tr><td colspan="7" class="portfolio-empty">No tenés posiciones abiertas. Registrá una compra para comenzar.</td></tr>`;
-
-    const movs = data.movimientos || [];
-    document.getElementById("carteraMovCount").textContent = `${movs.length} movimiento${movs.length === 1 ? "" : "s"}`;
-    document.getElementById("carteraMovimientos").innerHTML = movs.length ? movs.map(m => {
-        const bruto = Number(m.cantidad || 0) * Number(m.precio_unitario || 0);
-        const yaNeto = Boolean(m.precio_ya_neto);
-        const total = m.tipo === "compra" ? bruto + Number(m.comisiones || 0) : bruto * (yaNeto ? 1 : (1 - 0.130434782608695)) - Number(m.comisiones || 0);
-        const pnl = Number(m.pnl_realizado_movimiento || 0);
-        const tipoLabel = m.tipo === "compra" ? "COMPRA" : "VENTA";
-        const notaNeto = yaNeto ? ' <small>(precio neto)</small>' : "";
-        return `<tr><td>${escapeHtml(m.fecha || "—")}</td><td><span class="portfolio-badge">${tipoLabel}</span>${notaNeto}</td><td>${escapeHtml(m.skin || "")}</td><td>${m.cantidad}</td><td>${formatoCartera(m.precio_unitario)}</td><td>${formatoCartera(m.comisiones || 0)}</td><td>${formatoCartera(total)}</td><td class="${m.tipo === "venta" ? clasePnl(pnl) : ""}">${m.tipo === "venta" ? formatoCartera(pnl) : "—"}</td><td title="${escapeAttribute(m.notas || "")}">${escapeHtml(m.notas || "—")}</td><td><button type="button" class="portfolio-action secondary" onclick="eliminarMovimientoCartera('${escapeAttribute(m.id || "")}','${escapeAttribute(m.skin || "")}', '${tipoLabel}')" style="padding:6px 9px">Eliminar</button></td></tr>`;
-    }).join("") : `<tr><td colspan="10" class="portfolio-empty">Todavía no hay movimientos registrados.</td></tr>`;
-
-    const skins = new Set([...(skinsData || []).map(s => s.name), ...posiciones.map(p => p.skin)]);
-    document.getElementById("carteraSkinsList").innerHTML = [...skins].filter(Boolean).sort().map(s => `<option value="${escapeAttribute(s)}"></option>`).join("");
-    actualizarFormularioCartera();
-}
-async function registrarMovimientoCartera(event) {
-    event.preventDefault();
-    if (carteraEnviando) return;
-    const msg = document.getElementById("carteraFormMsg");
-    const btn = document.getElementById("carteraSubmit");
-    const payload = {
-        tipo: document.getElementById("carteraTipo").value,
-        fecha: document.getElementById("carteraFecha").value,
-        skin: document.getElementById("carteraSkin").value.trim(),
-        cantidad: Number(document.getElementById("carteraCantidad").value),
-        precio_unitario: Number(document.getElementById("carteraPrecio").value),
-        comisiones: Number(document.getElementById("carteraComisiones").value || 0),
-        precio_ya_neto: document.getElementById("carteraPrecioYaNeto").checked,
-        notas: document.getElementById("carteraNotas").value.trim()
-    };
-    carteraEnviando = true; btn.disabled = true; btn.textContent = "Guardando…";
-    msg.textContent = "Registrando movimiento y guardando el estado…";
-    try {
-        const response = await fetch("/api/cartera", {method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify(payload)});
-        const data = await response.json();
-        if (!response.ok || !data.ok) throw new Error(data.error || "No se pudo registrar el movimiento.");
-        renderCartera(data.cartera);
-        document.getElementById("carteraForm").reset();
-        document.getElementById("carteraFecha").value = fechaLocalISO();
-        document.getElementById("carteraCantidad").value = "1";
-        document.getElementById("carteraComisiones").value = "0";
-        document.getElementById("carteraPrecioYaNeto").checked = false;
-        msg.textContent = "Movimiento registrado y guardado.";
-        msg.className = "portfolio-muted portfolio-positive";
-    } catch (error) {
-        msg.textContent = error.message;
-        msg.className = "portfolio-muted portfolio-negative";
-    } finally {
-        carteraEnviando = false; btn.disabled = false; actualizarFormularioCartera();
-    }
-}
-
-async function eliminarMovimientoCartera(id, skin, tipo) {
-    if (!id) { alert("Este movimiento no tiene identificador. Actualizá la cartera para recargarlo y probá de nuevo."); return; }
-    const confirmado = confirm(`¿Eliminar este movimiento de ${tipo.toLowerCase()} de "${skin}"? Esto recalculará la cartera y no se puede deshacer.`);
-    if (!confirmado) return;
-    try {
-        const response = await fetch("/api/cartera", { method: "DELETE", headers: {"Content-Type": "application/json"}, body: JSON.stringify({id}) });
-        const data = await response.json();
-        if (!response.ok || !data.ok) throw new Error(data.error || "No se pudo eliminar el movimiento.");
-        carteraData = data.cartera; renderCartera(data.cartera);
-        const msg = document.getElementById("carteraFormMsg");
-        if (msg) { msg.textContent = "Movimiento eliminado y cartera recalculada."; msg.className = "portfolio-muted portfolio-positive"; }
-    } catch (error) { alert(error.message); }
-}
 
 /* =========================================================
    DIFERENCIA
