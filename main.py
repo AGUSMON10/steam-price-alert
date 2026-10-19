@@ -3273,8 +3273,10 @@ def api_pausar_skin():
 # CARTERA VIRTUAL DE INVERSIONES
 # ==========================================================
 
+CARTERA_COMISION_STEAM = 0.130434782608695
+
 def _cartera_calcular():
-    """Calcula inventario por costo promedio ponderado y resultados realizados."""
+    """Calcula inventario por costo promedio ponderado y resultados netos de comisión Steam."""
     movimientos = sorted(
         [m for m in cartera_virtual if isinstance(m, dict)],
         key=lambda m: (str(m.get("fecha", "")), float(m.get("timestamp", 0) or 0))
@@ -3316,7 +3318,9 @@ def _cartera_calcular():
                 # Protege el cálculo si se encuentra un estado antiguo inconsistente.
                 qty = pos["cantidad"]
             costo_base = pos["costo_promedio"] * qty
-            ingreso_neto = qty * unit - fees
+            ingreso_bruto = qty * unit
+            comision_steam = ingreso_bruto * CARTERA_COMISION_STEAM
+            ingreso_neto = ingreso_bruto - comision_steam - fees
             pnl = ingreso_neto - costo_base
             pos["cantidad"] -= qty
             pos["costo_total"] = max(0.0, pos["costo_total"] - costo_base)
@@ -3344,7 +3348,9 @@ def _cartera_calcular():
                 precio_actual = None
         except (TypeError, ValueError):
             precio_actual = None
-        valor = precio_actual * qty if precio_actual is not None else None
+        valor_bruto = precio_actual * qty if precio_actual is not None else None
+        comision_venta_estimada = valor_bruto * CARTERA_COMISION_STEAM if valor_bruto is not None else None
+        valor = valor_bruto - comision_venta_estimada if valor_bruto is not None else None
         costo = float(pos["costo_total"])
         pnl_abierto = valor - costo if valor is not None else None
         if qty > 0:
@@ -3358,6 +3364,8 @@ def _cartera_calcular():
             "costo_total": round(costo, 2),
             "costo_promedio": round(float(pos["costo_promedio"]), 4),
             "precio_actual": round(precio_actual, 4) if precio_actual is not None else None,
+            "valor_mercado_bruto": round(valor_bruto, 2) if valor_bruto is not None else None,
+            "comision_venta_estimada": round(comision_venta_estimada, 2) if comision_venta_estimada is not None else None,
             "valor_mercado": round(valor, 2) if valor is not None else None,
             "pnl_no_realizado": round(pnl_abierto, 2) if pnl_abierto is not None else None,
             "timestamp_precio": cache.get("timestamp") if isinstance(cache, dict) else None,
@@ -3373,6 +3381,7 @@ def _cartera_calcular():
             "unidades": sum(p["cantidad"] for p in posiciones_activas),
             "costo_inventario": round(costo_inventario_total, 2),
             "valor_mercado_con_precio": round(valor_mercado_total, 2),
+            "comision_steam_venta_pct": round(CARTERA_COMISION_STEAM * 100, 10),
             "pnl_no_realizado_con_precio": round(pnl_no_realizado_total, 2),
             "pnl_realizado": round(pnl_realizado_total, 2),
             "pnl_total_con_precio": round(pnl_realizado_total + pnl_no_realizado_total, 2),
