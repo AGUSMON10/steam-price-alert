@@ -3327,7 +3327,17 @@ def api_ventas():
         "created_at": datetime.now(ZONA_ARG).isoformat()
     }
     with lock:
-        registro_ventas.append(venta)
+        idx = next((i for i, x in enumerate(registro_ventas)
+                    if isinstance(x, dict) and str(x.get("id")) == str(venta["id"])), None)
+        if idx is None:
+            registro_ventas.append(venta)
+        else:
+            # Actualizar la operación existente sin duplicarla ni alterar el origen de datos.
+            previo = registro_ventas[idx]
+            venta["created_at"] = previo.get("created_at", venta["created_at"])
+            if previo.get("source"):
+                venta["source"] = previo["source"]
+            registro_ventas[idx] = venta
     _guardar_datos_portafolio()
     return jsonify({"ok": True, "item": venta})
 
