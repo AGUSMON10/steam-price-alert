@@ -19,6 +19,11 @@ function moneyPortfolio(value) {
 function escapePortfolio(value) {
     return String(value ?? "").replace(/[&<>"']/g, ch => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[ch]));
 }
+function formatPortfolioDate(value) {
+    if (!value) return "—";
+    const m = String(value).match(/^(\d{4})-(\d{2})-(\d{2})/);
+    return m ? `${m[3]}/${m[2]}/${m[1]}` : String(value);
+}
 async function portfolioRequest(url, options = {}) {
     const response = await fetch(url, {
         headers: {"Content-Type":"application/json"},
@@ -30,6 +35,10 @@ async function portfolioRequest(url, options = {}) {
 }
 let inventoryItems = [];
 let inventorySort = { key: "name", direction: 1 };
+let editingInventoryId = null;
+let editingSaleId = null;
+let salesItems = [];
+let salesSort = { key: "sell_date", direction: -1 };
 
 function sortInventory(key) {
     if (inventorySort.key === key) {
@@ -78,7 +87,7 @@ function renderInventoryRows() {
     tbody.innerHTML = items.length ? items.map(x => `<tr>
         <td class="skin-name">${escapePortfolio(x.name)}</td>
         <td>${Number(x.quantity)||1}</td>
-        <td>${escapePortfolio(x.buy_date || (x.created_at ? x.created_at.slice(0,10) : "—"))}</td>
+        <td>${escapePortfolio(formatPortfolioDate(x.buy_date || (x.created_at ? x.created_at.slice(0,10) : "")))}</td>
         <td>${x.cost == null ? "—" : moneyPortfolio(x.cost)}</td>
         <td>${x.cost == null ? "—" : moneyPortfolio(Number(x.cost)*(Number(x.quantity)||1))}</td>
         <td>${escapePortfolio(x.notes || "—")}</td>
@@ -91,6 +100,7 @@ function renderInventoryRows() {
                 <label>Cantidad vendida<input id="sellQty-${escapePortfolio(x.id)}" type="number" min="1" max="${Number(x.quantity)||1}" step="1" value="${Number(x.quantity)||1}"></label>
                 <button class="button" type="button" onclick="sellInventory('${escapePortfolio(x.id)}')">Confirmar venta</button>
             </div>
+            <button class="button secondary" type="button" onclick="editInventory('${escapePortfolio(x.id)}')">Editar</button>
             <button class="portfolio-delete" onclick="deleteInventory('${escapePortfolio(x.id)}')">Eliminar</button>
         </div></td>
     </tr>`).join("") : '<tr><td colspan="7" class="empty">Todavía no agregaste skins al inventario.</td></tr>';
@@ -132,6 +142,18 @@ async function sellInventory(id) {
         alert("Venta registrada. Ya aparece en la solapa Ventas.");
     } catch(e) { alert(e.message); }
 }
+function editInventory(id) {
+    const x = inventoryItems.find(item => String(item.id) === String(id));
+    if (!x) return;
+    editingInventoryId = String(id);
+    document.getElementById("invName").value = x.name || "";
+    document.getElementById("invQuantity").value = Number(x.quantity) || 1;
+    document.getElementById("invUnitCost").value = x.cost == null ? "" : x.cost;
+    document.getElementById("invBuyDate").value = (x.buy_date || x.created_at?.slice(0,10) || "").slice(0,10);
+    document.getElementById("invNotes").value = x.notes || "";
+    document.querySelector('#inventoryForm button[type="submit"]').textContent = "Guardar cambios";
+    document.getElementById("inventoryForm").scrollIntoView({behavior:"smooth",block:"center"});
+}
 async function deleteInventory(id) {
     if (!confirm("¿Eliminar esta skin del inventario?")) return;
     try { await portfolioRequest(`/api/inventario/${encodeURIComponent(id)}`, {method:"DELETE"}); loadInventory(); }
@@ -147,6 +169,7 @@ document.getElementById("inventoryForm")?.addEventListener("submit", async event
     button.disabled = true;
     try {
         await portfolioRequest("/api/inventario", {method:"POST", body:JSON.stringify({
+            id:editingInventoryId || undefined,
             name:document.getElementById("invName").value.trim(),
             quantity:document.getElementById("invQuantity").value,
             cost:document.getElementById("invUnitCost").value || null,
@@ -154,6 +177,8 @@ document.getElementById("inventoryForm")?.addEventListener("submit", async event
             notes:document.getElementById("invNotes").value.trim()
         })});
         form.reset();
+        editingInventoryId = null;
+        form.querySelector('button[type="submit"]').textContent = "＋ Agregar al inventario";
         document.getElementById("invQuantity").value = 1;
         loadInventory();
     } catch(e) { alert(e.message); }
@@ -161,32 +186,67 @@ document.getElementById("inventoryForm")?.addEventListener("submit", async event
 });
 });
 
+function sortSales(key) {
+    if (salesSort.key === key) salesSort.direction *= -1;
+    else salesSort = {key, direction: (key === "sell_date" ? -1 : 1)};
+    renderSalesRows();
+}
+function renderSalesRows() {
+    const tbody = document.getElementById("salesRows");
+    if (!tbody) return;
+    const {key, direction} = salesSort;
+    const items = [...salesItems].sort((a,b) => {
+        let av, bv;
+        if (["quantity","buy_price","sell_price","profit"].includes(key)) { av = Number(a[key]) || 0; bv = Number(b[key]) || 0; }
+        else { av = String(a[key] ?? "").toLocaleLowerCase("es"); bv = String(b[key] ?? "").toLocaleLowerCase("es"); }
+        return av < bv ? -direction : av > bv ? direction : 0;
+    });
+    document.querySelectorAll("[data-sales-sort]").forEach(el => {
+        const active = el.dataset.salesSort === key;
+        el.classList.toggle("active", active);
+        el.setAttribute("aria-sort", active ? (direction === 1 ? "ascending" : "descending") : "none");
+        const indicator = el.querySelector(".sort-indicator");
+        if (indicator) indicator.textContent = active ? (direction === 1 ? "↑" : "↓") : "↕";
+    });
+    tbody.innerHTML = items.length ? items.map(x => `<tr>
+        <td class="skin-name">${escapePortfolio(x.name)}</td><td>${Number(x.quantity)||1}</td>
+        <td>${escapePortfolio(formatPortfolioDate(x.buy_date))}</td><td class="price">${moneyPortfolio(x.buy_price)}</td>
+        <td>${escapePortfolio(formatPortfolioDate(x.sell_date))}</td><td class="price">${moneyPortfolio(x.sell_price)}</td>
+        <td class="${Number(x.profit)>=0?'good':'danger'}">${moneyPortfolio(x.profit)}</td>
+        <td><button class="button secondary" type="button" onclick="editSale('${escapePortfolio(x.id)}')">Editar</button> <button class="portfolio-delete" onclick="deleteSale('${escapePortfolio(x.id)}')">Eliminar</button></td>
+    </tr>`).join("") : '<tr><td colspan="8" class="empty">Todavía no registraste ventas.</td></tr>';
+}
 async function loadSales() {
     const tbody = document.getElementById("salesRows");
     if (!tbody) return;
     try {
         const data = await portfolioRequest("/api/ventas");
-        const items = data.items || [];
-        const invested = items.reduce((s,x)=>s+(Number(x.buy_price)||0)*(Number(x.quantity)||1),0);
-        const revenue = items.reduce((s,x)=>s+(Number(x.sell_price)||0)*(Number(x.quantity)||1),0);
-        const profit = items.reduce((s,x)=>s+(Number(x.profit)||0),0);
-        document.getElementById("salesTotal").textContent = items.length;
+        salesItems = data.items || [];
+        const invested = salesItems.reduce((s,x)=>s+(Number(x.buy_price)||0)*(Number(x.quantity)||1),0);
+        const revenue = salesItems.reduce((s,x)=>s+(Number(x.sell_price)||0)*(Number(x.quantity)||1),0);
+        const profit = salesItems.reduce((s,x)=>s+(Number(x.profit ?? ((Number(x.sell_price)||0)-(Number(x.buy_price)||0))*(Number(x.quantity)||1))||0),0);
+        document.getElementById("salesTotal").textContent = salesItems.length;
         document.getElementById("salesInvested").textContent = moneyPortfolio(invested);
         document.getElementById("salesRevenue").textContent = moneyPortfolio(revenue);
         const profitEl = document.getElementById("salesProfit");
         profitEl.textContent = moneyPortfolio(profit);
         profitEl.classList.toggle("good", profit >= 0);
         profitEl.classList.toggle("danger", profit < 0);
-        tbody.innerHTML = items.length ? [...items].sort((a,b)=>(b.sell_date||"").localeCompare(a.sell_date||"")).map(x => `<tr>
-            <td class="skin-name">${escapePortfolio(x.name)}</td><td>${Number(x.quantity)||1}</td>
-            <td>${escapePortfolio(x.buy_date)}</td><td class="price">${moneyPortfolio(x.buy_price)}</td>
-            <td>${escapePortfolio(x.sell_date)}</td><td class="price">${moneyPortfolio(x.sell_price)}</td>
-            <td class="${Number(x.profit)>=0?'good':'danger'}">${moneyPortfolio(x.profit)}</td>
-            <td><button class="portfolio-delete" onclick="deleteSale('${escapePortfolio(x.id)}')">Eliminar</button></td>
-        </tr>`).join("") : '<tr><td colspan="8" class="empty">Todavía no registraste ventas.</td></tr>';
-    } catch(e) {
-        tbody.innerHTML = `<tr><td colspan="8" class="empty">${escapePortfolio(e.message)}</td></tr>`;
-    }
+        renderSalesRows();
+    } catch(e) { tbody.innerHTML = `<tr><td colspan="8" class="empty">${escapePortfolio(e.message)}</td></tr>`; }
+}
+function editSale(id) {
+    const x = salesItems.find(item => String(item.id) === String(id));
+    if (!x) return;
+    editingSaleId = String(id);
+    document.getElementById("saleName").value = x.name || "";
+    document.getElementById("saleQuantity").value = Number(x.quantity) || 1;
+    document.getElementById("saleBuyDate").value = (x.buy_date || "").slice(0,10);
+    document.getElementById("saleBuyPrice").value = x.buy_price ?? "";
+    document.getElementById("saleSellDate").value = (x.sell_date || "").slice(0,10);
+    document.getElementById("saleSellPrice").value = x.sell_price ?? "";
+    document.querySelector('#salesForm button[type="submit"]').textContent = "Guardar cambios";
+    document.getElementById("salesForm").scrollIntoView({behavior:"smooth",block:"center"});
 }
 async function deleteSale(id) {
     if (!confirm("¿Eliminar este registro de venta?")) return;
@@ -202,6 +262,7 @@ document.getElementById("salesForm")?.addEventListener("submit", async event => 
     button.disabled = true;
     try {
         await portfolioRequest("/api/ventas", {method:"POST", body:JSON.stringify({
+            id:editingSaleId || undefined,
             name:document.getElementById("saleName").value.trim(),
             quantity:document.getElementById("saleQuantity").value,
             buy_date:document.getElementById("saleBuyDate").value,
@@ -210,6 +271,8 @@ document.getElementById("salesForm")?.addEventListener("submit", async event => 
             sell_price:document.getElementById("saleSellPrice").value
         })});
         form.reset();
+        editingSaleId = null;
+        form.querySelector('button[type="submit"]').textContent = "＋ Registrar venta";
         document.getElementById("saleQuantity").value = 1;
         loadSales();
     } catch(e) { alert(e.message); }
@@ -3263,7 +3326,7 @@ select:focus {
             <th><button type="button" class="sort-header" data-inv-sort="total" onclick="sortInventory('total')">Costo total <span class="sort-indicator">↕</span></button></th>
             <th><button type="button" class="sort-header" data-inv-sort="notes" onclick="sortInventory('notes')">Notas <span class="sort-indicator">↕</span></button></th>
             <th>¿La vendiste? / Venta</th></tr></thead>
-        <tbody id="inventoryRows"><tr><td colspan="6" class="empty">Cargando inventario…</td></tr></tbody></table>
+        <tbody id="inventoryRows"><tr><td colspan="7" class="empty">Cargando inventario…</td></tr></tbody></table>
     </div>
 </section>
 
@@ -3272,14 +3335,14 @@ select:focus {
         <div>
             <div class="eyebrow">RESULTADOS DE TRADING</div>
             <h2>Ventas</h2>
-            <div class="description">Registrá cada operación con fecha y precio de compra y venta. La ganancia se calcula automáticamente antes de comisiones.</div>
+            <div class="description">Registrá cada operación con fecha y precio de compra y venta. Los precios que cargás ya incluyen la comisión de Steam; no se descuenta otra vez.</div>
         </div>
     </div>
     <div class="cards">
         <div class="card"><div class="card-title">Operaciones cerradas</div><div class="card-value" id="salesTotal">0</div><div class="card-foot">Ventas registradas</div></div>
         <div class="card"><div class="card-title">Invertido</div><div class="card-value" id="salesInvested">$0.00</div><div class="card-foot">Compra × cantidad</div></div>
         <div class="card"><div class="card-title">Ingresos por ventas</div><div class="card-value" id="salesRevenue">$0.00</div><div class="card-foot">Venta × cantidad</div></div>
-        <div class="card"><div class="card-title">Ganancia / pérdida</div><div class="card-value" id="salesProfit">$0.00</div><div class="card-foot">Sin descontar comisiones</div></div>
+        <div class="card"><div class="card-title">Ganancia / pérdida</div><div class="card-value" id="salesProfit">$0.00</div><div class="card-foot">Con los precios netos que cargaste</div></div>
     </div>
     <div class="panel">
         <div class="panel-header"><div><div class="panel-title">Registrar operación</div><div class="panel-sub">Una fila por operación de compra y venta completada.</div></div></div>
@@ -3296,7 +3359,14 @@ select:focus {
         </div>
     </div>
     <div class="table-container">
-        <table><thead><tr><th>Skin</th><th>Cant.</th><th>Compra</th><th>Precio compra</th><th>Venta</th><th>Precio venta</th><th>Resultado</th><th>Acción</th></tr></thead>
+        <table><thead><tr>
+            <th><button type="button" class="sort-header" data-sales-sort="name" onclick="sortSales('name')">Skin <span class="sort-indicator">↕</span></button></th>
+            <th><button type="button" class="sort-header" data-sales-sort="quantity" onclick="sortSales('quantity')">Cant. <span class="sort-indicator">↕</span></button></th>
+            <th><button type="button" class="sort-header" data-sales-sort="buy_date" onclick="sortSales('buy_date')">Compra <span class="sort-indicator">↕</span></button></th>
+            <th><button type="button" class="sort-header" data-sales-sort="buy_price" onclick="sortSales('buy_price')">Precio compra <span class="sort-indicator">↕</span></button></th>
+            <th><button type="button" class="sort-header" data-sales-sort="sell_date" onclick="sortSales('sell_date')">Venta <span class="sort-indicator">↓</span></button></th>
+            <th><button type="button" class="sort-header" data-sales-sort="sell_price" onclick="sortSales('sell_price')">Precio venta <span class="sort-indicator">↕</span></button></th>
+            <th><button type="button" class="sort-header" data-sales-sort="profit" onclick="sortSales('profit')">Resultado <span class="sort-indicator">↕</span></button></th><th>Acción</th></tr></thead>
         <tbody id="salesRows"><tr><td colspan="8" class="empty">Cargando ventas…</td></tr></tbody></table>
     </div>
 </section>
