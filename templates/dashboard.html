@@ -86,6 +86,8 @@ async function deleteInventory(id) {
     try { await portfolioRequest(`/api/inventario/${encodeURIComponent(id)}`, {method:"DELETE"}); loadInventory(); }
     catch(e) { alert(e.message); }
 }
+// Este script está en el <head>; esperar a que el formulario exista en el DOM.
+window.addEventListener("DOMContentLoaded", () => {
 document.getElementById("inventoryForm")?.addEventListener("submit", async event => {
     event.preventDefault();
     const button = event.currentTarget.querySelector('button[type="submit"]');
@@ -104,6 +106,8 @@ document.getElementById("inventoryForm")?.addEventListener("submit", async event
     } catch(e) { alert(e.message); }
     finally { button.disabled = false; }
 });
+});
+
 async function loadSales() {
     const tbody = document.getElementById("salesRows");
     if (!tbody) return;
@@ -136,6 +140,7 @@ async function deleteSale(id) {
     try { await portfolioRequest(`/api/ventas/${encodeURIComponent(id)}`, {method:"DELETE"}); loadSales(); }
     catch(e) { alert(e.message); }
 }
+window.addEventListener("DOMContentLoaded", () => {
 document.getElementById("salesForm")?.addEventListener("submit", async event => {
     event.preventDefault();
     const button = event.currentTarget.querySelector('button[type="submit"]');
@@ -154,6 +159,7 @@ document.getElementById("salesForm")?.addEventListener("submit", async event => 
         loadSales();
     } catch(e) { alert(e.message); }
     finally { button.disabled = false; }
+});
 });
 
 </script>
