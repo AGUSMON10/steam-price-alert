@@ -1642,6 +1642,36 @@ select:focus {
     .notified-grid { grid-template-columns: 1fr; }
 }
 
+
+/* CARTERA VIRTUAL */
+.portfolio-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px;margin:20px 0}
+.portfolio-kpi{background:var(--panel);border:1px solid var(--border);border-radius:14px;padding:18px;min-width:0}
+.portfolio-kpi .k-label{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.8px}
+.portfolio-kpi .k-value{font-family:'Space Grotesk',sans-serif;font-size:24px;font-weight:700;margin-top:10px;overflow-wrap:anywhere}
+.portfolio-kpi .k-note{font-size:11px;color:var(--muted);margin-top:7px}
+.portfolio-layout{display:grid;grid-template-columns:minmax(300px, .85fr) minmax(0,1.6fr);gap:16px;align-items:start}
+.portfolio-panel{background:var(--panel);border:1px solid var(--border);border-radius:16px;padding:20px;min-width:0}
+.portfolio-panel h3{margin:0 0 7px;font-size:16px}
+.portfolio-muted{color:var(--muted);font-size:12px;line-height:1.5}
+.portfolio-form{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:18px}
+.portfolio-field{display:flex;flex-direction:column;gap:6px;min-width:0}
+.portfolio-field.full{grid-column:1/-1}
+.portfolio-field label{font-size:12px;color:var(--muted)}
+.portfolio-field input,.portfolio-field select,.portfolio-field textarea{width:100%;min-width:0;border:1px solid var(--border);border-radius:9px;background:var(--panel3);color:var(--text);padding:11px;font:inherit;font-size:13px}
+.portfolio-field textarea{min-height:75px;resize:vertical}
+.portfolio-action{border:0;border-radius:9px;padding:12px 14px;background:var(--green);color:#062018;font-weight:800}
+.portfolio-action.secondary{background:var(--panel2);color:var(--text);border:1px solid var(--border)}
+.portfolio-table-wrap{width:100%;overflow:auto}
+.portfolio-table{width:100%;border-collapse:collapse;font-size:12px;white-space:nowrap}
+.portfolio-table th,.portfolio-table td{padding:11px 10px;text-align:left;border-bottom:1px solid var(--border)}
+.portfolio-table th{color:var(--muted);font-weight:700;font-size:10px;text-transform:uppercase;letter-spacing:.6px}
+.portfolio-positive{color:var(--green)!important}.portfolio-negative{color:var(--red)!important}
+.portfolio-empty{padding:22px;text-align:center;color:var(--muted);font-size:13px}
+.portfolio-toolbar{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin:18px 0 10px}
+.portfolio-badge{display:inline-block;padding:4px 7px;border-radius:6px;background:var(--panel2);font-size:10px}
+@media(max-width:1100px){.portfolio-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.portfolio-layout{grid-template-columns:1fr}}
+@media(max-width:560px){.portfolio-grid{grid-template-columns:1fr 1fr}.portfolio-kpi .k-value{font-size:19px}.portfolio-panel{padding:14px}.portfolio-form{grid-template-columns:1fr}.portfolio-field.full{grid-column:auto}}
+
 </style>
 
 </head>
@@ -1720,6 +1750,12 @@ select:focus {
                 onclick="showTab('proxies',this)">
             <span class="nav-icon">◇</span>
             Proxies
+        </button>
+
+        <button class="tab"
+                onclick="showTab('cartera',this)">
+            <span class="nav-icon">＄</span>
+            Cartera virtual
         </button>
 
         <button class="tab"
@@ -2968,6 +3004,57 @@ select:focus {
         </section>
 
 <!-- =====================================================
+     CARTERA VIRTUAL DE INVERSIONES
+====================================================== -->
+<section id="cartera" class="section">
+    <div class="page-heading">
+        <div>
+            <div class="eyebrow">PORTFOLIO TRACKING</div>
+            <h2>Cartera virtual</h2>
+            <div class="description">Registrá compras y ventas reales o simuladas, controlá el inventario y seguí rentabilidad realizada y estimada.</div>
+        </div>
+        <button class="portfolio-action secondary" type="button" onclick="cargarCartera()">↻ Actualizar</button>
+    </div>
+
+    <div class="portfolio-grid">
+        <div class="portfolio-kpi"><div class="k-label">Costo del inventario</div><div class="k-value" id="carteraCosto">$0.00</div><div class="k-note">Costo promedio ponderado, incluyendo comisiones de compra.</div></div>
+        <div class="portfolio-kpi"><div class="k-label">Valor de mercado estimado</div><div class="k-value" id="carteraValor">—</div><div class="k-note">Solo suma skins con precio reciente en caché.</div></div>
+        <div class="portfolio-kpi"><div class="k-label">Resultado no realizado</div><div class="k-value" id="carteraAbierto">—</div><div class="k-note">Estimación antes de comisiones de una futura venta.</div></div>
+        <div class="portfolio-kpi"><div class="k-label">Resultado realizado</div><div class="k-value" id="carteraRealizado">$0.00</div><div class="k-note">Ventas netas menos costo promedio de las unidades vendidas.</div></div>
+    </div>
+    <div class="portfolio-muted" id="carteraAviso" style="margin:-4px 0 18px">Los importes están expresados en USD. El resultado estimado no garantiza que puedas vender a ese precio.</div>
+
+    <div class="portfolio-layout">
+        <div class="portfolio-panel">
+            <h3>Registrar movimiento</h3>
+            <div class="portfolio-muted">Cargá cada compra o venta. Las ventas no pueden superar las unidades disponibles. Las comisiones se ingresan como importe total de la operación.</div>
+            <form id="carteraForm" class="portfolio-form" onsubmit="registrarMovimientoCartera(event)">
+                <div class="portfolio-field"><label for="carteraTipo">Movimiento</label><select id="carteraTipo" required onchange="actualizarFormularioCartera()"><option value="compra">Compra</option><option value="venta">Venta</option></select></div>
+                <div class="portfolio-field"><label for="carteraFecha">Fecha</label><input id="carteraFecha" type="date" required></div>
+                <div class="portfolio-field full"><label for="carteraSkin">Skin</label><input id="carteraSkin" list="carteraSkinsList" maxlength="250" placeholder="Ej.: AK-47 | Redline (Field-Tested)" required><datalist id="carteraSkinsList"></datalist></div>
+                <div class="portfolio-field"><label for="carteraCantidad">Cantidad</label><input id="carteraCantidad" type="number" min="1" max="10000" step="1" value="1" required></div>
+                <div class="portfolio-field"><label for="carteraPrecio">Precio unitario (USD)</label><input id="carteraPrecio" type="number" min="0" max="100000000" step="0.0001" placeholder="0.00" required></div>
+                <div class="portfolio-field"><label for="carteraComisiones">Comisiones totales (USD)</label><input id="carteraComisiones" type="number" min="0" max="100000000" step="0.0001" value="0" required></div>
+                <div class="portfolio-field"><label>Total estimado</label><input id="carteraTotalPreview" value="$0.00" readonly></div>
+                <div class="portfolio-field full"><label for="carteraNotas">Notas (opcional)</label><textarea id="carteraNotas" maxlength="1000" placeholder="Float, pattern, motivo de compra, precio objetivo, enlace, etc."></textarea></div>
+                <div class="portfolio-field full"><button id="carteraSubmit" class="portfolio-action" type="submit">＋ Registrar compra</button><div id="carteraFormMsg" class="portfolio-muted" role="status"></div></div>
+            </form>
+        </div>
+
+        <div class="portfolio-panel">
+            <h3>Posiciones abiertas</h3>
+            <div class="portfolio-muted">El precio de mercado usa la última cotización que el bot tenga en caché. Si no existe, se muestra como no disponible.</div>
+            <div class="portfolio-table-wrap" style="margin-top:14px"><table class="portfolio-table"><thead><tr><th>Skin</th><th>Unid.</th><th>Costo prom.</th><th>Costo total</th><th>Precio actual</th><th>Valor estimado</th><th>P/L abierto</th></tr></thead><tbody id="carteraPosiciones"><tr><td colspan="7" class="portfolio-empty">Cargando cartera…</td></tr></tbody></table></div>
+        </div>
+    </div>
+
+    <div class="portfolio-panel" style="margin-top:16px">
+        <div class="portfolio-toolbar"><div><h3 style="margin:0">Historial de movimientos</h3><div class="portfolio-muted">Registro cronológico de compras y ventas, con resultado realizado por venta.</div></div><span class="portfolio-badge" id="carteraMovCount">0 movimientos</span></div>
+        <div class="portfolio-table-wrap"><table class="portfolio-table"><thead><tr><th>Fecha</th><th>Tipo</th><th>Skin</th><th>Cant.</th><th>Precio unit.</th><th>Comisiones</th><th>Total neto/bruto</th><th>Resultado realizado</th><th>Notas</th></tr></thead><tbody id="carteraMovimientos"><tr><td colspan="9" class="portfolio-empty">Todavía no hay movimientos.</td></tr></tbody></table></div>
+    </div>
+</section>
+
+<!-- =====================================================
      CONFIGURACIÓN
 ====================================================== -->
 
@@ -3452,6 +3539,15 @@ let proxiesData = [];
 let priceChart = null;
 let historyPeriod = 24;
 
+document.addEventListener("DOMContentLoaded", () => {
+    const dateInput = document.getElementById("carteraFecha");
+    if (dateInput) dateInput.value = fechaLocalISO();
+    ["carteraCantidad", "carteraPrecio", "carteraComisiones"].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.addEventListener("input", actualizarPreviewCartera);
+    });
+});
+
 
 /* =========================================================
    TABS
@@ -3489,6 +3585,10 @@ function showTab(tabName, button) {
         document.getElementById("historySkin").value
     ) {
         loadHistory();
+    }
+
+    if (tabName === "cartera") {
+        cargarCartera();
     }
 
     if (tabName === "monitor") {
@@ -3529,6 +3629,113 @@ function money(value) {
     return "$" + Number(value).toFixed(2);
 }
 
+
+/* =========================================================
+   CARTERA VIRTUAL
+========================================================= */
+let carteraData = { posiciones: [], movimientos: [], resumen: {} };
+let carteraEnviando = false;
+
+function formatoCartera(value, dash = "—") {
+    if (value === null || value === undefined || value === "" || !Number.isFinite(Number(value))) return dash;
+    return "$" + Number(value).toLocaleString("en-US", {minimumFractionDigits:2, maximumFractionDigits:2});
+}
+function clasePnl(value) {
+    if (value === null || value === undefined || !Number.isFinite(Number(value))) return "";
+    return Number(value) > 0 ? "portfolio-positive" : Number(value) < 0 ? "portfolio-negative" : "";
+}
+function fechaLocalISO() {
+    const d = new Date();
+    return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`;
+}
+function actualizarPreviewCartera() {
+    const qty = Number(document.getElementById("carteraCantidad")?.value || 0);
+    const price = Number(document.getElementById("carteraPrecio")?.value || 0);
+    const fees = Number(document.getElementById("carteraComisiones")?.value || 0);
+    const tipo = document.getElementById("carteraTipo")?.value || "compra";
+    const total = qty * price + (tipo === "compra" ? fees : -fees);
+    const el = document.getElementById("carteraTotalPreview");
+    if (el) el.value = formatoCartera(total);
+}
+function actualizarFormularioCartera() {
+    const tipo = document.getElementById("carteraTipo").value;
+    const btn = document.getElementById("carteraSubmit");
+    btn.textContent = tipo === "compra" ? "＋ Registrar compra" : "− Registrar venta";
+    btn.style.background = tipo === "compra" ? "var(--green)" : "var(--blue)";
+    actualizarPreviewCartera();
+}
+async function cargarCartera() {
+    try {
+        const response = await fetch("/api/cartera", { cache: "no-store" });
+        const data = await response.json();
+        if (!response.ok || !data.ok) throw new Error(data.error || "No se pudo cargar la cartera.");
+        carteraData = data;
+        renderCartera(data);
+    } catch (error) {
+        const msg = document.getElementById("carteraAviso");
+        if (msg) msg.textContent = "Error cargando cartera: " + error.message;
+    }
+}
+function renderCartera(data) {
+    const r = data.resumen || {};
+    document.getElementById("carteraCosto").textContent = formatoCartera(r.costo_inventario || 0);
+    document.getElementById("carteraValor").textContent = formatoCartera(r.valor_mercado_con_precio);
+    document.getElementById("carteraAbierto").textContent = formatoCartera(r.pnl_no_realizado_con_precio);
+    document.getElementById("carteraRealizado").textContent = formatoCartera(r.pnl_realizado || 0);
+    document.getElementById("carteraAbierto").className = "k-value " + clasePnl(r.pnl_no_realizado_con_precio);
+    document.getElementById("carteraRealizado").className = "k-value " + clasePnl(r.pnl_realizado);
+    document.getElementById("carteraAviso").textContent = `${r.skins_en_cartera || 0} skins en cartera · ${r.unidades || 0} unidades disponibles · ${r.movimientos || 0} movimientos. Resultado total estimado con cotizaciones disponibles: ${formatoCartera(r.pnl_total_con_precio)}. No incluye comisiones futuras de venta ni garantiza precio de ejecución.`;
+
+    const posiciones = (data.posiciones || []).filter(p => Number(p.cantidad) > 0);
+    const tbody = document.getElementById("carteraPosiciones");
+    tbody.innerHTML = posiciones.length ? posiciones.map(p => `<tr><td>${escapeHtml(p.skin)}</td><td>${p.cantidad}</td><td>${formatoCartera(p.costo_promedio)}</td><td>${formatoCartera(p.costo_total)}</td><td>${formatoCartera(p.precio_actual)}</td><td>${formatoCartera(p.valor_mercado)}</td><td class="${clasePnl(p.pnl_no_realizado)}">${formatoCartera(p.pnl_no_realizado)}</td></tr>`).join("") : `<tr><td colspan="7" class="portfolio-empty">No tenés posiciones abiertas. Registrá una compra para comenzar.</td></tr>`;
+
+    const movs = data.movimientos || [];
+    document.getElementById("carteraMovCount").textContent = `${movs.length} movimiento${movs.length === 1 ? "" : "s"}`;
+    document.getElementById("carteraMovimientos").innerHTML = movs.length ? movs.map(m => {
+        const total = Number(m.cantidad || 0) * Number(m.precio_unitario || 0) + (m.tipo === "compra" ? Number(m.comisiones || 0) : -Number(m.comisiones || 0));
+        const pnl = Number(m.pnl_realizado_movimiento || 0);
+        return `<tr><td>${escapeHtml(m.fecha || "—")}</td><td><span class="portfolio-badge">${m.tipo === "compra" ? "COMPRA" : "VENTA"}</span></td><td>${escapeHtml(m.skin || "")}</td><td>${m.cantidad}</td><td>${formatoCartera(m.precio_unitario)}</td><td>${formatoCartera(m.comisiones || 0)}</td><td>${formatoCartera(total)}</td><td class="${m.tipo === "venta" ? clasePnl(pnl) : ""}">${m.tipo === "venta" ? formatoCartera(pnl) : "—"}</td><td title="${escapeAttribute(m.notas || "")}">${escapeHtml(m.notas || "—")}</td></tr>`;
+    }).join("") : `<tr><td colspan="9" class="portfolio-empty">Todavía no hay movimientos registrados.</td></tr>`;
+
+    const skins = new Set([...(skinsData || []).map(s => s.name), ...posiciones.map(p => p.skin)]);
+    document.getElementById("carteraSkinsList").innerHTML = [...skins].filter(Boolean).sort().map(s => `<option value="${escapeAttribute(s)}"></option>`).join("");
+    actualizarFormularioCartera();
+}
+async function registrarMovimientoCartera(event) {
+    event.preventDefault();
+    if (carteraEnviando) return;
+    const msg = document.getElementById("carteraFormMsg");
+    const btn = document.getElementById("carteraSubmit");
+    const payload = {
+        tipo: document.getElementById("carteraTipo").value,
+        fecha: document.getElementById("carteraFecha").value,
+        skin: document.getElementById("carteraSkin").value.trim(),
+        cantidad: Number(document.getElementById("carteraCantidad").value),
+        precio_unitario: Number(document.getElementById("carteraPrecio").value),
+        comisiones: Number(document.getElementById("carteraComisiones").value || 0),
+        notas: document.getElementById("carteraNotas").value.trim()
+    };
+    carteraEnviando = true; btn.disabled = true; btn.textContent = "Guardando…";
+    msg.textContent = "Registrando movimiento y guardando el estado…";
+    try {
+        const response = await fetch("/api/cartera", {method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify(payload)});
+        const data = await response.json();
+        if (!response.ok || !data.ok) throw new Error(data.error || "No se pudo registrar el movimiento.");
+        renderCartera(data.cartera);
+        document.getElementById("carteraForm").reset();
+        document.getElementById("carteraFecha").value = fechaLocalISO();
+        document.getElementById("carteraCantidad").value = "1";
+        document.getElementById("carteraComisiones").value = "0";
+        msg.textContent = "Movimiento registrado y guardado.";
+        msg.className = "portfolio-muted portfolio-positive";
+    } catch (error) {
+        msg.textContent = error.message;
+        msg.className = "portfolio-muted portfolio-negative";
+    } finally {
+        carteraEnviando = false; btn.disabled = false; actualizarFormularioCartera();
+    }
+}
 
 /* =========================================================
    DIFERENCIA
