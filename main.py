@@ -2166,6 +2166,14 @@ def cargar_estado():
                 if isinstance(item, dict)
                 and item.get("tipo") in ("compra", "venta")
             ]
+            # Los movimientos anteriores a la función de borrado no tenían ID.
+            for item in cartera_virtual:
+                if not item.get("id"):
+                    item["id"] = secrets.token_hex(8)
+                # En movimientos antiguos, el precio de venta se cargaba como importe neto
+                # cuando ya se había descontado Steam manualmente.
+                if item.get("tipo") == "venta" and "precio_ya_neto" not in item:
+                    item["precio_ya_neto"] = True
         else:
             cartera_virtual = []
 
@@ -3319,7 +3327,8 @@ def _cartera_calcular():
                 qty = pos["cantidad"]
             costo_base = pos["costo_promedio"] * qty
             ingreso_bruto = qty * unit
-            comision_steam = ingreso_bruto * CARTERA_COMISION_STEAM
+            # Si el usuario cargó el importe que ya recibió (neto), no volver a descontar Steam.
+            comision_steam = 0.0 if mov.get("precio_ya_neto") else ingreso_bruto * CARTERA_COMISION_STEAM
             ingreso_neto = ingreso_bruto - comision_steam - fees
             pnl = ingreso_neto - costo_base
             pos["cantidad"] -= qty
@@ -3393,9 +3402,26 @@ def _cartera_calcular():
     }
 
 
-@app.route("/api/cartera", methods=["GET", "POST"])
+@app.route("/api/cartera", methods=["GET", "POST", "DELETE"])
 def api_cartera():
     global cartera_virtual
+    if request.method == "DELETE":
+        datos = request.get_json(silent=True) or {}
+        movimiento_id = str(datos.get("id", "")).strip()
+        if not movimiento_id:
+            return jsonify({"ok": False, "error": "Falta el identificador del movimiento."}), 400
+        with CARTERA_LOCK:
+            indice = next((i for i, m in enumerate(cartera_virtual)
+                           if isinstance(m, dict) and str(m.get("id", "")) == movimiento_id), None)
+            if indice is None:
+                return jsonify({"ok": False, "error": "No se encontró ese movimiento. Actualizá la cartera e intentá de nuevo."}), 404
+            eliminado = cartera_virtual.pop(indice)
+            guardado = guardar_estado(forzar=True)
+            if guardado is False:
+                cartera_virtual.insert(indice, eliminado)
+                guardar_estado(forzar=True)
+                return jsonify({"ok": False, "error": "No se pudo guardar el borrado en GitHub; el movimiento se restauró."}), 503
+            return jsonify({"ok": True, "mensaje": "Movimiento eliminado.", "cartera": _cartera_calcular()})
     if request.method == "GET":
         with CARTERA_LOCK:
             return jsonify(_cartera_calcular())
@@ -3445,6 +3471,7 @@ def api_cartera():
             "cantidad": cantidad,
             "precio_unitario": round(precio_unitario, 4),
             "comisiones": round(comisiones, 4),
+            "precio_ya_neto": bool(datos.get("precio_ya_neto", False)) if tipo == "venta" else False,
             "fecha": fecha,
             "notas": notas,
             "timestamp": time.time(),
