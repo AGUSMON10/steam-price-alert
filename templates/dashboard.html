@@ -3034,7 +3034,8 @@ select:focus {
                 <div class="portfolio-field full"><label for="carteraSkin">Skin</label><input id="carteraSkin" list="carteraSkinsList" maxlength="250" placeholder="Ej.: AK-47 | Redline (Field-Tested)" required><datalist id="carteraSkinsList"></datalist></div>
                 <div class="portfolio-field"><label for="carteraCantidad">Cantidad</label><input id="carteraCantidad" type="number" min="1" max="10000" step="1" value="1" required></div>
                 <div class="portfolio-field"><label for="carteraPrecio">Precio unitario (USD)</label><input id="carteraPrecio" type="number" min="0" max="100000000" step="0.0001" placeholder="0.00" required></div>
-                <div class="portfolio-field"><label for="carteraComisiones">Comisiones totales (USD)</label><input id="carteraComisiones" type="number" min="0" max="100000000" step="0.0001" value="0" required></div>
+                <div class="portfolio-field"><label for="carteraComisiones">Otros costos (USD)</label><input id="carteraComisiones" type="number" min="0" max="100000000" step="0.0001" value="0" required></div>
+                <div class="portfolio-field full" id="carteraNetoWrap" style="display:none"><label style="display:flex;gap:8px;align-items:center"><input id="carteraPrecioYaNeto" type="checkbox"> El precio de venta ya es neto (Steam ya descontó su comisión)</label></div>
                 <div class="portfolio-field"><label>Total estimado</label><input id="carteraTotalPreview" value="$0.00" readonly></div>
                 <div class="portfolio-field full"><label for="carteraNotas">Notas (opcional)</label><textarea id="carteraNotas" maxlength="1000" placeholder="Float, pattern, motivo de compra, precio objetivo, enlace, etc."></textarea></div>
                 <div class="portfolio-field full"><button id="carteraSubmit" class="portfolio-action" type="submit">＋ Registrar compra</button><div id="carteraFormMsg" class="portfolio-muted" role="status"></div></div>
@@ -3050,7 +3051,7 @@ select:focus {
 
     <div class="portfolio-panel" style="margin-top:16px">
         <div class="portfolio-toolbar"><div><h3 style="margin:0">Historial de movimientos</h3><div class="portfolio-muted">Registro cronológico de compras y ventas, con resultado realizado por venta.</div></div><span class="portfolio-badge" id="carteraMovCount">0 movimientos</span></div>
-        <div class="portfolio-table-wrap"><table class="portfolio-table"><thead><tr><th>Fecha</th><th>Tipo</th><th>Skin</th><th>Cant.</th><th>Precio unit.</th><th>Comisiones</th><th>Total neto/bruto</th><th>Resultado realizado</th><th>Notas</th></tr></thead><tbody id="carteraMovimientos"><tr><td colspan="9" class="portfolio-empty">Todavía no hay movimientos.</td></tr></tbody></table></div>
+        <div class="portfolio-table-wrap"><table class="portfolio-table"><thead><tr><th>Fecha</th><th>Tipo</th><th>Skin</th><th>Cant.</th><th>Precio unit.</th><th>Comisiones</th><th>Total neto/bruto</th><th>Resultado realizado</th><th>Notas</th><th>Acción</th></tr></thead><tbody id="carteraMovimientos"><tr><td colspan="10" class="portfolio-empty">Todavía no hay movimientos.</td></tr></tbody></table></div>
     </div>
 </section>
 
@@ -3653,7 +3654,8 @@ function actualizarPreviewCartera() {
     const price = Number(document.getElementById("carteraPrecio")?.value || 0);
     const fees = Number(document.getElementById("carteraComisiones")?.value || 0);
     const tipo = document.getElementById("carteraTipo")?.value || "compra";
-    const total = tipo === "compra" ? qty * price + fees : qty * price * (1 - 0.130434782608695) - fees;
+    const yaNeto = document.getElementById("carteraPrecioYaNeto")?.checked || false;
+    const total = tipo === "compra" ? qty * price + fees : qty * price * (yaNeto ? 1 : (1 - 0.130434782608695)) - fees;
     const el = document.getElementById("carteraTotalPreview");
     if (el) el.value = formatoCartera(total);
 }
@@ -3662,6 +3664,8 @@ function actualizarFormularioCartera() {
     const btn = document.getElementById("carteraSubmit");
     btn.textContent = tipo === "compra" ? "＋ Registrar compra" : "− Registrar venta";
     btn.style.background = tipo === "compra" ? "var(--green)" : "var(--blue)";
+    const netoWrap = document.getElementById("carteraNetoWrap");
+    if (netoWrap) netoWrap.style.display = tipo === "venta" ? "" : "none";
     actualizarPreviewCartera();
 }
 async function cargarCartera() {
@@ -3694,10 +3698,13 @@ function renderCartera(data) {
     document.getElementById("carteraMovCount").textContent = `${movs.length} movimiento${movs.length === 1 ? "" : "s"}`;
     document.getElementById("carteraMovimientos").innerHTML = movs.length ? movs.map(m => {
         const bruto = Number(m.cantidad || 0) * Number(m.precio_unitario || 0);
-        const total = m.tipo === "compra" ? bruto + Number(m.comisiones || 0) : bruto * (1 - 0.130434782608695) - Number(m.comisiones || 0);
+        const yaNeto = Boolean(m.precio_ya_neto);
+        const total = m.tipo === "compra" ? bruto + Number(m.comisiones || 0) : bruto * (yaNeto ? 1 : (1 - 0.130434782608695)) - Number(m.comisiones || 0);
         const pnl = Number(m.pnl_realizado_movimiento || 0);
-        return `<tr><td>${escapeHtml(m.fecha || "—")}</td><td><span class="portfolio-badge">${m.tipo === "compra" ? "COMPRA" : "VENTA"}</span></td><td>${escapeHtml(m.skin || "")}</td><td>${m.cantidad}</td><td>${formatoCartera(m.precio_unitario)}</td><td>${formatoCartera(m.comisiones || 0)}</td><td>${formatoCartera(total)}</td><td class="${m.tipo === "venta" ? clasePnl(pnl) : ""}">${m.tipo === "venta" ? formatoCartera(pnl) : "—"}</td><td title="${escapeAttribute(m.notas || "")}">${escapeHtml(m.notas || "—")}</td></tr>`;
-    }).join("") : `<tr><td colspan="9" class="portfolio-empty">Todavía no hay movimientos registrados.</td></tr>`;
+        const tipoLabel = m.tipo === "compra" ? "COMPRA" : "VENTA";
+        const notaNeto = yaNeto ? ' <small>(precio neto)</small>' : "";
+        return `<tr><td>${escapeHtml(m.fecha || "—")}</td><td><span class="portfolio-badge">${tipoLabel}</span>${notaNeto}</td><td>${escapeHtml(m.skin || "")}</td><td>${m.cantidad}</td><td>${formatoCartera(m.precio_unitario)}</td><td>${formatoCartera(m.comisiones || 0)}</td><td>${formatoCartera(total)}</td><td class="${m.tipo === "venta" ? clasePnl(pnl) : ""}">${m.tipo === "venta" ? formatoCartera(pnl) : "—"}</td><td title="${escapeAttribute(m.notas || "")}">${escapeHtml(m.notas || "—")}</td><td><button type="button" class="portfolio-action secondary" onclick="eliminarMovimientoCartera('${escapeAttribute(m.id || "")}','${escapeAttribute(m.skin || "")}', '${tipoLabel}')" style="padding:6px 9px">Eliminar</button></td></tr>`;
+    }).join("") : `<tr><td colspan="10" class="portfolio-empty">Todavía no hay movimientos registrados.</td></tr>`;
 
     const skins = new Set([...(skinsData || []).map(s => s.name), ...posiciones.map(p => p.skin)]);
     document.getElementById("carteraSkinsList").innerHTML = [...skins].filter(Boolean).sort().map(s => `<option value="${escapeAttribute(s)}"></option>`).join("");
@@ -3715,6 +3722,7 @@ async function registrarMovimientoCartera(event) {
         cantidad: Number(document.getElementById("carteraCantidad").value),
         precio_unitario: Number(document.getElementById("carteraPrecio").value),
         comisiones: Number(document.getElementById("carteraComisiones").value || 0),
+        precio_ya_neto: document.getElementById("carteraPrecioYaNeto").checked,
         notas: document.getElementById("carteraNotas").value.trim()
     };
     carteraEnviando = true; btn.disabled = true; btn.textContent = "Guardando…";
@@ -3728,6 +3736,7 @@ async function registrarMovimientoCartera(event) {
         document.getElementById("carteraFecha").value = fechaLocalISO();
         document.getElementById("carteraCantidad").value = "1";
         document.getElementById("carteraComisiones").value = "0";
+        document.getElementById("carteraPrecioYaNeto").checked = false;
         msg.textContent = "Movimiento registrado y guardado.";
         msg.className = "portfolio-muted portfolio-positive";
     } catch (error) {
@@ -3736,6 +3745,20 @@ async function registrarMovimientoCartera(event) {
     } finally {
         carteraEnviando = false; btn.disabled = false; actualizarFormularioCartera();
     }
+}
+
+async function eliminarMovimientoCartera(id, skin, tipo) {
+    if (!id) { alert("Este movimiento no tiene identificador. Actualizá la cartera para recargarlo y probá de nuevo."); return; }
+    const confirmado = confirm(`¿Eliminar este movimiento de ${tipo.toLowerCase()} de "${skin}"? Esto recalculará la cartera y no se puede deshacer.`);
+    if (!confirmado) return;
+    try {
+        const response = await fetch("/api/cartera", { method: "DELETE", headers: {"Content-Type": "application/json"}, body: JSON.stringify({id}) });
+        const data = await response.json();
+        if (!response.ok || !data.ok) throw new Error(data.error || "No se pudo eliminar el movimiento.");
+        carteraData = data.cartera; renderCartera(data.cartera);
+        const msg = document.getElementById("carteraFormMsg");
+        if (msg) { msg.textContent = "Movimiento eliminado y cartera recalculada."; msg.className = "portfolio-muted portfolio-positive"; }
+    } catch (error) { alert(error.message); }
 }
 
 /* =========================================================
