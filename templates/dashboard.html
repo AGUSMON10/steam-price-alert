@@ -39,6 +39,7 @@ let editingInventoryId = null;
 let editingSaleId = null;
 let salesItems = [];
 let salesSort = { key: "sell_date", direction: -1 };
+let capitalInitial = { valor_skins: 757, efectivo: 0, capital_total: 757 };
 
 function sortInventory(key) {
     if (inventorySort.key === key) {
@@ -116,6 +117,7 @@ async function loadInventory() {
         document.getElementById("invUnits").textContent = inventoryItems.reduce((sum,x)=>sum+(Number(x.quantity)||0),0);
         document.getElementById("invCost").textContent = moneyPortfolio(inventoryItems.reduce((sum,x)=>sum+(x.cost == null ? 0 : Number(x.cost)||0)*(Number(x.quantity)||0),0));
         renderInventoryRows();
+        updateCapitalMetrics();
     } catch (e) {
         tbody.innerHTML = `<tr><td colspan="7" class="empty">${escapePortfolio(e.message)}</td></tr>`;
     }
@@ -186,6 +188,42 @@ document.getElementById("inventoryForm")?.addEventListener("submit", async event
 });
 });
 
+async function loadCapital() {
+    try {
+        const data = await portfolioRequest("/api/capital");
+        capitalInitial = {
+            valor_skins: Number(data.valor_skins) || 0,
+            efectivo: Number(data.efectivo) || 0,
+            capital_total: Number(data.capital_total) || 0
+        };
+        const skinsInput = document.getElementById("capitalSkins");
+        const cashInput = document.getElementById("capitalCash");
+        if (skinsInput && document.activeElement !== skinsInput) skinsInput.value = capitalInitial.valor_skins.toFixed(2);
+        if (cashInput && document.activeElement !== cashInput) cashInput.value = capitalInitial.efectivo.toFixed(2);
+        updateCapitalMetrics();
+    } catch (e) {
+        const msg = document.getElementById("capitalSaveMessage");
+        if (msg) msg.textContent = "No se pudo cargar la configuración de capital: " + e.message;
+    }
+}
+function updateCapitalMetrics() {
+    const total = capitalInitial.valor_skins + capitalInitial.efectivo;
+    const realized = salesItems.reduce((sum, x) => sum + Number(x.profit ?? ((Number(x.sell_price)||0) - (Number(x.buy_price)||0)) * (Number(x.quantity)||1)), 0);
+    const inventoryCost = inventoryItems.reduce((sum, x) => sum + (x.cost == null ? 0 : (Number(x.cost)||0) * (Number(x.quantity)||1)), 0);
+    const ret = total > 0 ? (realized / total) * 100 : 0;
+    const set = (id, value) => { const el = document.getElementById(id); if (el) el.textContent = value; };
+    set("capitalTotal", moneyPortfolio(total));
+    set("capitalSkinsDisplay", moneyPortfolio(capitalInitial.valor_skins));
+    set("capitalCashDisplay", moneyPortfolio(capitalInitial.efectivo));
+    set("capitalRealized", moneyPortfolio(realized));
+    set("capitalReturn", `${ret.toLocaleString("es-AR", {minimumFractionDigits:2, maximumFractionDigits:2})}%`);
+    set("capitalInventoryCost", moneyPortfolio(inventoryCost));
+    const result = document.getElementById("capitalRealized");
+    if (result) { result.classList.toggle("good", realized >= 0); result.classList.toggle("danger", realized < 0); }
+    const returnEl = document.getElementById("capitalReturn");
+    if (returnEl) { returnEl.classList.toggle("good", realized >= 0); returnEl.classList.toggle("danger", realized < 0); }
+}
+
 function sortSales(key) {
     if (salesSort.key === key) salesSort.direction *= -1;
     else salesSort = {key, direction: (key === "sell_date" ? -1 : 1)};
@@ -233,6 +271,7 @@ async function loadSales() {
         profitEl.classList.toggle("good", profit >= 0);
         profitEl.classList.toggle("danger", profit < 0);
         renderSalesRows();
+        updateCapitalMetrics();
     } catch(e) { tbody.innerHTML = `<tr><td colspan="8" class="empty">${escapePortfolio(e.message)}</td></tr>`; }
 }
 function editSale(id) {
@@ -254,6 +293,25 @@ async function deleteSale(id) {
     catch(e) { alert(e.message); }
 }
 window.addEventListener("DOMContentLoaded", () => {
+document.getElementById("capitalForm")?.addEventListener("submit", async event => {
+    event.preventDefault();
+    const form = event.currentTarget;
+    const button = form.querySelector('button[type="submit"]');
+    const msg = document.getElementById("capitalSaveMessage");
+    button.disabled = true;
+    if (msg) msg.textContent = "Guardando…";
+    try {
+        const data = await portfolioRequest("/api/capital", {method:"POST", body:JSON.stringify({
+            valor_skins: document.getElementById("capitalSkins").value,
+            efectivo: document.getElementById("capitalCash").value
+        })});
+        capitalInitial = {valor_skins:Number(data.valor_skins)||0, efectivo:Number(data.efectivo)||0, capital_total:Number(data.capital_total)||0};
+        updateCapitalMetrics();
+        if (msg) msg.textContent = "Capital inicial guardado correctamente.";
+    } catch(e) { if (msg) msg.textContent = "Error: " + e.message; else alert(e.message); }
+    finally { button.disabled = false; }
+});
+
 document.getElementById("salesForm")?.addEventListener("submit", async event => {
     event.preventDefault();
     // Guardar la referencia antes del await: event.currentTarget deja de estar disponible luego.
@@ -1942,6 +2000,12 @@ select:focus {
 .inventory-sale-fields label { display:flex; flex-direction:column; gap:4px; color:var(--muted); font-size:10px; }
 .inventory-sale-fields input { width:100%; min-width:0; box-sizing:border-box; padding:8px; color:var(--text); background:var(--panel); border:1px solid var(--border); border-radius:7px; }
 .inventory-sale-fields .button { padding:8px 10px; font-size:11px; }
+.capital-panel { margin-bottom:18px; }
+.capital-form { margin-bottom:14px; }
+.capital-cards { margin-top:14px; }
+.capital-save-message { color:var(--muted); font-size:11px; margin-top:8px; }
+.capital-breakdown { margin-top:14px; padding:12px; border:1px solid var(--border); border-radius:10px; color:var(--muted); font-size:11px; line-height:1.6; }
+.capital-breakdown strong { color:var(--text); margin-right:10px; }
 .portfolio-delete {
     background:rgba(255,104,125,.08); border:1px solid rgba(255,104,125,.22);
     color:var(--red); border-radius:7px; padding:7px 10px; font-size:10px; font-weight:700;
@@ -3344,6 +3408,24 @@ select:focus {
         <div class="card"><div class="card-title">Ingresos por ventas</div><div class="card-value" id="salesRevenue">$0.00</div><div class="card-foot">Venta × cantidad</div></div>
         <div class="card"><div class="card-title">Ganancia / pérdida</div><div class="card-value" id="salesProfit">$0.00</div><div class="card-foot">Con los precios netos que cargaste</div></div>
     </div>
+    <div class="panel capital-panel">
+        <div class="panel-header"><div><div class="panel-title">Capital inicial y rendimiento</div><div class="panel-sub">Registrá el valor estimado de las skins con las que empezaste y el efectivo que aportaste. Las compras hechas con dinero de ventas son reinversiones, no aportes nuevos.</div></div></div>
+        <div class="panel-body">
+            <form id="capitalForm" class="portfolio-form capital-form">
+                <label>Valor de las skins iniciales (USD)<input id="capitalSkins" type="number" min="0" step="0.01" value="757.00" required></label>
+                <label>Efectivo aportado al inicio (USD)<input id="capitalCash" type="number" min="0" step="0.01" value="0.00" required></label>
+                <button class="button" type="submit">Guardar capital inicial</button>
+            </form>
+            <div id="capitalSaveMessage" class="capital-save-message" role="status">Valor inicial de skins precargado en $757.00; el efectivo inicial está en $0.00 hasta que lo completes.</div>
+            <div class="cards capital-cards">
+                <div class="card"><div class="card-title">Capital inicial total</div><div class="card-value" id="capitalTotal">$757.00</div><div class="card-foot">Skins iniciales + efectivo</div></div>
+                <div class="card"><div class="card-title">Ganancia / pérdida realizada</div><div class="card-value" id="capitalRealized">$0.00</div><div class="card-foot">Resultado acumulado de ventas cerradas</div></div>
+                <div class="card"><div class="card-title">Rendimiento realizado</div><div class="card-value" id="capitalReturn">0.00%</div><div class="card-foot">Resultado realizado ÷ capital inicial</div></div>
+                <div class="card"><div class="card-title">Costo del inventario actual</div><div class="card-value" id="capitalInventoryCost">$0.00</div><div class="card-foot">Costo registrado, no cotización de mercado</div></div>
+            </div>
+            <div class="capital-breakdown">Capital de referencia: skins <strong id="capitalSkinsDisplay">$757.00</strong> + efectivo <strong id="capitalCashDisplay">$0.00</strong>. Las reinversiones no aumentan el capital inicial. El rendimiento mostrado es el realizado por las operaciones cerradas; no incluye ganancias o pérdidas no realizadas de las skins que todavía tenés.</div>
+        </div>
+    </div>
     <div class="panel">
         <div class="panel-header"><div><div class="panel-title">Registrar operación</div><div class="panel-sub">Una fila por operación de compra y venta completada.</div></div></div>
         <div class="panel-body">
@@ -3901,6 +3983,8 @@ function showTab(tabName, button) {
 
     if (tabName === "ventas") {
         loadSales();
+        loadCapital();
+        loadInventory();
     }
 
     if (tabName === "notificadas") {
