@@ -254,6 +254,72 @@ function renderSalesRows() {
         <td><button class="button secondary" type="button" onclick="editSale('${escapePortfolio(x.id)}')">Editar</button> <button class="portfolio-delete" onclick="deleteSale('${escapePortfolio(x.id)}')">Eliminar</button></td>
     </tr>`).join("") : '<tr><td colspan="8" class="empty">Todavía no registraste ventas.</td></tr>';
 }
+let salesProfitChart = null;
+let salesCumulativeChart = null;
+function parseSalesDate(value) {
+    const match = String(value || "").match(/^(\d{4})-(\d{2})-(\d{2})/);
+    if (!match) return null;
+    const date = new Date(Number(match[1]), Number(match[2])-1, Number(match[3]));
+    return Number.isNaN(date.getTime()) ? null : date;
+}
+function salesDateKey(date, monthly) {
+    const y = date.getFullYear(), m = String(date.getMonth()+1).padStart(2,"0"), d = String(date.getDate()).padStart(2,"0");
+    return monthly ? `${y}-${m}` : `${y}-${m}-${d}`;
+}
+function salesChartLabel(key, monthly) {
+    const parts = key.split("-");
+    return monthly ? `${parts[1]}/${parts[0]}` : `${parts[2]}/${parts[1]}/${parts[0]}`;
+}
+function renderSalesCharts() {
+    const periodControl = document.getElementById("salesChartPeriod");
+    const empty = document.getElementById("salesChartEmpty");
+    const profitCanvas = document.getElementById("salesProfitChart");
+    const cumulativeCanvas = document.getElementById("salesCumulativeChart");
+    if (!profitCanvas || !cumulativeCanvas) return;
+    const days = periodControl?.value || "30";
+    const today = new Date(); today.setHours(23,59,59,999);
+    const cutoff = new Date(today);
+    if (days !== "all") cutoff.setDate(cutoff.getDate() - (Number(days)-1));
+    cutoff.setHours(0,0,0,0);
+    const valid = salesItems.map((item, index) => {
+        const date = parseSalesDate(item.sell_date);
+        const quantity = Number(item.quantity) || 1;
+        const profit = Number(item.profit ?? ((Number(item.sell_price)||0)-(Number(item.buy_price)||0))*quantity) || 0;
+        return {item, date, profit, index};
+    }).filter(x => x.date && (days === "all" || x.date >= cutoff) && x.date <= today)
+      .sort((a,b) => a.date-b.date || a.index-b.index);
+    const monthly = days === "all";
+    const buckets = new Map();
+    valid.forEach(x => {
+        const key = salesDateKey(x.date, monthly);
+        if (!buckets.has(key)) buckets.set(key, {profit:0, invested:0, revenue:0});
+        const bucket = buckets.get(key);
+        bucket.profit += x.profit;
+        bucket.invested += (Number(x.item.buy_price)||0) * (Number(x.item.quantity)||1);
+        bucket.revenue += (Number(x.item.sell_price)||0) * (Number(x.item.quantity)||1);
+    });
+    const labels = [...buckets.keys()].sort();
+    const profitValues = labels.map(key => Number(buckets.get(key).profit.toFixed(2)));
+    let cumulative = 0;
+    const cumulativeValues = labels.map(key => { cumulative += buckets.get(key).profit; return Number(cumulative.toFixed(2)); });
+    if (empty) empty.hidden = valid.length > 0;
+    [salesProfitChart, salesCumulativeChart].forEach(chart => { if (chart) chart.destroy(); });
+    if (!valid.length) { salesProfitChart = salesCumulativeChart = null; return; }
+    const commonOptions = {
+        responsive:true, maintainAspectRatio:false,
+        interaction:{mode:"index",intersect:false},
+        plugins:{legend:{labels:{color:"#aab8ca",usePointStyle:true,boxWidth:8}},tooltip:{callbacks:{label:ctx=>`${ctx.dataset.label}: ${moneyPortfolio(ctx.parsed.y)}`}}},
+        scales:{x:{ticks:{color:"#9aa9bc",maxRotation:0,autoSkip:true,maxTicksLimit:8},grid:{color:"rgba(150,170,195,.08)"}},y:{ticks:{color:"#9aa9bc",callback:value=>`$${Number(value).toLocaleString("en-US")}`},grid:{color:"rgba(150,170,195,.10)"}}}
+    };
+    salesProfitChart = new Chart(profitCanvas.getContext("2d"), {
+        type:"bar", data:{labels:labels.map(key=>salesChartLabel(key,monthly)),datasets:[{label:"Ganancia / pérdida",data:profitValues,backgroundColor:profitValues.map(v=>v>=0?"rgba(55,205,145,.68)":"rgba(255,104,125,.68)"),borderColor:profitValues.map(v=>v>=0?"#37cd91":"#ff687d"),borderWidth:1,borderRadius:5}]},
+        options:{...commonOptions,plugins:{...commonOptions.plugins,legend:{display:false}}}
+    });
+    salesCumulativeChart = new Chart(cumulativeCanvas.getContext("2d"), {
+        type:"line", data:{labels:labels.map(key=>salesChartLabel(key,monthly)),datasets:[{label:"Resultado acumulado",data:cumulativeValues,borderColor:"#57a9ff",backgroundColor:"rgba(87,169,255,.14)",fill:true,tension:.25,pointRadius:3,pointHoverRadius:5,borderWidth:2}]},
+        options:commonOptions
+    });
+}
 async function loadSales() {
     const tbody = document.getElementById("salesRows");
     if (!tbody) return;
@@ -271,6 +337,7 @@ async function loadSales() {
         profitEl.classList.toggle("good", profit >= 0);
         profitEl.classList.toggle("danger", profit < 0);
         renderSalesRows();
+        renderSalesCharts();
         updateCapitalMetrics();
     } catch(e) { tbody.innerHTML = `<tr><td colspan="8" class="empty">${escapePortfolio(e.message)}</td></tr>`; }
 }
@@ -311,6 +378,8 @@ document.getElementById("capitalForm")?.addEventListener("submit", async event =
     } catch(e) { if (msg) msg.textContent = "Error: " + e.message; else alert(e.message); }
     finally { button.disabled = false; }
 });
+
+document.getElementById("salesChartPeriod")?.addEventListener("change", renderSalesCharts);
 
 document.getElementById("salesForm")?.addEventListener("submit", async event => {
     event.preventDefault();
@@ -2000,6 +2069,19 @@ select:focus {
 .inventory-sale-fields label { display:flex; flex-direction:column; gap:4px; color:var(--muted); font-size:10px; }
 .inventory-sale-fields input { width:100%; min-width:0; box-sizing:border-box; padding:8px; color:var(--text); background:var(--panel); border:1px solid var(--border); border-radius:7px; }
 .inventory-sale-fields .button { padding:8px 10px; font-size:11px; }
+
+.sales-charts-panel { margin-bottom:18px; }
+.sales-chart-heading { gap:16px; align-items:flex-start; }
+.sales-period-control { display:flex; flex-direction:column; gap:6px; color:var(--muted); font-size:11px; font-weight:700; min-width:150px; }
+.sales-period-control select { color:var(--text); background:var(--panel3); border:1px solid var(--border); border-radius:8px; padding:9px 10px; font:inherit; }
+.sales-chart-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:14px; }
+.sales-chart-card { min-width:0; border:1px solid var(--border); border-radius:12px; padding:15px; background:var(--panel3); }
+.sales-chart-title { color:var(--text); font-size:12px; font-weight:800; }
+.sales-chart-sub { color:var(--muted); font-size:10px; margin-top:5px; margin-bottom:12px; line-height:1.5; }
+.sales-chart-canvas { position:relative; height:250px; width:100%; }
+.sales-chart-empty { color:var(--muted); text-align:center; padding:22px 12px; font-size:12px; }
+@media(max-width:760px) { .sales-chart-grid { grid-template-columns:1fr; } .sales-chart-heading { flex-direction:column; } .sales-period-control { width:100%; } }
+
 .capital-panel { margin-bottom:18px; }
 .capital-form { margin-bottom:14px; }
 .capital-cards { margin-top:14px; }
@@ -3425,6 +3507,24 @@ select:focus {
             </div>
             <div class="capital-breakdown">Capital de referencia: skins <strong id="capitalSkinsDisplay">$757.00</strong> + efectivo <strong id="capitalCashDisplay">$0.00</strong>. Las reinversiones no aumentan el capital inicial. El rendimiento mostrado es el realizado por las operaciones cerradas; no incluye ganancias o pérdidas no realizadas de las skins que todavía tenés.</div>
         </div>
+    </div>
+    <div class="panel sales-charts-panel">
+        <div class="panel-header sales-chart-heading">
+            <div><div class="panel-title">Evolución de tus operaciones</div><div class="panel-sub">Gráficos calculados con las compras y ventas que registraste. La venta usa el precio neto que ingresaste, sin volver a descontar la comisión.</div></div>
+            <label class="sales-period-control">Período
+                <select id="salesChartPeriod" aria-label="Período de los gráficos">
+                    <option value="7">Últimos 7 días</option>
+                    <option value="30" selected>Últimos 30 días</option>
+                    <option value="90">Últimos 90 días</option>
+                    <option value="all">Todo el historial</option>
+                </select>
+            </label>
+        </div>
+        <div class="sales-chart-grid">
+            <div class="sales-chart-card"><div class="sales-chart-title">Resultado por período</div><div class="sales-chart-sub">Ganancia o pérdida realizada según fecha de venta</div><div class="sales-chart-canvas"><canvas id="salesProfitChart"></canvas></div></div>
+            <div class="sales-chart-card"><div class="sales-chart-title">Ganancia / pérdida acumulada</div><div class="sales-chart-sub">Cómo fue cambiando el resultado a medida que cerraste operaciones</div><div class="sales-chart-canvas"><canvas id="salesCumulativeChart"></canvas></div></div>
+        </div>
+        <div id="salesChartEmpty" class="sales-chart-empty" hidden>Todavía no hay ventas registradas en este período. Elegí “Todo el historial” o registrá una operación para ver la evolución.</div>
     </div>
     <div class="panel">
         <div class="panel-header"><div><div class="panel-title">Registrar operación</div><div class="panel-sub">Una fila por operación de compra y venta completada.</div></div></div>
