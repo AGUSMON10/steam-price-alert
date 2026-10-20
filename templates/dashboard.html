@@ -7632,7 +7632,21 @@ function renderizarPreciosMaximos() {
                         <div class="config-row-title">
                             ${escapeHtmlConfig(nombre)}
                         </div>
-                        <div style="margin-top:5px; color:var(--muted); font-size:12px;">
+                        <div style="display:flex; gap:7px; flex-wrap:wrap; margin-top:8px;">
+                            <a
+                                href="${escapeAttribute(skinActual?.steam_url || ('steam://openurl/https://steamcommunity.com/market/listings/730/' + encodeURIComponent(nombre)))}"
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                style="display:inline-flex; align-items:center; gap:5px; padding:6px 9px; border:1px solid var(--border); border-radius:7px; color:var(--text); text-decoration:none; font-size:12px; font-weight:600; white-space:nowrap;"
+                            >🖥️ Abrir en Steam</a>
+                            <a
+                                href="https://steamcommunity.com/market/listings/730/${encodeURIComponent(nombre)}"
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                style="display:inline-flex; align-items:center; gap:5px; padding:6px 9px; border:1px solid var(--border); border-radius:7px; color:var(--text); text-decoration:none; font-size:12px; font-weight:600; white-space:nowrap;"
+                            >📱 Abrir en Celular</a>
+                        </div>
+                        <div style="margin-top:9px; color:var(--muted); font-size:12px;">
                             Precio actual de venta
                         </div>
                         <div
