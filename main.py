@@ -20,6 +20,8 @@ ARCHIVO_ESTADO = "bot_state.json"
 # Inventario manual y registro de operaciones de compra/venta.
 inventario_skins = []
 registro_ventas = []
+# Capital inicial aportado por el usuario. El valor de skins iniciales se puede editar desde el dashboard.
+capital_inicial = {"valor_skins": 757.0, "efectivo": 0.0}
 
 # Lista de proxies (pegá los tuyos de Webshare)
 
@@ -1895,6 +1897,7 @@ def _guardar_estado_interno(forzar=False):
             "skins_pausadas": sorted(SKINS_PAUSADAS),
             "inventario_skins": copy.deepcopy(inventario_skins),
             "registro_ventas": copy.deepcopy(registro_ventas),
+            "capital_inicial": copy.deepcopy(capital_inicial),
 
             # Configuración editable del bot.
             #
@@ -2072,6 +2075,7 @@ def cargar_estado():
     global SKINS_PAUSADAS
     global inventario_skins
     global registro_ventas
+    global capital_inicial
 
     try:
         github_token = os.getenv("GITHUB_TOKEN")
@@ -2164,6 +2168,15 @@ def cargar_estado():
         ventas_guardadas = estado.get("registro_ventas", [])
         inventario_skins = inventario_guardado if isinstance(inventario_guardado, list) else []
         registro_ventas = ventas_guardadas if isinstance(ventas_guardadas, list) else []
+        capital_guardado = estado.get("capital_inicial", {})
+        if isinstance(capital_guardado, dict):
+            try:
+                valor_skins = float(capital_guardado.get("valor_skins", 757.0))
+                efectivo = float(capital_guardado.get("efectivo", 0.0))
+                if math.isfinite(valor_skins) and valor_skins >= 0 and math.isfinite(efectivo) and efectivo >= 0:
+                    capital_inicial = {"valor_skins": round(valor_skins, 2), "efectivo": round(efectivo, 2)}
+            except (TypeError, ValueError, OverflowError):
+                pass
 
         historial_cargado = estado.get("historial_notificaciones", [])
 
@@ -3146,6 +3159,33 @@ def _guardar_datos_portafolio():
         target=lambda: guardar_estado(forzar=True),
         daemon=True
     ).start()
+
+
+@app.route("/api/capital", methods=["GET", "POST"])
+def api_capital_inicial():
+    """Lee o actualiza el capital de referencia inicial sin contar reinversiones como aportes."""
+    global capital_inicial
+    if request.method == "GET":
+        with lock:
+            datos = copy.deepcopy(capital_inicial)
+        return jsonify({"ok": True, **datos, "capital_total": round(datos["valor_skins"] + datos["efectivo"], 2)})
+
+    data = request.get_json(silent=True)
+    if not isinstance(data, dict):
+        return jsonify({"ok": False, "error": "Solicitud inválida"}), 400
+    try:
+        valor_skins = float(data.get("valor_skins", 757))
+        efectivo = float(data.get("efectivo", 0))
+        if (not math.isfinite(valor_skins) or not math.isfinite(efectivo)
+                or valor_skins < 0 or efectivo < 0):
+            raise ValueError
+    except (TypeError, ValueError, OverflowError):
+        return jsonify({"ok": False, "error": "Ingresá importes válidos iguales o mayores a cero"}), 400
+
+    with lock:
+        capital_inicial = {"valor_skins": round(valor_skins, 2), "efectivo": round(efectivo, 2)}
+    _guardar_datos_portafolio()
+    return jsonify({"ok": True, **capital_inicial, "capital_total": round(valor_skins + efectivo, 2)})
 
 
 @app.route("/api/inventario", methods=["GET", "POST"])
