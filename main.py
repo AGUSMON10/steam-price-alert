@@ -1557,6 +1557,8 @@ skins_a_vigilar = {
     "★ Skeleton Knife | Ultraviolet (Field-Tested)": 184.00,
     "★ Skeleton Knife | Stained (Minimal Wear)": 196.00,
     "★ StatTrak™ Nomad Knife | Blue Steel (Minimal Wear)": 184.00,
+    "★ Survival Knife | Blue Steel (Factory New)": 140.00,
+    "★ StatTrak™ Survival Knife | Marble Fade (Minimal Wear)": 160.00,
     
 }
 
@@ -1604,6 +1606,8 @@ ITEM_NAME_IDS = {
     "★ Skeleton Knife | Ultraviolet (Field-Tested)": 176506433,
     "★ Skeleton Knife | Stained (Minimal Wear)": 176097674,
     "★ StatTrak™ Nomad Knife | Blue Steel (Minimal Wear)": 176105014,
+    "★ Survival Knife | Blue Steel (Factory New)": 176103425,
+    "★ StatTrak™ Survival Knife | Marble Fade (Minimal Wear)": 176511815,
 
 }
 
