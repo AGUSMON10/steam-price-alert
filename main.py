@@ -249,7 +249,7 @@ CONFIG_DEFAULTS = {
     "persistencia": {
 
         # Cada cuánto se guarda el estado.
-        "guardar_estado_intervalo": 900,
+        "guardar_estado_intervalo": 1800,
     },
 }
 
@@ -860,7 +860,7 @@ def validar_configuracion(config):
     entero_en_rango(
         "persistencia",
         "guardar_estado_intervalo",
-        60,
+        1800,
         86400
     )
 
@@ -1224,9 +1224,13 @@ def aplicar_configuracion():
     # PERSISTENCIA
     # ======================================================
 
-    GUARDAR_ESTADO_INTERVALO = CONFIG["persistencia"][
-        "guardar_estado_intervalo"
-    ]
+    # Evitar escrituras excesivas a GitHub. Se permite ampliar el
+    # intervalo desde la configuración, pero nunca bajarlo de 30 min.
+    GUARDAR_ESTADO_INTERVALO = max(
+        1800,
+        int(CONFIG["persistencia"].get("guardar_estado_intervalo", 1800))
+    )
+    CONFIG["persistencia"]["guardar_estado_intervalo"] = GUARDAR_ESTADO_INTERVALO
 
 
     # ======================================================
@@ -1631,6 +1635,67 @@ WORKER_THREADS = {}
 
 lock = threading.Lock()
 
+# Medición aproximada del tráfico saliente/entrante por servicio.
+# Se mantiene en memoria para no aumentar el tamaño de bot_state.json.
+TRAFICO_RED = {
+    destino: {"enviado": 0, "recibido": 0, "requests": 0}
+    for destino in ("github", "steam", "telegram")
+}
+
+
+def registrar_trafico(destino, response=None, enviado_extra=0, recibido_extra=0):
+    """Registra bytes aproximados de request/response para diagnóstico."""
+    if destino not in TRAFICO_RED:
+        return
+
+    enviado = max(0, int(enviado_extra or 0))
+    recibido = max(0, int(recibido_extra or 0))
+
+    if response is not None:
+        try:
+            req = getattr(response, "request", None)
+            if req is not None:
+                enviado += len((getattr(req, "url", "") or "").encode("utf-8"))
+                body = getattr(req, "body", None)
+                if body is not None:
+                    if isinstance(body, bytes):
+                        enviado += len(body)
+                    elif isinstance(body, str):
+                        enviado += len(body.encode("utf-8"))
+            headers = getattr(response, "headers", {}) or {}
+            content_length = headers.get("Content-Length")
+            if content_length and str(content_length).isdigit():
+                recibido += int(content_length)
+            else:
+                recibido += len(getattr(response, "content", b"") or b"")
+        except Exception:
+            pass
+
+    with lock:
+        TRAFICO_RED[destino]["enviado"] += enviado
+        TRAFICO_RED[destino]["recibido"] += recibido
+        TRAFICO_RED[destino]["requests"] += 1
+
+
+def imprimir_resumen_trafico():
+    """Muestra el tráfico acumulado desde el último arranque del proceso."""
+    with lock:
+        datos = {k: dict(v) for k, v in TRAFICO_RED.items()}
+
+    def mb(valor):
+        return valor / (1024 * 1024)
+
+    partes = []
+    for destino, valores in datos.items():
+        total = valores["enviado"] + valores["recibido"]
+        partes.append(
+            f"{destino}: {mb(total):.2f} MB "
+            f"(TX {mb(valores['enviado']):.2f} / "
+            f"RX {mb(valores['recibido']):.2f}, "
+            f"{valores['requests']} req.)"
+        )
+    print("[TRAFICO] " + " | ".join(partes))
+
 # Cache temporal de precios
 price_cache = {}
 
@@ -1776,12 +1841,54 @@ fecha_estadisticas = datetime.now(ZONA_ARG).date()
 # GUARDADO DEL ESTADO
 # ============================================================
 
-GUARDAR_ESTADO_INTERVALO = 900  # 15 minutos
+GUARDAR_ESTADO_INTERVALO = 1800  # 30 minutos mínimo
 ULTIMO_GUARDADO_ESTADO = 0
+# SHA del bot_state.json en GitHub. Se reutiliza el SHA devuelto por PUT
+# para evitar descargar el archivo completo antes de cada actualización.
+GITHUB_STATE_SHA = None
 
 # Evita que el worker y el dashboard escriban bot_state.json
 # simultáneamente y compitan por el SHA de GitHub.
 ESTADO_GUARDADO_LOCK = threading.Lock()
+
+
+def preparar_historial_para_guardar(historial, intervalo_segundos=600):
+    """Reduce el historial persistido a una muestra por skin cada 10 minutos.
+
+    El historial completo permanece en memoria para el dashboard durante
+    la ejecución. Solo la copia enviada a GitHub se comprime temporalmente.
+    """
+    limite = time.time() - (HISTORIAL_HORAS * 60 * 60)
+    reducido = {}
+
+    if not isinstance(historial, dict):
+        return reducido
+
+    skins_activas = set(skins_a_vigilar)
+    for skin, puntos in historial.items():
+        if skin not in skins_activas or not isinstance(puntos, list):
+            continue
+
+        por_intervalo = {}
+        for punto in puntos:
+            if not isinstance(punto, dict):
+                continue
+            try:
+                timestamp = float(punto.get("timestamp", 0) or 0)
+            except (TypeError, ValueError, OverflowError):
+                continue
+            if timestamp < limite:
+                continue
+
+            bloque = int(timestamp // intervalo_segundos)
+            anterior = por_intervalo.get(bloque)
+            if anterior is None or timestamp >= float(anterior.get("timestamp", 0) or 0):
+                por_intervalo[bloque] = punto
+
+        if por_intervalo:
+            reducido[skin] = [por_intervalo[k] for k in sorted(por_intervalo)]
+
+    return reducido
 
 
 def guardar_estado(forzar=False):
@@ -1806,7 +1913,7 @@ def guardar_estado(forzar=False):
 def _guardar_estado_interno(forzar=False):
 
     global ULTIMO_GUARDADO_ESTADO
-    
+    global GITHUB_STATE_SHA
     global ESTADO_CARGA_FALLIDA
 
     if ESTADO_CARGA_FALLIDA:
@@ -1876,13 +1983,18 @@ def _guardar_estado_interno(forzar=False):
 
             historial_notificaciones_guardadas = list(historial_notificaciones)
 
+        historial_precios_guardado = preparar_historial_para_guardar(
+            historial_precios
+        )
+
         estado = {
             "notificados": notificados,
             "historial_notificaciones": historial_notificaciones_guardadas,
             "stats_diarias": stats_diarias,
             "stats_proxies": stats_proxies_guardadas,
-            "price_cache": price_cache,
-            "historial_precios": historial_precios,
+            # price_cache es temporal y se reconstruye consultando Steam.
+            # No se sube a GitHub para evitar transferir datos redundantes.
+            "historial_precios": historial_precios_guardado,
             "ciclo_numero": ciclo_numero,
             "estado_app": estado_app,
             "skins_revisadas_total": skins_revisadas_total,
@@ -1910,7 +2022,7 @@ def _guardar_estado_interno(forzar=False):
         contenido_json = json.dumps(
             estado,
             ensure_ascii=False,
-            indent=2,
+            separators=(",", ":"),
             allow_nan=False
         )
 
@@ -1978,26 +2090,32 @@ def _guardar_estado_interno(forzar=False):
         # OBTENER SHA DEL ARCHIVO ACTUAL
         # ====================================================
 
-        respuesta_actual = requests.get(
-            url,
-            headers=headers,
-            timeout=15
-        )
+        sha = GITHUB_STATE_SHA
 
-        sha = None
-
-        if respuesta_actual.status_code == 200:
-
-            sha = respuesta_actual.json().get("sha")
-
-        elif respuesta_actual.status_code != 404:
-
-            print(
-                f"[GITHUB] Error consultando estado: "
-                f"HTTP {respuesta_actual.status_code}"
+        # Solo se consulta el SHA a GitHub al iniciar o si el anterior
+        # no pudo recuperarse. Los PUT exitosos devuelven el nuevo SHA.
+        if not sha:
+            respuesta_actual = requests.get(
+                url,
+                headers=headers,
+                timeout=15
             )
+            registrar_trafico("github", respuesta_actual)
 
-            return
+            if respuesta_actual.status_code == 200:
+                sha = respuesta_actual.json().get("sha")
+                GITHUB_STATE_SHA = sha
+
+            elif respuesta_actual.status_code == 404:
+                sha = None
+                GITHUB_STATE_SHA = None
+
+            else:
+                print(
+                    f"[GITHUB] Error consultando estado: "
+                    f"HTTP {respuesta_actual.status_code}"
+                )
+                return
 
         # ====================================================
         # PREPARAR CONTENIDO
@@ -2030,16 +2148,29 @@ def _guardar_estado_interno(forzar=False):
             json=datos_github,
             timeout=20
         )
+        registrar_trafico("github", respuesta)
 
         if respuesta.status_code in (200, 201):
 
             ULTIMO_GUARDADO_ESTADO = time.time()
+            try:
+                GITHUB_STATE_SHA = respuesta.json().get("content", {}).get("sha")
+            except Exception:
+                GITHUB_STATE_SHA = None
 
             print(
-                "[GITHUB] Estado guardado correctamente."
+                "[GITHUB] Estado guardado correctamente. "
+                f"JSON: {len(contenido)} bytes. "
+                f"Historial persistido: "
+                f"{sum(len(v) for v in historial_precios_guardado.values())} puntos."
             )
+            imprimir_resumen_trafico()
 
         else:
+
+            if respuesta.status_code in (409, 422):
+                GITHUB_STATE_SHA = None
+                print("[GITHUB] SHA desactualizado; se volverá a consultar en el próximo guardado.")
 
             print(
                 f"[GITHUB] Error guardando estado: "
@@ -2093,6 +2224,7 @@ def cargar_estado():
             headers=headers,
             timeout=30
         )
+        registrar_trafico("github", respuesta)
 
         if respuesta.status_code == 404:
             print("[GITHUB] No existe bot_state.json todavía.")
@@ -2220,18 +2352,18 @@ def cargar_estado():
 
         if isinstance(skins_guardadas, dict):
 
-            for skin_name, precio_max in skins_guardadas.items():
-
+            # El .py es la única fuente de nombres vigilados.
+            # GitHub solo puede actualizar el precio máximo de skins
+            # que ya estén declaradas en skins_a_vigilar.
+            for skin_name in list(skins_a_vigilar):
+                if skin_name not in skins_guardadas:
+                    continue
+                precio_max = skins_guardadas[skin_name]
                 try:
-
                     precio_max = float(precio_max)
-
-                    if precio_max >= 0:
-
+                    if math.isfinite(precio_max) and precio_max >= 0:
                         skins_a_vigilar[skin_name] = precio_max
-
-                except (TypeError, ValueError):
-
+                except (TypeError, ValueError, OverflowError):
                     print(
                         f"[GITHUB] Precio inválido para "
                         f"{skin_name}: {precio_max}"
@@ -2355,10 +2487,10 @@ def cargar_estado():
 
                 PROXY_LAST_USED[proxy] = 0
         
-        price_cache = estado.get(
-            "price_cache",
-            {}
-        )
+        # La caché de precios es temporal: se reconstruye consultando
+        # Steam y no se restaura desde estados antiguos para reducir
+        # transferencias y evitar precios vencidos tras un reinicio.
+        price_cache = {}
 
         historial_precios = estado.get(
             "historial_precios",
@@ -4848,6 +4980,7 @@ def buscar_precio(market_hash_name, session, proxy):
             timeout=(10, 20),
             proxies=proxies
         )
+        registrar_trafico("steam", r)
 
         duracion_request = time.time() - inicio_request
 
@@ -5299,6 +5432,7 @@ def enviar_telegram(mensaje):
             data=data,
             timeout=15
         )
+        registrar_trafico("telegram", response)
 
         if response.status_code == 200:
 
@@ -5786,6 +5920,7 @@ def telegram_listener():
                 params=params,
                 timeout=35
             )
+            registrar_trafico("telegram", respuesta)
 
             datos = respuesta.json()
 
@@ -6381,8 +6516,10 @@ def _worker_run(grupo_skins, worker_id):
 
                 notificados[skin_name] = precio_actual
 
-                # Guardar inmediatamente porque hubo una alerta
-                guardar_estado(forzar=True)
+                # La alerta ya fue enviada a Telegram. Persistirla con
+                # el ciclo normal (máximo cada 30 min) evita subir el
+                # JSON completo a GitHub por cada oportunidad detectada.
+                guardar_estado()
 
             if not resultado.get("from_cache", False):
                 time.sleep(random.uniform(1, 2))
