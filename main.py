@@ -6063,9 +6063,9 @@ def supervisor_workers(grupos):
         # momento de inicio que se establece en main.
         tiempo_sin_consultar = ahora - ultimo_request
 
-        # 45 minutos sin intentar una consulta real.
+        # 2 horas sin intentar una consulta real.
         if (
-            tiempo_sin_consultar >= 2700
+            tiempo_sin_consultar >= 7200
             and not sin_consultas_alertado
         ):
 
@@ -6092,13 +6092,13 @@ def supervisor_workers(grupos):
         tiempo_sin_respuesta_valida = ahora - referencia_exito
 
         if (
-            tiempo_sin_respuesta_valida >= 2700
+            tiempo_sin_respuesta_valida >= 7200
             and not sin_respuesta_valida_alertado
         ):
-            minutos_sin_exito = int(tiempo_sin_respuesta_valida / 60)
+            horas_sin_exito = tiempo_sin_respuesta_valida / 3600
             enviar_telegram(
                 "🚨 ALERTA: STEAM NO DEVUELVE PRECIOS VÁLIDOS\n\n"
-                f"Hace aproximadamente {minutos_sin_exito} minutos "
+                f"Hace aproximadamente {horas_sin_exito:.1f} horas "
                 "que el bot no registra una respuesta válida con precio.\n\n"
                 "Puede estar intentando consultar, pero las respuestas fallan."
             )
