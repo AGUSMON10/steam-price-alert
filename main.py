@@ -1563,6 +1563,10 @@ skins_a_vigilar = {
     "★ StatTrak™ Nomad Knife | Blue Steel (Minimal Wear)": 184.00,
     "★ Survival Knife | Blue Steel (Factory New)": 140.00,
     "★ StatTrak™ Survival Knife | Marble Fade (Minimal Wear)": 160.00,
+    "★ Bowie Knife | Marble Fade (Factory New)": 151.00,
+    "★ Paracord Knife | Ultraviolet (Factory New)": 200.00,
+    "★ Talon Knife | Boreal Forest (Field-Tested)": 201.00,
+    "★ Skeleton Knife | Blue Steel (Minimal Wear)": 245.00,
     
 }
 
@@ -1612,6 +1616,10 @@ ITEM_NAME_IDS = {
     "★ StatTrak™ Nomad Knife | Blue Steel (Minimal Wear)": 176105014,
     "★ Survival Knife | Blue Steel (Factory New)": 176103425,
     "★ StatTrak™ Survival Knife | Marble Fade (Minimal Wear)": 176511815,
+    "★ Bowie Knife | Marble Fade (Factory New)": 175880618,
+    "★ Paracord Knife | Ultraviolet (Factory New)": 176509106,
+    "★ Talon Knife | Boreal Forest (Field-Tested)": 176000332,
+    "★ Skeleton Knife | Blue Steel (Minimal Wear)": 176097559,
 
 }
 
