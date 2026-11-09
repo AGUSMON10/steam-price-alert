@@ -1521,7 +1521,7 @@ skins_a_vigilar = {
     "★ StatTrak™ Falchion Knife | Autotronic (Minimal Wear)": 140.00,
     "★ StatTrak™ Bowie Knife | Autotronic (Minimal Wear)": 130.00,
     "★ StatTrak™ Paracord Knife | Blue Steel (Minimal Wear)": 111.00,
-    "★ StatTrak™ Falchion Knife | Lore (Minimal Wear)": 134.00,
+    "★ StatTrak™ Falchion Knife | Lore (Minimal Wear)": 130.00,
     "★ Bowie Knife | Blue Steel (Minimal Wear)": 117.00,
     "★ StatTrak™ Falchion Knife | Black Laminate (Factory New)": 125.00,
     "★ StatTrak™ Shadow Daggers | Tiger Tooth (Minimal Wear)": 124.00,
@@ -1564,9 +1564,6 @@ skins_a_vigilar = {
     "★ Survival Knife | Blue Steel (Factory New)": 140.00,
     "★ StatTrak™ Survival Knife | Marble Fade (Minimal Wear)": 160.00,
     "★ Bowie Knife | Marble Fade (Factory New)": 151.00,
-    "★ Paracord Knife | Ultraviolet (Factory New)": 200.00,
-    "★ Talon Knife | Boreal Forest (Field-Tested)": 201.00,
-    "★ Skeleton Knife | Blue Steel (Minimal Wear)": 245.00,
     
 }
 
@@ -1617,9 +1614,6 @@ ITEM_NAME_IDS = {
     "★ Survival Knife | Blue Steel (Factory New)": 176103425,
     "★ StatTrak™ Survival Knife | Marble Fade (Minimal Wear)": 176511815,
     "★ Bowie Knife | Marble Fade (Factory New)": 175880618,
-    "★ Paracord Knife | Ultraviolet (Factory New)": 176509106,
-    "★ Talon Knife | Boreal Forest (Field-Tested)": 176000332,
-    "★ Skeleton Knife | Blue Steel (Minimal Wear)": 176097559,
 
 }
 
