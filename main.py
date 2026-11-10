@@ -1564,6 +1564,7 @@ skins_a_vigilar = {
     "★ Survival Knife | Blue Steel (Factory New)": 140.00,
     "★ StatTrak™ Survival Knife | Marble Fade (Minimal Wear)": 160.00,
     "★ Bowie Knife | Marble Fade (Factory New)": 151.00,
+    "★ Paracord Knife | Crimson Web (Minimal Wear)": 111.00,
     
 }
 
@@ -1614,6 +1615,7 @@ ITEM_NAME_IDS = {
     "★ Survival Knife | Blue Steel (Factory New)": 176103425,
     "★ StatTrak™ Survival Knife | Marble Fade (Minimal Wear)": 176511815,
     "★ Bowie Knife | Marble Fade (Factory New)": 175880618,
+    "★ Paracord Knife | Crimson Web (Minimal Wear)": 176097544,
 
 }
 
