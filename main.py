@@ -1565,6 +1565,11 @@ skins_a_vigilar = {
     "★ StatTrak™ Survival Knife | Marble Fade (Minimal Wear)": 160.00,
     "★ Bowie Knife | Marble Fade (Factory New)": 151.00,
     "★ Paracord Knife | Crimson Web (Minimal Wear)": 111.00,
+    "★ M9 Bayonet | Ultraviolet (Field-Tested)": 342.00,
+    "★ M9 Bayonet | Freehand (Minimal Wear)": 350.00,
+    "★ StatTrak™ M9 Bayonet | Ultraviolet (Field-Tested)": 310.00,
+    "★ M9 Bayonet | Bright Water (Factory New)": 361.00,
+    "★ M9 Bayonet | Stained (Well-Worn)": 332.00,
     
 }
 
@@ -1616,6 +1621,11 @@ ITEM_NAME_IDS = {
     "★ StatTrak™ Survival Knife | Marble Fade (Minimal Wear)": 176511815,
     "★ Bowie Knife | Marble Fade (Factory New)": 175880618,
     "★ Paracord Knife | Crimson Web (Minimal Wear)": 176097544,
+    "★ M9 Bayonet | Ultraviolet (Field-Tested)": 29389708,
+    "★ M9 Bayonet | Freehand (Minimal Wear)": 156200229,
+    "★ StatTrak™ M9 Bayonet | Ultraviolet (Field-Tested)": 29627279,
+    "★ M9 Bayonet | Bright Water (Factory New)": 156249202,
+    "★ M9 Bayonet | Stained (Well-Worn)": 1322175,
 
 }
 
