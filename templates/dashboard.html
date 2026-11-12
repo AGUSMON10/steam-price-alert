@@ -7579,22 +7579,10 @@ function renderizarPreciosMaximos() {
         .trim()
         .toLowerCase();
 
-    // Respetar el mismo orden de la pestaña "Skins".
-    // Las skins que no estén en /api/skins se agregan al final.
-    const nombresOrdenados = [
-        ...skinsData.map(skin => skin.name),
-        ...Object.keys(PRECIOS_MAXIMOS_CONFIG)
-            .filter(nombre => !skinsData.some(skin => skin.name === nombre))
-    ];
-
-    const skins = [...new Set(nombresOrdenados)]
-        .filter(nombre =>
-            Object.prototype.hasOwnProperty.call(
-                PRECIOS_MAXIMOS_CONFIG,
-                nombre
-            ) && nombre.toLowerCase().includes(filtro)
-        )
-        .map(nombre => [nombre, PRECIOS_MAXIMOS_CONFIG[nombre]]);
+    // La lista oficial viene del backend (skins declaradas en main.py).
+    // No se agregan nombres desde GitHub ni desde skinsData.
+    const skins = Object.entries(PRECIOS_MAXIMOS_CONFIG)
+        .filter(([nombre]) => nombre.toLowerCase().includes(filtro));
 
     if (!skins.length) {
 
@@ -7771,33 +7759,34 @@ async function guardarPreciosMaximos() {
     }
 
 
-    /*
-     * Actualizar los valores modificados
-     * dentro del objeto local.
-     */
+    // Enviar únicamente los precios que realmente cambiaron.
+    // Esto permite que, si GitHub tuvo que recuperarse, se conserven
+    // los precios personalizados de las demás skins.
+    const preciosModificados = {};
 
     inputs.forEach(input => {
 
-        const nombre =
-            input.dataset.skin;
-
-        const valor =
-            Number(input.value);
-
+        const nombre = input.dataset.skin;
+        const valor = Number(input.value);
+        const valorAnterior = Number(PRECIOS_MAXIMOS_CONFIG[nombre]);
 
         if (
             Number.isFinite(valor) &&
-            valor >= 0
+            valor >= 0 &&
+            (!Number.isFinite(valorAnterior) || Math.abs(valor - valorAnterior) > 0.0001)
         ) {
-
-            PRECIOS_MAXIMOS_CONFIG[
-                nombre
-            ] = valor;
-
+            preciosModificados[nombre] = valor;
         }
 
     });
 
+    if (!Object.keys(preciosModificados).length) {
+        mostrarPreciosMaximosMensaje(
+            "No hay cambios para guardar.",
+            "success"
+        );
+        return;
+    }
 
     try {
 
@@ -7812,8 +7801,7 @@ async function guardarPreciosMaximos() {
                 },
 
                 body: JSON.stringify({
-                    skins_a_vigilar:
-                        PRECIOS_MAXIMOS_CONFIG
+                    skins_a_vigilar: preciosModificados
                 })
             }
         );
