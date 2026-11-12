@@ -3053,6 +3053,168 @@ def api_config_save():
         }), 500
 
 # =========================================================
+# GUARDADO AISLADO DE PRECIOS DE SKINS
+# =========================================================
+
+def guardar_solo_precios_skins_github(precios):
+    """Actualiza únicamente skins_a_vigilar en GitHub.
+
+    Se usa solo cuando la recuperación general del estado falló.
+    Lee la versión remota más reciente, modifica una sola clave y
+    conserva intactos inventario, ventas, historial y configuración.
+    Reintenta una vez ante conflictos de SHA (409/422).
+    """
+    global GITHUB_STATE_SHA
+    github_token = os.getenv("GITHUB_TOKEN")
+    github_repo = os.getenv("GITHUB_REPO")
+
+    if not github_token or not github_repo:
+        return False, "Faltan GITHUB_TOKEN o GITHUB_REPO en Render."
+
+    url = f"https://api.github.com/repos/{github_repo}/contents/bot_state.json"
+    headers = {
+        "Authorization": f"Bearer {github_token}",
+        "Accept": "application/vnd.github+json",
+        "X-GitHub-Api-Version": "2022-11-28"
+    }
+
+    import base64
+
+    with ESTADO_GUARDADO_LOCK:
+        for intento in range(2):
+            try:
+                respuesta_actual = requests.get(url, headers=headers, timeout=20)
+                registrar_trafico("github", respuesta_actual)
+
+                sha = None
+                if respuesta_actual.status_code == 404:
+                    estado_remoto = {}
+                elif respuesta_actual.status_code == 200:
+                    metadata = respuesta_actual.json()
+                    sha = metadata.get("sha")
+                    contenido_b64 = metadata.get("content", "")
+                    if metadata.get("encoding") != "base64" or not contenido_b64.strip():
+                        return False, "GitHub no devolvió el contenido JSON completo de bot_state.json."
+                    try:
+                        contenido = base64.b64decode(contenido_b64).decode("utf-8")
+                        estado_remoto = json.loads(contenido)
+                    except Exception as error_json:
+                        return False, f"No se pudo interpretar bot_state.json de GitHub: {error_json}"
+                    if not isinstance(estado_remoto, dict):
+                        return False, "bot_state.json no contiene un objeto JSON válido."
+                else:
+                    detalle = ""
+                    try:
+                        detalle = respuesta_actual.json().get("message", "")
+                    except Exception:
+                        detalle = respuesta_actual.text[:300]
+                    return False, (
+                        f"GitHub no permitió leer bot_state.json "
+                        f"(HTTP {respuesta_actual.status_code}). {detalle}"
+                    ).strip()
+
+                # El .py define los nombres y sus valores predeterminados.
+                # Para skins no modificadas, conservar el precio personalizado
+                # que ya esté en GitHub (no reemplazarlo por el default local).
+                precios_remotos = estado_remoto.get("skins_a_vigilar", {})
+                if not isinstance(precios_remotos, dict):
+                    precios_remotos = {}
+
+                precios_oficiales = {}
+                for nombre, precio_default in skins_a_vigilar.items():
+                    precio = precios.get(
+                        nombre,
+                        precios_remotos.get(nombre, precio_default)
+                    )
+                    try:
+                        precio = float(precio)
+                    except (TypeError, ValueError, OverflowError):
+                        precio = float(precio_default)
+                    if not math.isfinite(precio) or precio < 0:
+                        precio = float(precio_default)
+                    precios_oficiales[nombre] = round(precio, 2)
+
+                estado_remoto["skins_a_vigilar"] = precios_oficiales
+                contenido_nuevo = json.dumps(
+                    estado_remoto,
+                    ensure_ascii=False,
+                    separators=(",", ":"),
+                    allow_nan=False
+                )
+                datos_github = {
+                    "message": "Actualizar precios máximos de skins desde dashboard",
+                    "content": base64.b64encode(contenido_nuevo.encode("utf-8")).decode("ascii")
+                }
+                if sha:
+                    datos_github["sha"] = sha
+
+                respuesta_put = requests.put(
+                    url, headers=headers, json=datos_github, timeout=25
+                )
+                registrar_trafico("github", respuesta_put)
+
+                if respuesta_put.status_code in (200, 201):
+                    try:
+                        GITHUB_STATE_SHA = respuesta_put.json().get("content", {}).get("sha")
+                    except Exception:
+                        GITHUB_STATE_SHA = None
+
+                    # Mantener una copia local coherente con el archivo remoto.
+                    try:
+                        directorio = os.path.dirname(os.path.abspath(ARCHIVO_ESTADO))
+                        with tempfile.NamedTemporaryFile(
+                            mode="w", encoding="utf-8", dir=directorio,
+                            prefix=".bot_state_", suffix=".tmp", delete=False
+                        ) as temporal:
+                            ruta_temporal = temporal.name
+                            temporal.write(contenido_nuevo)
+                            temporal.flush()
+                            os.fsync(temporal.fileno())
+                        os.replace(ruta_temporal, ARCHIVO_ESTADO)
+                    except Exception as error_local:
+                        try:
+                            if 'ruta_temporal' in locals() and os.path.exists(ruta_temporal):
+                                os.remove(ruta_temporal)
+                        except Exception:
+                            pass
+                        print(f"[CONFIG SKINS] GitHub guardó los precios; copia local pendiente: {error_local}")
+
+                    # Sincronizar también los precios recuperados del estado
+                    # remoto para que la respuesta del dashboard quede completa.
+                    skins_a_vigilar.clear()
+                    skins_a_vigilar.update(precios_oficiales)
+
+                    print(
+                        "[CONFIG SKINS] Precios guardados en GitHub "
+                        f"mediante actualización aislada ({len(precios_oficiales)} skins)."
+                    )
+                    return True, None
+
+                if respuesta_put.status_code in (409, 422) and intento == 0:
+                    print(
+                        "[CONFIG SKINS] Conflicto de SHA; se vuelve a leer "
+                        "GitHub y se reintenta una vez."
+                    )
+                    continue
+
+                detalle = ""
+                try:
+                    detalle = respuesta_put.json().get("message", "")
+                except Exception:
+                    detalle = respuesta_put.text[:300]
+                return False, (
+                    f"GitHub rechazó el guardado (HTTP {respuesta_put.status_code}). {detalle}"
+                ).strip()
+
+            except requests.RequestException as error_red:
+                return False, f"Error de conexión con GitHub: {error_red}"
+            except Exception as error:
+                return False, f"Error inesperado al guardar precios en GitHub: {error}"
+
+    return False, "GitHub no confirmó el guardado después de reintentar."
+
+
+# =========================================================
 # PRECIOS MÁXIMOS POR SKIN
 # =========================================================
 
@@ -3074,11 +3236,12 @@ def api_config_skins():
 
     if request.method == "GET":
 
+        # La lista y los precios predeterminados salen del .py.
+        # GitHub solo reemplaza los precios de esos mismos nombres.
         return jsonify({
             "ok": True,
-            "skins_a_vigilar": copy.deepcopy(
-                skins_a_vigilar
-            )
+            "skins_a_vigilar": copy.deepcopy(skins_a_vigilar),
+            "total": len(skins_a_vigilar)
         })
 
 
@@ -3238,33 +3401,40 @@ def api_config_skins():
 
     try:
 
-        precios_anteriores = copy.deepcopy(skins_a_vigilar)
-        # Los precios ya fueron actualizados arriba; la copia anterior
-        # se obtiene del estado persistido antes de cambiarlo en la próxima
-        # versión. Este bloque se conserva para capturar errores de guardado.
-        guardado_ok = guardar_estado(forzar=True)
+        if ESTADO_CARGA_FALLIDA:
+            # No se permite subir el estado en memoria porque podría estar
+            # incompleto. Se modifica solo la clave de precios sobre la
+            # última versión íntegra que está guardada en GitHub.
+            guardado_ok, error_guardado = guardar_solo_precios_skins_github(
+                precios_validos
+            )
+        else:
+            guardado_ok = guardar_estado(forzar=True)
+            error_guardado = None if guardado_ok is True else (
+                "El guardado general de estado no fue confirmado por GitHub."
+            )
 
         if guardado_ok is not True:
             skins_a_vigilar.clear()
             skins_a_vigilar.update(skins_anteriores)
-            print("[CONFIG SKINS] GitHub no confirmó el guardado; precios restaurados en memoria.")
+            print(
+                "[CONFIG SKINS] GitHub no confirmó el guardado; "
+                f"precios restaurados en memoria. Motivo: {error_guardado}"
+            )
             return jsonify({
                 "ok": False,
-                "error": (
-                    "No se pudo confirmar el guardado en GitHub. "
-                    "Revisá la conexión y volvé a intentarlo."
-                )
+                "error": error_guardado or "GitHub no confirmó el guardado."
             }), 500
 
     except Exception as e:
 
-        print(
-            f"[CONFIG SKINS] Error guardando estado: {e}"
-        )
+        skins_a_vigilar.clear()
+        skins_a_vigilar.update(skins_anteriores)
+        print(f"[CONFIG SKINS] Error guardando estado: {e}")
 
         return jsonify({
             "ok": False,
-            "error": "No se pudieron guardar los precios"
+            "error": f"No se pudieron guardar los precios: {e}"
         }), 500
 
 
