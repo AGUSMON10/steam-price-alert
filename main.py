@@ -1536,7 +1536,6 @@ skins_a_vigilar = {
     "StatTrak™ M4A1-S | Hyper Beast (Minimal Wear)": 174.00,
     "★ Bowie Knife | Tiger Tooth (Minimal Wear)": 152.00,
     "★ Bowie Knife | Crimson Web (Minimal Wear)": 152.00,
-    "★ StatTrak™ Classic Knife | Blue Steel (Field-Tested)": 110.00,
     "★ StatTrak™ Falchion Knife | Freehand (Factory New)": 110.00,
     "★ Falchion Knife | Autotronic (Factory New)": 168.00,
     "★ StatTrak™ Bowie Knife | Damascus Steel (Minimal Wear)": 101.00,
@@ -1547,12 +1546,10 @@ skins_a_vigilar = {
     "★ Flip Knife | Lore (Field-Tested)": 167.00,
     "★ StatTrak™ Flip Knife | Blue Steel (Minimal Wear)": 190.00,
     "StatTrak™ AWP | Asiimov (Well-Worn)": 174.00,
-    "★ StatTrak™ Classic Knife | Stained (Field-Tested)": 108.00,
     "★ StatTrak™ Falchion Knife | Damascus Steel (Factory New)": 130.00,
     "★ Bowie Knife | Lore (Factory New)": 170.00,
     "★ StatTrak™ Kukri Knife | Crimson Web (Minimal Wear)": 122.00,
     "★ StatTrak™ Classic Knife | Blue Steel (Minimal Wear)": 130.00,
-    "★ StatTrak™ Classic Knife | Crimson Web (Field-Tested)": 170.00,
     "★ StatTrak™ Bayonet | Ultraviolet (Field-Tested)": 170.00,
     "★ Nomad Knife | Ultraviolet (Minimal Wear)": 155.00,
     "★ StatTrak™ Paracord Knife | Crimson Web (Minimal Wear)": 145.00,
@@ -1570,6 +1567,9 @@ skins_a_vigilar = {
     "★ StatTrak™ M9 Bayonet | Ultraviolet (Field-Tested)": 310.00,
     "★ M9 Bayonet | Bright Water (Factory New)": 361.00,
     "★ M9 Bayonet | Stained (Well-Worn)": 332.00,
+    "★ StatTrak™ Skeleton Knife | Damascus Steel (Minimal Wear)": 208.00,
+    "★ Stiletto Knife | Crimson Web (Field-Tested)": 250.00,
+    "★ StatTrak™ Stiletto Knife | Blue Steel (Field-Tested)": 250.00,
     
 }
 
@@ -1592,7 +1592,6 @@ ITEM_NAME_IDS = {
     "StatTrak™ M4A1-S | Hyper Beast (Minimal Wear)": 40194354,
     "★ Bowie Knife | Tiger Tooth (Minimal Wear)": 175881329,
     "★ Bowie Knife | Crimson Web (Minimal Wear)": 139966115,
-    "★ StatTrak™ Classic Knife | Blue Steel (Field-Tested)": 176091948,
     "★ StatTrak™ Falchion Knife | Freehand (Factory New)": 176263345,
     "★ Falchion Knife | Autotronic (Factory New)": 176263260,
     "★ StatTrak™ Bowie Knife | Damascus Steel (Minimal Wear)": 175880602,
@@ -1603,12 +1602,10 @@ ITEM_NAME_IDS = {
     "★ Flip Knife | Lore (Field-Tested)": 156219676,
     "★ StatTrak™ Flip Knife | Blue Steel (Minimal Wear)": 9672792,
     "StatTrak™ AWP | Asiimov (Well-Worn)": 7203621,
-    "★ StatTrak™ Classic Knife | Stained (Field-Tested)": 176092256,
     "★ StatTrak™ Falchion Knife | Damascus Steel (Factory New)": 175888063,
     "★ Bowie Knife | Lore (Factory New)": 176263262,
     "★ StatTrak™ Kukri Knife | Crimson Web (Minimal Wear)": 176414954,
     "★ StatTrak™ Classic Knife | Blue Steel (Minimal Wear)": 176092154,
-    "★ StatTrak™ Classic Knife | Crimson Web (Field-Tested)": 176092100,
     "★ StatTrak™ Bayonet | Ultraviolet (Field-Tested)": 29999431,
     "★ Nomad Knife | Ultraviolet (Minimal Wear)": 176506620,
     "★ StatTrak™ Paracord Knife | Crimson Web (Minimal Wear)": 176105406,
@@ -1626,6 +1623,9 @@ ITEM_NAME_IDS = {
     "★ StatTrak™ M9 Bayonet | Ultraviolet (Field-Tested)": 29627279,
     "★ M9 Bayonet | Bright Water (Factory New)": 156249202,
     "★ M9 Bayonet | Stained (Well-Worn)": 1322175,
+    "★ StatTrak™ Skeleton Knife | Damascus Steel (Minimal Wear)": 176508671,
+    "★ Stiletto Knife | Crimson Web (Field-Tested)": 176000385,
+    "★ StatTrak™ Stiletto Knife | Blue Steel (Field-Tested)": 176000579,
 
 }
 
