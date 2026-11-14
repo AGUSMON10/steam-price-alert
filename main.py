@@ -1570,6 +1570,7 @@ skins_a_vigilar = {
     "★ StatTrak™ Skeleton Knife | Damascus Steel (Minimal Wear)": 208.00,
     "★ Stiletto Knife | Crimson Web (Field-Tested)": 250.00,
     "★ StatTrak™ Stiletto Knife | Blue Steel (Field-Tested)": 250.00,
+    "★ StatTrak™ Butterfly Knife | Black Laminate (Field-Tested)": 510.00,
     
 }
 
@@ -1626,6 +1627,7 @@ ITEM_NAME_IDS = {
     "★ StatTrak™ Skeleton Knife | Damascus Steel (Minimal Wear)": 176508671,
     "★ Stiletto Knife | Crimson Web (Field-Tested)": 176000385,
     "★ StatTrak™ Stiletto Knife | Blue Steel (Field-Tested)": 176000579,
+    "★ StatTrak™ Butterfly Knife | Black Laminate (Field-Tested)": 176263368,
 
 }
 
