@@ -1546,7 +1546,6 @@ skins_a_vigilar = {
     "★ Flip Knife | Lore (Field-Tested)": 167.00,
     "★ StatTrak™ Flip Knife | Blue Steel (Minimal Wear)": 190.00,
     "StatTrak™ AWP | Asiimov (Well-Worn)": 174.00,
-    "★ StatTrak™ Falchion Knife | Damascus Steel (Factory New)": 130.00,
     "★ Bowie Knife | Lore (Factory New)": 170.00,
     "★ StatTrak™ Kukri Knife | Crimson Web (Minimal Wear)": 122.00,
     "★ StatTrak™ Classic Knife | Blue Steel (Minimal Wear)": 130.00,
@@ -1571,6 +1570,15 @@ skins_a_vigilar = {
     "★ Stiletto Knife | Crimson Web (Field-Tested)": 250.00,
     "★ StatTrak™ Stiletto Knife | Blue Steel (Field-Tested)": 250.00,
     "★ StatTrak™ Butterfly Knife | Black Laminate (Field-Tested)": 510.00,
+    "★ Falchion Knife | Black Laminate (Factory New)": 98.00,
+    "★ StatTrak™ Falchion Knife | Damascus Steel (Minimal Wear)": 122.00,
+    "★ StatTrak™ Falchion Knife | Damascus Steel (Factory New)": 140.00,
+    "★ StatTrak™ Falchion Knife | Slaughter (Minimal Wear)": 200.00,
+    "★ Stiletto Knife | Damascus Steel (Well-Worn)": 164.00,
+    "★ Stiletto Knife | Stained (Minimal Wear)": 178.00,
+    "★ Stiletto Knife | Damascus Steel (Factory New)": 205.00,
+    "★ Stiletto Knife | Marble Fade (Factory New)": 274.00,
+    "★ Stiletto Knife | Tiger Tooth (Factory New)": 264.00,
     
 }
 
@@ -1603,7 +1611,6 @@ ITEM_NAME_IDS = {
     "★ Flip Knife | Lore (Field-Tested)": 156219676,
     "★ StatTrak™ Flip Knife | Blue Steel (Minimal Wear)": 9672792,
     "StatTrak™ AWP | Asiimov (Well-Worn)": 7203621,
-    "★ StatTrak™ Falchion Knife | Damascus Steel (Factory New)": 175888063,
     "★ Bowie Knife | Lore (Factory New)": 176263262,
     "★ StatTrak™ Kukri Knife | Crimson Web (Minimal Wear)": 176414954,
     "★ StatTrak™ Classic Knife | Blue Steel (Minimal Wear)": 176092154,
@@ -1628,6 +1635,15 @@ ITEM_NAME_IDS = {
     "★ Stiletto Knife | Crimson Web (Field-Tested)": 176000385,
     "★ StatTrak™ Stiletto Knife | Blue Steel (Field-Tested)": 176000579,
     "★ StatTrak™ Butterfly Knife | Black Laminate (Field-Tested)": 176263368,
+    "★ Falchion Knife | Black Laminate (Factory New)": 176263553,
+    "★ StatTrak™ Falchion Knife | Damascus Steel (Minimal Wear)": 175882043,
+    "★ StatTrak™ Falchion Knife | Damascus Steel (Factory New)": 175888063,
+    "★ StatTrak™ Falchion Knife | Slaughter (Minimal Wear)": 49625798,
+    "★ Stiletto Knife | Damascus Steel (Well-Worn)": 176042682,
+    "★ Stiletto Knife | Stained (Minimal Wear)": 176001392,
+    "★ Stiletto Knife | Damascus Steel (Factory New)": 176042836,
+    "★ Stiletto Knife | Marble Fade (Factory New)": 176042805,
+    "★ Stiletto Knife | Tiger Tooth (Factory New)": 176042792,
 
 }
 
