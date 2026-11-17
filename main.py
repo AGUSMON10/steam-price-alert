@@ -12,6 +12,7 @@ from flask import Flask, jsonify, render_template, request, session
 from datetime import datetime
 import builtins
 from zoneinfo import ZoneInfo
+from skinsniper import consultar_precios_skinsniper
 
 ZONA_ARG = ZoneInfo("America/Argentina/Buenos_Aires")
 
@@ -6338,6 +6339,32 @@ def supervisor_workers(grupos):
 
     print("[SUPERVISOR] Finalizado.")
 
+def consultar_skinsniper_y_notificar(skin_name, precio_steam):
+    """Consulta mercados externos en segundo plano; nunca bloquea el worker."""
+    try:
+        mensaje = consultar_precios_skinsniper(
+            nombre_skin=skin_name,
+            precio_steam=precio_steam,
+            cantidad=5
+        )
+
+        if mensaje:
+            enviado = enviar_telegram(mensaje)
+            if enviado:
+                print(f"[SKINSNIPER] Comparación enviada: {skin_name}")
+            else:
+                print(f"[SKINSNIPER] No se pudo enviar Telegram: {skin_name}")
+        else:
+            print(f"[SKINSNIPER] Sin comparación disponible: {skin_name}")
+
+    except Exception as e:
+        # Este módulo es complementario: cualquier error queda aislado.
+        print(
+            f"[SKINSNIPER ERROR] {skin_name} | "
+            f"{type(e).__name__}: {e}"
+        )
+
+
 def _worker_run(grupo_skins, worker_id):
 
     print(f"[DEBUG] Worker {worker_id} arrancó")
@@ -6674,6 +6701,15 @@ def _worker_run(grupo_skins, worker_id):
                     descuento,
                     steam_url
                 )
+
+                # Comparación externa bajo demanda. Se ejecuta en un hilo
+                # independiente para no frenar las consultas normales a Steam.
+                threading.Thread(
+                    target=consultar_skinsniper_y_notificar,
+                    args=(nombre_real, precio_actual),
+                    daemon=True,
+                    name="SkinSniper-lookup"
+                ).start()
 
                 # =========================
                 # SEGUNDA ALERTA
