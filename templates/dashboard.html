@@ -1036,6 +1036,31 @@ tbody tr:last-child td {
     gap: 10px;
 }
 
+.radar-countdown {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    margin: 8px 0 13px;
+    padding: 6px 10px;
+    border: 1px solid rgba(87,169,255,.20);
+    border-radius: 8px;
+    background: rgba(87,169,255,.07);
+    color: #9fcaff;
+    font-size: 11px;
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+}
+.radar-countdown.is-paused {
+    border-color: rgba(248,198,92,.22);
+    background: rgba(248,198,92,.07);
+    color: #f8c65c;
+}
+.radar-countdown.is-due {
+    border-color: rgba(57,223,155,.22);
+    background: rgba(57,223,155,.07);
+    color: #72e5bd;
+}
+
 /* =========================================================
    HISTORIAL
 ========================================================= */
@@ -2188,9 +2213,9 @@ select:focus {
         </button>
 
         <button class="tab"
-                onclick="showTab('bot',this)">
-            <span class="nav-icon">⚙</span>
-            Estado del bot
+                onclick="showTab('pausas',this)">
+            <span class="nav-icon">◷</span>
+            Pausas globales
         </button>
 
         <button class="tab"
@@ -3312,125 +3337,61 @@ select:focus {
              BOT
         ================================================== -->
 
-        <section id="bot"
-                 class="section">
+        <section id="pausas" class="section">
+    <div class="page-heading">
+        <div>
+            <div class="eyebrow">HISTORIAL OPERATIVO</div>
+            <h2>Pausas globales</h2>
+            <div class="description">Registro de cada pausa que detuvo las consultas a Steam, con inicio, finalización y duración en horario de Argentina.</div>
+        </div>
+        <span id="pausasBadge" class="pill">ESPERANDO DATOS</span>
+    </div>
 
-            <div class="page-heading">
+    <div class="cards">
+        <div class="card">
+            <div class="card-title">Pausas de hoy</div>
+            <div class="card-value" id="pausasHoy">0</div>
+            <div class="card-foot">Pausas iniciadas durante el día</div>
+        </div>
+        <div class="card">
+            <div class="card-title">Tiempo pausado hoy</div>
+            <div class="card-value" id="pausasTiempoHoy">0 min</div>
+            <div class="card-foot">Duración acumulada</div>
+        </div>
+        <div class="card">
+            <div class="card-title">Pausa actual</div>
+            <div class="card-value" id="pausaActualEstado">Ninguna</div>
+            <div class="card-foot" id="pausaActualDetalle">El bot no está en pausa global</div>
+        </div>
+    </div>
 
-                <div>
-
-                    <div class="eyebrow">
-                        LIVE SYSTEM STATUS
-                    </div>
-
-                    <h2>
-                        Estado del bot
-                    </h2>
-
-                    <div class="description">
-                        Información operativa reportada por el backend.
-                    </div>
-
-                </div>
-
+    <div class="panel">
+        <div class="panel-header">
+            <div>
+                <div class="panel-title">Historial de pausas</div>
+                <div class="panel-sub">Se conservan hasta 30 días de registros. Las pausas abiertas se actualizan automáticamente.</div>
             </div>
-
-
-            <div class="status-box">
-
-                <div class="status-row">
-
-                    <span>
-                        Estado
-                    </span>
-
-                    <strong id="botStatus">
-                        -
-                    </strong>
-
-                </div>
-
-
-                <div class="status-row">
-
-                    <span>
-                        Proxies totales
-                    </span>
-
-                    <strong id="botProxies">
-                        -
-                    </strong>
-
-                </div>
-
-
-                <div class="status-row">
-
-                    <span>
-                        Proxies en cooldown
-                    </span>
-
-                    <strong id="botProxyCooldown">
-                        -
-                    </strong>
-
-                </div>
-
-
-                <div class="status-row">
-
-                    <span>
-                        Skins en cooldown
-                    </span>
-
-                    <strong id="botSkinCooldown">
-                        -
-                    </strong>
-
-                </div>
-
-
-                <div class="status-row">
-
-                    <span>
-                        Steam 429 consecutivos
-                    </span>
-
-                    <strong id="bot429">
-                        -
-                    </strong>
-
-                </div>
-
-
-                <div class="status-row">
-
-                    <span>
-                        Pausa Steam
-                    </span>
-
-                    <strong id="botPause">
-                        -
-                    </strong>
-
-                </div>
-
-
-                <div class="status-row">
-
-                    <span>
-                        Último escaneo
-                    </span>
-
-                    <strong id="botLastScan">
-                        -
-                    </strong>
-
-                </div>
-
-            </div>
-
-        </section>
+            <button class="button secondary" type="button" onclick="loadPausas()">↻ Actualizar</button>
+        </div>
+        <div class="table-container" style="border:0;border-radius:0">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Pausa</th>
+                        <th>Tipo</th>
+                        <th>Desde</th>
+                        <th>Hasta</th>
+                        <th>Duración</th>
+                        <th>Estado</th>
+                    </tr>
+                </thead>
+                <tbody id="pausasRows">
+                    <tr><td colspan="6" class="empty">Cargando historial de pausas…</td></tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</section>
 
 <!-- =====================================================
      CONFIGURACIÓN
@@ -4077,6 +4038,10 @@ function showTab(tabName, button) {
         loadMonitor();
     }
 
+    if (tabName === "pausas") {
+        loadPausas();
+    }
+
     if (tabName === "inventario") {
         loadInventory();
     }
@@ -4422,54 +4387,6 @@ function updateStatus() {
         statusData.errores_totales ?? "-";
 
     document.getElementById(
-        "botStatus"
-    ).textContent =
-        activo
-            ? "🟢 ONLINE"
-            : "🔴 OFFLINE";
-
-    document.getElementById(
-        "botProxies"
-    ).textContent =
-        statusData.proxies_totales ?? "-";
-
-    document.getElementById(
-        "botProxyCooldown"
-    ).textContent =
-        statusData.proxies_cooldown ?? "-";
-
-    document.getElementById(
-        "botSkinCooldown"
-    ).textContent =
-        statusData.skins_cooldown ?? "-";
-
-    document.getElementById(
-        "bot429"
-    ).textContent =
-        statusData.steam_429_consecutivos ?? "-";
-
-    const pausa =
-        statusData.steam_pausa_restante_segundos ?? 0;
-
-    document.getElementById(
-        "botPause"
-    ).textContent =
-        pausa > 0
-            ? pausa + " segundos"
-            : "Sin pausa";
-
-    document.getElementById(
-        "botLastScan"
-    ).textContent =
-        statusData.ultimo_escaneo
-            ? formatDate(
-                new Date(
-                    statusData.ultimo_escaneo
-                ).getTime() / 1000
-            )
-            : "-";
-
-    document.getElementById(
         "lastUpdate"
     ).textContent =
         "Actualizado: " +
@@ -4512,6 +4429,7 @@ async function loadSkins() {
         renderSkins();
         renderDashboard();
         renderRadar();
+        actualizarContadoresRadar();
         populateHistorySelect();
         actualizarPreciosActualesConfig();
 
@@ -4831,6 +4749,11 @@ function renderRadar() {
                                 ${escapeHtml(skin.name)}
                             </div>
 
+                            <div class="radar-countdown" data-next-refresh="${Number(skin.next_refresh) || 0}" data-pause-until="${Number(skin.pausa_global_hasta) || 0}" data-pause-type="${escapeAttribute(skin.pausa_global_tipo || "")}">
+                                <span class="radar-countdown-icon">◷</span>
+                                <span class="radar-countdown-text">Calculando próxima consulta…</span>
+                            </div>
+
                             <div class="radar-values">
 
                                 <div>
@@ -4943,6 +4866,129 @@ function renderRadar() {
                 `;
             }
         ).join("");
+}
+
+
+/* =========================================================
+   CUENTA REGRESIVA DE PRÓXIMA CONSULTA EN RADAR
+========================================================= */
+
+function actualizarContadoresRadar() {
+    const ahora = Date.now() / 1000;
+    document.querySelectorAll(".radar-countdown").forEach(el => {
+        const proxima = Number(el.dataset.nextRefresh || 0);
+        const pausaHasta = Number(el.dataset.pauseUntil || 0);
+        const tipoPausa = el.dataset.pauseType || "";
+        const texto = el.querySelector(".radar-countdown-text");
+        if (!texto) return;
+
+        el.classList.remove("is-paused", "is-due");
+
+        if (pausaHasta > ahora) {
+            const restante = Math.ceil(pausaHasta - ahora);
+            texto.textContent = `${tipoPausa || "Pausa global"} · reanuda en ${formatearCuentaRegresiva(restante)}`;
+            el.classList.add("is-paused");
+        } else if (!proxima) {
+            texto.textContent = "Próxima consulta: esperando primer precio";
+        } else {
+            const restante = Math.ceil(proxima - ahora);
+            if (restante > 0) {
+                texto.textContent = `Próxima consulta en ${formatearCuentaRegresiva(restante)}`;
+            } else {
+                texto.textContent = "Consulta pendiente / en proceso";
+                el.classList.add("is-due");
+            }
+        }
+    });
+}
+
+function formatearCuentaRegresiva(segundos) {
+    const s = Math.max(0, Math.floor(Number(segundos) || 0));
+    const h = Math.floor(s / 3600);
+    const m = Math.floor((s % 3600) / 60);
+    const r = s % 60;
+    return h > 0
+        ? `${h}h ${String(m).padStart(2,"0")}m ${String(r).padStart(2,"0")}s`
+        : `${m}m ${String(r).padStart(2,"0")}s`;
+}
+
+setInterval(actualizarContadoresRadar, 1000);
+
+
+/* =========================================================
+   HISTORIAL DE PAUSAS GLOBALES
+========================================================= */
+
+let pausasData = [];
+
+function fechaHoraPausa(timestamp) {
+    if (!timestamp) return "—";
+    return new Date(Number(timestamp) * 1000).toLocaleString("es-AR", {
+        timeZone: "America/Argentina/Buenos_Aires",
+        day: "2-digit", month: "2-digit", year: "numeric",
+        hour: "2-digit", minute: "2-digit", second: "2-digit",
+        hour12: false
+    });
+}
+
+async function loadPausas() {
+    const tbody = document.getElementById("pausasRows");
+    if (!tbody) return;
+    try {
+        const response = await fetch("/api/pausas?x=" + Date.now());
+        if (!response.ok) throw new Error("HTTP " + response.status);
+        const data = await response.json();
+        pausasData = Array.isArray(data.pausas) ? data.pausas : [];
+
+        const hoy = new Intl.DateTimeFormat("en-CA", {
+            timeZone: "America/Argentina/Buenos_Aires",
+            year: "numeric", month: "2-digit", day: "2-digit"
+        }).format(new Date());
+
+        const pausasHoy = pausasData.filter(p => {
+            const fecha = new Intl.DateTimeFormat("en-CA", {
+                timeZone: "America/Argentina/Buenos_Aires",
+                year: "numeric", month: "2-digit", day: "2-digit"
+            }).format(new Date(Number(p.inicio) * 1000));
+            return fecha === hoy;
+        });
+
+        const segundosHoy = pausasHoy.reduce((total, p) => {
+            const fin = p.fin ? Number(p.fin) : Date.now() / 1000;
+            return total + Math.max(0, fin - Number(p.inicio || 0));
+        }, 0);
+
+        document.getElementById("pausasHoy").textContent = pausasHoy.length;
+        document.getElementById("pausasTiempoHoy").textContent = Math.floor(segundosHoy / 60) + " min";
+
+        const abiertas = pausasData.filter(p => !p.fin);
+        const actual = abiertas[abiertas.length - 1];
+        document.getElementById("pausaActualEstado").textContent = actual ? "ACTIVA" : "Ninguna";
+        document.getElementById("pausaActualDetalle").textContent = actual
+            ? `${actual.tipo || "Pausa global"} · desde ${fechaHoraPausa(actual.inicio)}`
+            : "El bot no está en pausa global";
+
+        const badge = document.getElementById("pausasBadge");
+        badge.textContent = `${data.total || 0} REGISTROS`;
+        badge.className = "pill";
+
+        tbody.innerHTML = pausasData.length ? pausasData.map((p, index) => {
+            const inicio = Number(p.inicio || 0);
+            const fin = p.fin ? Number(p.fin) : null;
+            const duracion = fin ? Math.max(0, fin - inicio) : Math.max(0, Date.now()/1000 - inicio);
+            return `<tr>
+                <td><strong>PAUSA ${pausasData.length - index}</strong></td>
+                <td>${escapeHtml(p.tipo || "Pausa global")}</td>
+                <td>${fechaHoraPausa(inicio)}</td>
+                <td>${fin ? fechaHoraPausa(fin) : "En curso"}</td>
+                <td>${formatearCuentaRegresiva(duracion)}</td>
+                <td>${fin ? '<span class="badge good">FINALIZADA</span>' : '<span class="badge warning">EN CURSO</span>'}</td>
+            </tr>`;
+        }).join("") : '<tr><td colspan="6" class="empty">Todavía no se registraron pausas globales desde que se instaló esta función.</td></tr>';
+    } catch (error) {
+        console.error("Error cargando pausas:", error);
+        tbody.innerHTML = `<tr><td colspan="6" class="empty">No se pudo cargar el historial: ${escapeHtml(error.message)}</td></tr>`;
+    }
 }
 
 
