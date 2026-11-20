@@ -927,6 +927,9 @@ ULTIMO_GUARDADO_ESTADO = 0
 PAUSA_PROGRAMADA_ACTIVA = False
 PAUSA_PROGRAMADA_HASTA = 0
 PAUSA_PROGRAMADA_INICIO = 0
+# Historial persistente de pausas globales (programadas y por HTTP 429).
+HISTORIAL_PAUSAS = []
+PAUSA_ACTUAL_ID = None
 
 # =========================================================
 # AUTO-TUNER
@@ -965,6 +968,50 @@ STEAM_429_PAUSA_HASTA = 0
 STEAM_429_PAUSA_BASE = 300       # 5 minutos
 STEAM_429_PAUSA_MAX = 900        # máximo 15 minutos
 STEAM_429_UMBRAL = 2
+
+
+def registrar_inicio_pausa(tipo, inicio, hasta=None):
+    """Abre un registro de pausa global con horario local de Argentina."""
+    global HISTORIAL_PAUSAS, PAUSA_ACTUAL_ID
+    evento = {
+        "id": secrets.token_hex(8),
+        "tipo": str(tipo),
+        "inicio": float(inicio),
+        "fin": None,
+    }
+    with lock:
+        HISTORIAL_PAUSAS.append(evento)
+        HISTORIAL_PAUSAS = HISTORIAL_PAUSAS[-500:]
+        PAUSA_ACTUAL_ID = evento["id"]
+    return evento["id"]
+
+
+def registrar_fin_pausa(evento_id, fin):
+    """Completa el horario final de una pausa registrada."""
+    global PAUSA_ACTUAL_ID
+    if not evento_id:
+        return
+    with lock:
+        for evento in reversed(HISTORIAL_PAUSAS):
+            if evento.get("id") == evento_id and evento.get("fin") is None:
+                evento["fin"] = float(fin)
+                break
+        if PAUSA_ACTUAL_ID == evento_id:
+            PAUSA_ACTUAL_ID = None
+
+
+def cerrar_pausa_429_vencida(ahora=None):
+    """Cierra el registro de una pausa Steam 429 cuando vence el bloqueo."""
+    ahora = time.time() if ahora is None else ahora
+    cerrado = False
+    with lock:
+        if STEAM_429_PAUSA_HASTA and ahora >= STEAM_429_PAUSA_HASTA:
+            for evento in reversed(HISTORIAL_PAUSAS):
+                if evento.get("tipo") == "Steam HTTP 429" and evento.get("fin") is None:
+                    evento["fin"] = float(STEAM_429_PAUSA_HASTA)
+                    cerrado = True
+                    break
+    return cerrado
 
 
 def steam_rate_limit_activo():
@@ -1007,11 +1054,21 @@ def registrar_429_global():
             nueva_pausa = time.time() + pausa
 
             # Nunca acortamos una pausa ya existente
+            iniciar_registro_429 = (
+                nueva_pausa > STEAM_429_PAUSA_HASTA
+                and STEAM_429_PAUSA_HASTA <= time.time()
+            )
             if nueva_pausa > STEAM_429_PAUSA_HASTA:
                 STEAM_429_PAUSA_HASTA = nueva_pausa
 
         else:
             pausa = 0
+            iniciar_registro_429 = False
+
+    if consecutivos >= STEAM_429_UMBRAL and iniciar_registro_429:
+        cerrar_pausa_429_vencida(time.time())
+        registrar_inicio_pausa("Steam HTTP 429", time.time(), STEAM_429_PAUSA_HASTA)
+        guardar_estado()
 
     if consecutivos >= STEAM_429_UMBRAL:
 
@@ -1983,6 +2040,7 @@ def _guardar_estado_interno(forzar=False):
         estado = {
             "notificados": notificados,
             "historial_notificaciones": historial_notificaciones_guardadas,
+            "historial_pausas_globales": copy.deepcopy(HISTORIAL_PAUSAS[-500:]),
             "stats_diarias": stats_diarias,
             "stats_proxies": stats_proxies_guardadas,
             # price_cache es temporal y se reconstruye consultando Steam.
@@ -2194,6 +2252,7 @@ def cargar_estado():
     global inventario_skins
     global registro_ventas
     global capital_inicial
+    global HISTORIAL_PAUSAS
 
     try:
         github_token = os.getenv("GITHUB_TOKEN")
@@ -2309,6 +2368,14 @@ def cargar_estado():
             if isinstance(item, dict)
             and float(item.get("timestamp", 0) or 0) >= limite_notificaciones
         ]
+
+        pausas_guardadas = estado.get("historial_pausas_globales", [])
+        HISTORIAL_PAUSAS = [
+            item for item in pausas_guardadas
+            if isinstance(item, dict)
+            and item.get("inicio")
+            and float(item.get("inicio", 0) or 0) >= time.time() - (30 * 86400)
+        ] if isinstance(pausas_guardadas, list) else []
 
         # ==========================================================
         # RECUPERAR CONFIGURACIÓN
@@ -3788,9 +3855,24 @@ def api_skins():
             "buy_price": datos.get("buy_price"),
             "max": float(precio_max),
             "timestamp": datos.get("timestamp"),
+            "next_refresh": datos.get("next_refresh"),
             "steam_url": steam_url,
             "paused": skin_name in SKINS_PAUSADAS
         })
+
+    ahora = time.time()
+    pausa_global_hasta = max(
+        float(PAUSA_PROGRAMADA_HASTA or 0),
+        float(STEAM_429_PAUSA_HASTA or 0)
+    )
+    pausa_global_tipo = (
+        "Pausa programada" if PAUSA_PROGRAMADA_ACTIVA
+        else "Steam HTTP 429" if pausa_global_hasta > ahora
+        else None
+    )
+    for item in resultado:
+        item["pausa_global_hasta"] = pausa_global_hasta if pausa_global_hasta > ahora else 0
+        item["pausa_global_tipo"] = pausa_global_tipo
 
     return jsonify(resultado)
 
@@ -3854,6 +3936,29 @@ def api_notificaciones():
 # ==========================================================
 # API MONITOR DEL BOT
 # ==========================================================
+
+@app.route("/api/pausas")
+def api_pausas():
+    """Historial de pausas globales con fechas y horarios de Argentina."""
+    ahora = time.time()
+    pausa_429_cerrada = cerrar_pausa_429_vencida(ahora)
+    if pausa_429_cerrada:
+        guardar_estado()
+    limite = ahora - (30 * 86400)
+    with lock:
+        HISTORIAL_PAUSAS[:] = [
+            item for item in HISTORIAL_PAUSAS
+            if float(item.get("inicio", 0) or 0) >= limite
+        ]
+        eventos = copy.deepcopy(HISTORIAL_PAUSAS)
+    eventos.sort(key=lambda item: float(item.get("inicio", 0) or 0), reverse=True)
+    return jsonify({
+        "pausas": eventos,
+        "total": len(eventos),
+        "timestamp": ahora,
+        "zona_horaria": "America/Argentina/Buenos_Aires"
+    })
+
 
 @app.route('/api/monitor')
 def api_monitor():
@@ -6846,6 +6951,11 @@ def _worker_run(grupo_skins, worker_id):
             PAUSA_PROGRAMADA_ACTIVA = True
             PAUSA_PROGRAMADA_INICIO = inicio_pausa
             PAUSA_PROGRAMADA_HASTA = inicio_pausa + pausa
+            pausa_evento_id = registrar_inicio_pausa(
+                "Pausa programada",
+                inicio_pausa,
+                inicio_pausa + pausa
+            )
 
             print(
                 f"[PAUSA] Pausa periódica de {pausa / 60:.1f} minutos"
@@ -6864,6 +6974,8 @@ def _worker_run(grupo_skins, worker_id):
             # ======================================================
 
             tiempo_pausa_real = time.time() - inicio_pausa
+
+            registrar_fin_pausa(pausa_evento_id, time.time())
 
             PAUSA_PROGRAMADA_ACTIVA = False
             PAUSA_PROGRAMADA_INICIO = 0
