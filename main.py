@@ -163,12 +163,12 @@ CONFIG_DEFAULTS = {
         "intervalo_max": 10800,
 
         # Duración mínima de una pausa.
-        # 600 = 10 minutos.
-        "duracion_min": 600,
+        # 300 = 5 minutos.
+        "duracion_min": 300,
 
         # Duración máxima de una pausa.
-        # 1200 = 20 minutos.
-        "duracion_max": 1200,
+        # 600 = 10 minutos.
+        "duracion_max": 600,
 
         # Tiempo mínimo de espera entre ciclos normales.
         "sleep_min": 6,
@@ -1034,6 +1034,10 @@ def registrar_429_global():
     global STEAM_429_CONSECUTIVOS
     global STEAM_429_PAUSA_HASTA
 
+    # Cerrar una pausa anterior que ya venció antes de calcular otra.
+    # Así no quedan dos eventos HTTP 429 abiertos en el historial.
+    cerrar_pausa_429_vencida(time.time())
+
     with lock:
 
         STEAM_429_CONSECUTIVOS += 1
@@ -1068,7 +1072,8 @@ def registrar_429_global():
     if consecutivos >= STEAM_429_UMBRAL and iniciar_registro_429:
         cerrar_pausa_429_vencida(time.time())
         registrar_inicio_pausa("Steam HTTP 429", time.time(), STEAM_429_PAUSA_HASTA)
-        guardar_estado()
+        # Persistir inmediatamente el inicio de la pausa; no esperar al guardado periódico.
+        guardar_estado(forzar=True)
 
     if consecutivos >= STEAM_429_UMBRAL:
 
@@ -2376,6 +2381,14 @@ def cargar_estado():
             and item.get("inicio")
             and float(item.get("inicio", 0) or 0) >= time.time() - (30 * 86400)
         ] if isinstance(pausas_guardadas, list) else []
+
+        # Si Render reinició mientras una pausa estaba abierta, cerrarla
+        # al momento del arranque y marcarla como interrumpida.
+        ahora_inicio = time.time()
+        for evento_pausa in HISTORIAL_PAUSAS:
+            if evento_pausa.get("fin") is None:
+                evento_pausa["fin"] = ahora_inicio
+                evento_pausa["interrumpida"] = True
 
         # ==========================================================
         # RECUPERAR CONFIGURACIÓN
@@ -3943,7 +3956,7 @@ def api_pausas():
     ahora = time.time()
     pausa_429_cerrada = cerrar_pausa_429_vencida(ahora)
     if pausa_429_cerrada:
-        guardar_estado()
+        guardar_estado(forzar=True)
     limite = ahora - (30 * 86400)
     with lock:
         HISTORIAL_PAUSAS[:] = [
@@ -6961,7 +6974,8 @@ def _worker_run(grupo_skins, worker_id):
                 f"[PAUSA] Pausa periódica de {pausa / 60:.1f} minutos"
             )
 
-            guardar_estado()
+            # Guardar el inicio inmediatamente para que no se pierda si Render reinicia.
+            guardar_estado(forzar=True)
 
             # ======================================================
             # PAUSA
@@ -6992,7 +7006,8 @@ def _worker_run(grupo_skins, worker_id):
                 )
             )
 
-            guardar_estado()
+            # Guardar también el cierre y la duración real de la pausa.
+            guardar_estado(forzar=True)
 
         else:
 
