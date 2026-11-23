@@ -1593,6 +1593,8 @@ skins_a_vigilar = {
     "★ Stiletto Knife | Damascus Steel (Factory New)": 205.00,
     "★ Stiletto Knife | Marble Fade (Factory New)": 274.00,
     "★ Stiletto Knife | Tiger Tooth (Factory New)": 264.00,
+    "M4A4 | Asiimov (Well-Worn)": 116.00,
+    "★ Specialist Gloves | Field Agent (Well-Worn)": 90.00,
     
 }
 
@@ -1649,6 +1651,8 @@ ITEM_NAME_IDS = {
     "★ Stiletto Knife | Damascus Steel (Factory New)": 176042836,
     "★ Stiletto Knife | Marble Fade (Factory New)": 176042805,
     "★ Stiletto Knife | Tiger Tooth (Factory New)": 176042792,
+    "M4A4 | Asiimov (Well-Worn)": 3455082,
+    "★ Specialist Gloves | Field Agent (Well-Worn)": 176209625,
 
 }
 
