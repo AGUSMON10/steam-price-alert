@@ -4945,6 +4945,19 @@ async function loadPausas() {
             year: "numeric", month: "2-digit", day: "2-digit"
         }).format(new Date());
 
+        // Mostrar solamente hoy y ayer (dos días calendario de Argentina).
+        const [anioHoy, mesHoy, diaHoy] = hoy.split("-").map(Number);
+        const ayer = new Date(Date.UTC(anioHoy, mesHoy - 1, diaHoy) - 86400000)
+            .toISOString().slice(0, 10);
+
+        const pausasVisibles = pausasData.filter(p => {
+            const fecha = new Intl.DateTimeFormat("en-CA", {
+                timeZone: "America/Argentina/Buenos_Aires",
+                year: "numeric", month: "2-digit", day: "2-digit"
+            }).format(new Date(Number(p.inicio) * 1000));
+            return fecha >= ayer && fecha <= hoy;
+        });
+
         const pausasHoy = pausasData.filter(p => {
             const fecha = new Intl.DateTimeFormat("en-CA", {
                 timeZone: "America/Argentina/Buenos_Aires",
@@ -4969,22 +4982,22 @@ async function loadPausas() {
             : "El bot no está en pausa global";
 
         const badge = document.getElementById("pausasBadge");
-        badge.textContent = `${data.total || 0} REGISTROS`;
+        badge.textContent = `${pausasVisibles.length} REGISTROS (2 DÍAS)`;
         badge.className = "pill";
 
-        tbody.innerHTML = pausasData.length ? pausasData.map((p, index) => {
+        tbody.innerHTML = pausasVisibles.length ? pausasVisibles.map((p, index) => {
             const inicio = Number(p.inicio || 0);
             const fin = p.fin ? Number(p.fin) : null;
             const duracion = fin ? Math.max(0, fin - inicio) : Math.max(0, Date.now()/1000 - inicio);
             return `<tr>
-                <td><strong>PAUSA ${pausasData.length - index}</strong></td>
+                <td><strong>PAUSA ${pausasVisibles.length - index}</strong></td>
                 <td>${escapeHtml(p.tipo || "Pausa global")}</td>
                 <td>${fechaHoraPausa(inicio)}</td>
                 <td>${fin ? fechaHoraPausa(fin) : "En curso"}</td>
                 <td>${formatearCuentaRegresiva(duracion)}</td>
                 <td>${fin ? '<span class="badge good">FINALIZADA</span>' : '<span class="badge warning">EN CURSO</span>'}</td>
             </tr>`;
-        }).join("") : '<tr><td colspan="6" class="empty">Todavía no se registraron pausas globales desde que se instaló esta función.</td></tr>';
+        }).join("") : '<tr><td colspan="6" class="empty">No hay pausas globales registradas hoy ni ayer.</td></tr>';
     } catch (error) {
         console.error("Error cargando pausas:", error);
         tbody.innerHTML = `<tr><td colspan="6" class="empty">No se pudo cargar el historial: ${escapeHtml(error.message)}</td></tr>`;
