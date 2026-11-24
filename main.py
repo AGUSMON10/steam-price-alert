@@ -1595,6 +1595,7 @@ skins_a_vigilar = {
     "★ Stiletto Knife | Tiger Tooth (Factory New)": 264.00,
     "M4A4 | Asiimov (Well-Worn)": 116.00,
     "★ Specialist Gloves | Field Agent (Well-Worn)": 90.00,
+    "★ Falchion Knife | Crimson Web (Minimal Wear)": 170.00,
     
 }
 
@@ -1653,6 +1654,7 @@ ITEM_NAME_IDS = {
     "★ Stiletto Knife | Tiger Tooth (Factory New)": 176042792,
     "M4A4 | Asiimov (Well-Worn)": 3455082,
     "★ Specialist Gloves | Field Agent (Well-Worn)": 176209625,
+    "★ Falchion Knife | Crimson Web (Minimal Wear)": 49473133,
 
 }
 
