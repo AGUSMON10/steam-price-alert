@@ -1596,6 +1596,9 @@ skins_a_vigilar = {
     "M4A4 | Asiimov (Well-Worn)": 116.00,
     "★ Specialist Gloves | Field Agent (Well-Worn)": 90.00,
     "★ Falchion Knife | Crimson Web (Minimal Wear)": 170.00,
+    "★ M9 Bayonet | Crimson Web (Field-Tested)": 400.00,
+    "★ M9 Bayonet | Blue Steel (Field-Tested)": 400.00,
+    "★ Bowie Knife | Slaughter (Minimal Wear)": 170.00,
     
 }
 
@@ -1655,6 +1658,9 @@ ITEM_NAME_IDS = {
     "M4A4 | Asiimov (Well-Worn)": 3455082,
     "★ Specialist Gloves | Field Agent (Well-Worn)": 176209625,
     "★ Falchion Knife | Crimson Web (Minimal Wear)": 49473133,
+    "★ M9 Bayonet | Crimson Web (Field-Tested)": 1322730,
+    "★ M9 Bayonet | Blue Steel (Field-Tested)": 1322687,
+    "★ Bowie Knife | Slaughter (Minimal Wear)": 139873671,
 
 }
 
