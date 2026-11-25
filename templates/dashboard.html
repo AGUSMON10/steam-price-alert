@@ -4563,7 +4563,7 @@ function renderSkins() {
                             </button>
                             <a
                                 class="button"
-                                href="${escapeAttribute(skin.steam_url)}"
+                                href="${escapeAttribute(buildSteamMarketUrl(skin.steam_url, skin.name))}"
                                 target="_blank"
                                 rel="noopener noreferrer"
                             >
@@ -4838,7 +4838,7 @@ function renderRadar() {
                                     <!-- BOTÓN PARA PC -->
                                     <a
                                         class="button"
-                                        href="${escapeAttribute(skin.steam_url)}"
+                                        href="${escapeAttribute(buildSteamMarketUrl(skin.steam_url, skin.name))}"
                                         target="_blank"
                                         rel="noopener noreferrer"
                                     >
@@ -4848,7 +4848,7 @@ function renderRadar() {
                                     <!-- BOTÓN PARA CELULAR -->
                                     <a
                                         class="button"
-                                href="${escapeAttribute((skin.steam_url || '').replace(/^steam:\/\/openurl\//, ''))}"
+                                href="${escapeAttribute(buildSteamMarketUrl(skin.steam_url, skin.name))}"
                                         target="_blank"
                                         rel="noopener noreferrer"
                                     >
@@ -6738,6 +6738,41 @@ function escapeAttribute(text) {
     return escapeHtml(text);
 }
 
+/* =========================================================
+   STEAM MARKET: FILTRO EXACTO POR VARIANTE
+   El mismo G... puede agrupar varias versiones; los filtros
+   se reconstruyen SIEMPRE desde el nombre completo de la skin.
+========================================================= */
+function buildSteamMarketUrl(baseUrl, skinName) {
+    const rawUrl = String(baseUrl || "").replace(/^steam:\/\/openurl\//i, "").trim();
+    const nombre = String(skinName || "").trim();
+    if (!rawUrl) return "";
+
+    // Esta función se aplica a URLs del nuevo Market con identificador G...
+    const matchGrupo = rawUrl.match(/(https?:\/\/steamcommunity\.com\/market\/listings\/730\/)(G[A-Za-z0-9]+)/i);
+    if (!matchGrupo) return rawUrl;
+
+    const stattrak = /\bStatTrak™?\s*/i.test(nombre);
+    const desgasteMatch = nombre.match(/\((Factory New|Minimal Wear|Field-Tested|Well-Worn|Battle-Scarred)\)\s*$/i);
+    const desgasteMap = {
+        "factory new": "WearCategory0",
+        "minimal wear": "WearCategory1",
+        "field-tested": "WearCategory2",
+        "well-worn": "WearCategory3",
+        "battle-scarred": "WearCategory4"
+    };
+    const desgaste = desgasteMatch
+        ? desgasteMap[desgasteMatch[1].toLowerCase()]
+        : null;
+
+    const parametros = [];
+    if (stattrak) parametros.push("category_Quality=strange");
+    if (desgaste) parametros.push("category_Exterior=" + desgaste);
+    parametros.push("appid=730", "sort=0", "dir=0");
+
+    return matchGrupo[1] + matchGrupo[2] + "?" + parametros.join("&");
+}
+
 
 /* =========================================================
    SKINS NOTIFICADAS
@@ -6778,12 +6813,12 @@ async function loadNotificadas() {
                 (item.steam_url.startsWith("steam://") || item.steam_url.startsWith("https://"))
                 ? item.steam_url
                 : "";
-            const openHref = link.replace(/^steam:\/\/openurl\//, "");
+            const openHref = buildSteamMarketUrl(link, item.name);
             const openLink = link
                 ? '<a class="notified-open" href="' + escapeAttribute(openHref) + '">↗ Abrir en Steam</a>'
                 : "";
             const mobileUrl = link
-                ? link.replace(/^steam:\/\/openurl\//, "")
+                ? buildSteamMarketUrl(link, item.name)
                 : "";
             const mobileLink = mobileUrl
                 ? '<a class="notified-open" href="' + escapeAttribute(mobileUrl) + '" target="_blank" rel="noopener noreferrer">📱 Ver en celular</a>'
@@ -7685,13 +7720,13 @@ function renderizarPreciosMaximos() {
                         </div>
                         <div style="display:flex; gap:7px; flex-wrap:wrap; margin-top:8px;">
                             <a
-                                href="${escapeAttribute(skinActual?.steam_url || ('steam://openurl/https://steamcommunity.com/market/listings/730/' + encodeURIComponent(nombre)))}"
+                                href="${escapeAttribute(buildSteamMarketUrl(skinActual?.steam_url || ('https://steamcommunity.com/market/listings/730/' + encodeURIComponent(nombre)), nombre))}"
                                 target="_blank"
                                 rel="noopener noreferrer"
                                 style="display:inline-flex; align-items:center; gap:5px; padding:6px 9px; border:1px solid var(--border); border-radius:7px; color:var(--text); text-decoration:none; font-size:12px; font-weight:600; white-space:nowrap;"
                             >🖥️ Abrir en Steam</a>
                             <a
-                                href="${escapeAttribute((skinActual?.steam_url || ('https://steamcommunity.com/market/listings/730/' + encodeURIComponent(nombre))).replace(/^steam:\/\/openurl\//, ''))}"
+                                href="${escapeAttribute(buildSteamMarketUrl(skinActual?.steam_url || ('https://steamcommunity.com/market/listings/730/' + encodeURIComponent(nombre)), nombre))}"
                                 target="_blank"
                                 rel="noopener noreferrer"
                                 style="display:inline-flex; align-items:center; gap:5px; padding:6px 9px; border:1px solid var(--border); border-radius:7px; color:var(--text); text-decoration:none; font-size:12px; font-weight:600; white-space:nowrap;"
