@@ -1957,9 +1957,20 @@ def preparar_historial_para_guardar(historial, intervalo_segundos=600):
 
 
 def _datos_skin_market(skin_name):
-    """Obtiene desgaste y calidad a partir del nombre completo de la skin."""
+    """Obtiene calidad de Market y desgaste a partir del nombre completo."""
     nombre = str(skin_name or "").strip()
     stattrak = bool(re.search(r"(?i)\bStatTrak™?\s*", nombre))
+    es_calidad_estrella = nombre.startswith("★")
+
+    if es_calidad_estrella and stattrak:
+        calidad = "unusual_strange"
+    elif es_calidad_estrella:
+        calidad = "unusual"
+    elif stattrak:
+        calidad = "strange"
+    else:
+        calidad = None
+
     wear_map = {
         "Factory New": "WearCategory0",
         "Minimal Wear": "WearCategory1",
@@ -1972,18 +1983,38 @@ def _datos_skin_market(skin_name):
         if nombre.endswith(f"({etiqueta})"):
             wear = codigo
             break
-    return stattrak, wear
+    return calidad, wear
+
+
+def _construir_url_steam_por_nombre(skin_name):
+    """Fallback seguro: conserva filtros aunque Steam redirija el nombre a G-ID."""
+    nombre = str(skin_name or "").strip()
+    if not nombre:
+        return None
+    calidad, wear = _datos_skin_market(nombre)
+    parametros = []
+    if calidad:
+        parametros.append(f"category_Quality={calidad}")
+    if wear:
+        parametros.append(f"category_Exterior={wear}")
+    parametros.extend(("appid=730", "sort=0", "dir=0"))
+    return (
+        "https://steamcommunity.com/market/listings/730/"
+        + requests.utils.quote(nombre, safe="")
+        + "?"
+        + "&".join(parametros)
+    )
 
 
 def construir_url_steam_market(skin_name, group_id):
-    """Construye el enlace nuevo conservando los filtros de StatTrak y desgaste."""
-    stattrak, wear = _datos_skin_market(skin_name)
+    """Construye el enlace G... conservando calidad y desgaste."""
+    calidad, wear = _datos_skin_market(skin_name)
     if not group_id or not re.fullmatch(r"G[A-Za-z0-9]{8,32}", str(group_id)):
         return None
 
     parametros = []
-    if stattrak:
-        parametros.append("category_Quality=strange")
+    if calidad:
+        parametros.append(f"category_Quality={calidad}")
     if wear:
         parametros.append(f"category_Exterior={wear}")
     parametros.extend(("appid=730", "sort=0", "dir=0"))
@@ -1994,7 +2025,6 @@ def construir_url_steam_market(skin_name, group_id):
         + "?"
         + "&".join(parametros)
     )
-
 
 def obtener_url_market_skin(skin_name, session=None, proxy=None):
     """
@@ -2100,10 +2130,7 @@ def obtener_url_steam_skin(skin_name, session=None, proxy=None):
     if url_nueva:
         return url_nueva
 
-    return (
-        "https://steamcommunity.com/market/listings/730/"
-        + requests.utils.quote(str(skin_name or ""), safe="")
-    )
+    return _construir_url_steam_por_nombre(skin_name)
 
 
 def obtener_url_steam_skin_cacheada(skin_name):
@@ -2114,10 +2141,7 @@ def obtener_url_steam_skin_cacheada(skin_name):
     url = construir_url_steam_market(skin_name, group_id)
     if url:
         return url
-    return (
-        "https://steamcommunity.com/market/listings/730/"
-        + requests.utils.quote(str(skin_name or ""), safe="")
-    )
+    return _construir_url_steam_por_nombre(skin_name)
 
 
 def guardar_estado(forzar=False):
