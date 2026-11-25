@@ -1607,6 +1607,11 @@ skins_a_vigilar = {
     
 }
 
+# Identificadores de grupos del nuevo Steam Market (G...).
+# Se mantienen separados de ITEM_NAME_IDS: son identificadores distintos.
+MARKET_GROUP_CACHE = {}
+MARKET_GROUP_CACHE_LOCK = threading.RLock()
+
 ITEM_NAME_IDS = {
     "★ StatTrak™ Falchion Knife | Autotronic (Minimal Wear)": 176263237,
     "★ StatTrak™ Bowie Knife | Autotronic (Minimal Wear)": 176263307,
@@ -1950,6 +1955,171 @@ def preparar_historial_para_guardar(historial, intervalo_segundos=600):
     return reducido
 
 
+
+def _datos_skin_market(skin_name):
+    """Obtiene desgaste y calidad a partir del nombre completo de la skin."""
+    nombre = str(skin_name or "").strip()
+    stattrak = bool(re.search(r"(?i)\bStatTrak™?\s*", nombre))
+    wear_map = {
+        "Factory New": "WearCategory0",
+        "Minimal Wear": "WearCategory1",
+        "Field-Tested": "WearCategory2",
+        "Well-Worn": "WearCategory3",
+        "Battle-Scarred": "WearCategory4",
+    }
+    wear = None
+    for etiqueta, codigo in wear_map.items():
+        if nombre.endswith(f"({etiqueta})"):
+            wear = codigo
+            break
+    return stattrak, wear
+
+
+def construir_url_steam_market(skin_name, group_id):
+    """Construye el enlace nuevo conservando los filtros de StatTrak y desgaste."""
+    stattrak, wear = _datos_skin_market(skin_name)
+    if not group_id or not re.fullmatch(r"G[A-Za-z0-9]{8,32}", str(group_id)):
+        return None
+
+    parametros = []
+    if stattrak:
+        parametros.append("category_Quality=strange")
+    if wear:
+        parametros.append(f"category_Exterior={wear}")
+    parametros.extend(("appid=730", "sort=0", "dir=0"))
+
+    return (
+        "https://steamcommunity.com/market/listings/730/"
+        + str(group_id)
+        + "?"
+        + "&".join(parametros)
+    )
+
+
+def obtener_url_market_skin(skin_name, session=None, proxy=None):
+    """
+    Resuelve el identificador G... desde la página de Steam y lo cachea.
+    Nunca confunde este identificador con ITEM_NAME_IDS.
+    """
+    nombre = str(skin_name or "").strip()
+    if not nombre:
+        return None
+
+    with MARKET_GROUP_CACHE_LOCK:
+        guardado = MARKET_GROUP_CACHE.get(nombre)
+        if isinstance(guardado, dict):
+            group_id = guardado.get("group_id")
+            url = construir_url_steam_market(nombre, group_id)
+            if url:
+                return url
+
+    try:
+        if session is None:
+            session = requests.Session()
+
+        url_nombre = (
+            "https://steamcommunity.com/market/listings/730/"
+            + requests.utils.quote(nombre, safe="")
+        )
+        proxies_request = None
+        if proxy:
+            proxies_request = {"http": proxy, "https": proxy}
+
+        respuesta = session.get(
+            url_nombre,
+            headers=get_headers(),
+            proxies=proxies_request,
+            timeout=18,
+            allow_redirects=True
+        )
+
+        if respuesta.status_code != 200:
+            print(
+                f"[STEAM LINK] No se pudo resolver G-ID para {nombre}: "
+                f"HTTP {respuesta.status_code}"
+            )
+            return None
+
+        group_id = None
+
+        # Steam puede devolver el identificador en la URL canónica.
+        match_url = re.search(
+            r"/market/listings/730/(G[A-Za-z0-9]{8,32})(?:[/?#]|$)",
+            str(respuesta.url)
+        )
+        if match_url:
+            group_id = match_url.group(1)
+
+        # Algunas respuestas conservan la URL por nombre y exponen el ID
+        # dentro del estado/datos de la página.
+        if not group_id:
+            patrones = (
+                r'"market_bucket_group_id"\s*:\s*"(G[A-Za-z0-9]{8,32})"',
+                r"'market_bucket_group_id'\s*:\s*'(G[A-Za-z0-9]{8,32})'",
+                r'market_bucket_group_id\\?"?\s*[:=]\s*\\?"?(G[A-Za-z0-9]{8,32})',
+            )
+            contenido = respuesta.text or ""
+            for patron in patrones:
+                encontrado = re.search(patron, contenido)
+                if encontrado:
+                    group_id = encontrado.group(1)
+                    break
+
+        if not group_id:
+            print(
+                f"[STEAM LINK] Steam no devolvió un G-ID reconocible "
+                f"para {nombre}. Se conserva el enlace clásico como respaldo."
+            )
+            return None
+
+        with MARKET_GROUP_CACHE_LOCK:
+            MARKET_GROUP_CACHE[nombre] = {
+                "group_id": group_id,
+                "updated_at": time.time()
+            }
+
+        # Guardado no forzado: respeta el mecanismo y los límites existentes.
+        try:
+            guardar_estado()
+        except Exception as error_guardado:
+            print(f"[STEAM LINK] No se pudo persistir la caché G-ID: {error_guardado}")
+
+        return construir_url_steam_market(nombre, group_id)
+
+    except Exception as error:
+        print(
+            f"[STEAM LINK] Error resolviendo G-ID para {nombre}: "
+            f"{type(error).__name__}: {error}"
+        )
+        return None
+
+
+def obtener_url_steam_skin(skin_name, session=None, proxy=None):
+    """Resuelve el G-ID (solo al detectar una oportunidad) y arma la URL."""
+    url_nueva = obtener_url_market_skin(skin_name, session=session, proxy=proxy)
+    if url_nueva:
+        return url_nueva
+
+    return (
+        "https://steamcommunity.com/market/listings/730/"
+        + requests.utils.quote(str(skin_name or ""), safe="")
+    )
+
+
+def obtener_url_steam_skin_cacheada(skin_name):
+    """Consulta únicamente la caché; nunca genera requests desde el dashboard."""
+    with MARKET_GROUP_CACHE_LOCK:
+        datos = MARKET_GROUP_CACHE.get(str(skin_name or "").strip(), {})
+        group_id = datos.get("group_id") if isinstance(datos, dict) else None
+    url = construir_url_steam_market(skin_name, group_id)
+    if url:
+        return url
+    return (
+        "https://steamcommunity.com/market/listings/730/"
+        + requests.utils.quote(str(skin_name or ""), safe="")
+    )
+
+
 def guardar_estado(forzar=False):
     """Guarda el estado de forma serializada y comunica el resultado."""
     with ESTADO_GUARDADO_LOCK:
@@ -2046,9 +2216,13 @@ def _guardar_estado_interno(forzar=False):
             historial_precios
         )
 
+        with MARKET_GROUP_CACHE_LOCK:
+            market_group_cache_guardada = copy.deepcopy(MARKET_GROUP_CACHE)
+
         estado = {
             "notificados": notificados,
             "historial_notificaciones": historial_notificaciones_guardadas,
+            "market_group_cache": market_group_cache_guardada,
             "historial_pausas_globales": copy.deepcopy(HISTORIAL_PAUSAS[-500:]),
             "stats_diarias": stats_diarias,
             "stats_proxies": stats_proxies_guardadas,
@@ -2350,6 +2524,27 @@ def cargar_estado():
             )
 
         notificados = estado.get("notificados", {})
+
+        # Caché independiente de identificadores G... del nuevo Market.
+        # No se mezcla ni modifica ITEM_NAME_IDS.
+        cache_grupos_guardada = estado.get("market_group_cache", {})
+        if isinstance(cache_grupos_guardada, dict):
+            with MARKET_GROUP_CACHE_LOCK:
+                MARKET_GROUP_CACHE.clear()
+                for nombre_cache, datos_cache in cache_grupos_guardada.items():
+                    if (
+                        isinstance(nombre_cache, str)
+                        and isinstance(datos_cache, dict)
+                        and re.fullmatch(
+                            r"G[A-Za-z0-9]{8,32}",
+                            str(datos_cache.get("group_id", ""))
+                        )
+                    ):
+                        MARKET_GROUP_CACHE[nombre_cache] = {
+                            "group_id": str(datos_cache["group_id"]),
+                            "updated_at": float(datos_cache.get("updated_at", 0) or 0)
+                        }
+
 
         inventario_guardado = estado.get("inventario_skins", [])
         ventas_guardadas = estado.get("registro_ventas", [])
@@ -3858,13 +4053,7 @@ def api_skins():
             except (ValueError, TypeError):
                 precio = None
 
-        steam_url = (
-            "steam://openurl/https://steamcommunity.com/market/listings/730/"
-            + requests.utils.quote(
-                datos.get("name", skin_name),
-                safe=""
-            )
-        )
+        steam_url = obtener_url_steam_skin_cacheada(skin_name)
 
         resultado.append({
             "name": skin_name,
@@ -3937,6 +4126,18 @@ def api_notificaciones():
             and float(item.get("timestamp", 0) or 0) >= limite
         ]
         resultado = [dict(item) for item in historial_notificaciones]
+
+    # Las notificaciones históricas también aprovechan la caché nueva.
+    with MARKET_GROUP_CACHE_LOCK:
+        for item in resultado:
+            url_cacheada = construir_url_steam_market(
+                item.get("name", ""),
+                (MARKET_GROUP_CACHE.get(item.get("name", ""), {}) or {}).get("group_id")
+                if isinstance(MARKET_GROUP_CACHE.get(item.get("name", ""), {}), dict)
+                else None
+            )
+            if url_cacheada:
+                item["steam_url"] = url_cacheada
 
     resultado.sort(
         key=lambda item: float(item.get("timestamp", 0) or 0),
@@ -6718,9 +6919,10 @@ def _worker_run(grupo_skins, worker_id):
                     != round(ultima_alerta_numero, 2)
                 )
             ):
-                steam_url = (
-                    "steam://openurl/https://steamcommunity.com/market/listings/730/"
-                    + requests.utils.quote(nombre_real, safe='')
+                steam_url = obtener_url_steam_skin(
+                    nombre_real,
+                    session=session,
+                    proxy=proxy
                 )
 
                 ahorro = precio_max - precio_actual
