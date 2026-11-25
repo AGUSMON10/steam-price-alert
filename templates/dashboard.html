@@ -4449,10 +4449,14 @@ function buildSteamMarketUrl(baseUrl, skinName, useSteamProtocol = false) {
 
     // Evitar parámetros viejos o duplicados: cada enlace queda completo.
     url.search = '';
-    if (isStatTrak) {
-        url.searchParams.set('category_Quality', 'strange');
+    // Steam distingue cuatro casos: normal, StatTrak, ★ y ★ StatTrak.
+    // Los cuchillos/guantes StatTrak usan unusual_strange, no strange.
+    if (isStarQuality && isStatTrak) {
+        url.searchParams.set('category_Quality', 'unusual_strange');
     } else if (isStarQuality) {
         url.searchParams.set('category_Quality', 'unusual');
+    } else if (isStatTrak) {
+        url.searchParams.set('category_Quality', 'strange');
     }
     if (wearMatch) {
         const wear = wearCategories[wearMatch[1].toLowerCase()];
@@ -4635,7 +4639,6 @@ function renderSkins() {
                             <a
                                 class="button"
                                 href="${escapeAttribute(buildSteamMarketUrl(skin.steam_url, skin.name, true))}"
-                                target="_blank"
                                 rel="noopener noreferrer"
                             >
                                 Ver en Steam ↗
@@ -4910,7 +4913,6 @@ function renderRadar() {
                                     <a
                                         class="button"
                                         href="${escapeAttribute(buildSteamMarketUrl(skin.steam_url, skin.name, true))}"
-                                        target="_blank"
                                         rel="noopener noreferrer"
                                     >
                                         🖥️ Ver en Steam
@@ -7753,7 +7755,6 @@ function renderizarPreciosMaximos() {
                         <div style="display:flex; gap:7px; flex-wrap:wrap; margin-top:8px;">
                             <a
                                 href="${escapeAttribute(buildSteamMarketUrl(skinActual?.steam_url, nombre, true))}"
-                                target="_blank"
                                 rel="noopener noreferrer"
                                 style="display:inline-flex; align-items:center; gap:5px; padding:6px 9px; border:1px solid var(--border); border-radius:7px; color:var(--text); text-decoration:none; font-size:12px; font-weight:600; white-space:nowrap;"
                             >🖥️ Abrir en Steam</a>
