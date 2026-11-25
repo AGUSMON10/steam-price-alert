@@ -1601,6 +1601,9 @@ skins_a_vigilar = {
     "★ Bowie Knife | Slaughter (Minimal Wear)": 170.00,
     "★ Classic Knife | Slaughter (Minimal Wear)": 165.00,
     "★ Talon Knife | Blue Steel (Field-Tested)": 303.00,
+    "★ M9 Bayonet | Blue Steel (Well-Worn)": 350.00,
+    "★ StatTrak™ M9 Bayonet | Crimson Web (Field-Tested)": 445.00,
+    "★ StatTrak™ M9 Bayonet | Crimson Web (Well-Worn)": 410.00,
     
 }
 
@@ -1665,6 +1668,9 @@ ITEM_NAME_IDS = {
     "★ Bowie Knife | Slaughter (Minimal Wear)": 139873671,
     "★ Classic Knife | Slaughter (Minimal Wear)": 176091983,
     "★ Talon Knife | Blue Steel (Field-Tested)": 176000970,
+    "★ M9 Bayonet | Blue Steel (Well-Worn)": 1340962,
+    "★ StatTrak™ M9 Bayonet | Crimson Web (Field-Tested)": 9868704,
+    "★ StatTrak™ M9 Bayonet | Crimson Web (Well-Worn)": 9685961,
 
 }
 
