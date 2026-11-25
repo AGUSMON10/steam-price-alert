@@ -4848,7 +4848,7 @@ function renderRadar() {
                                     <!-- BOTÓN PARA CELULAR -->
                                     <a
                                         class="button"
-                                href="https://steamcommunity.com/market/listings/730/${encodeURIComponent(skin.name)}"
+                                href="${escapeAttribute((skin.steam_url || '').replace(/^steam:\/\/openurl\//, ''))}"
                                         target="_blank"
                                         rel="noopener noreferrer"
                                     >
@@ -6774,14 +6774,18 @@ async function loadNotificadas() {
                     hour: "2-digit", minute: "2-digit"
                   })
                 : "Fecha no disponible";
-            const link = typeof item.steam_url === "string" && item.steam_url.startsWith("steam://")
+            const link = typeof item.steam_url === "string" &&
+                (item.steam_url.startsWith("steam://") || item.steam_url.startsWith("https://"))
                 ? item.steam_url
                 : "";
+            const openHref = link.replace(/^steam:\/\/openurl\//, "");
             const openLink = link
-                ? '<a class="notified-open" href="' + escapeAttribute(link) + '">↗ Abrir en Steam</a>'
+                ? '<a class="notified-open" href="' + escapeAttribute(openHref) + '">↗ Abrir en Steam</a>'
                 : "";
-            const mobileUrl = "https://steamcommunity.com/market/listings/730/" + encodeURIComponent(item.name || "");
-            const mobileLink = item.name
+            const mobileUrl = link
+                ? link.replace(/^steam:\/\/openurl\//, "")
+                : "";
+            const mobileLink = mobileUrl
                 ? '<a class="notified-open" href="' + escapeAttribute(mobileUrl) + '" target="_blank" rel="noopener noreferrer">📱 Ver en celular</a>'
                 : "";
 
@@ -7687,7 +7691,7 @@ function renderizarPreciosMaximos() {
                                 style="display:inline-flex; align-items:center; gap:5px; padding:6px 9px; border:1px solid var(--border); border-radius:7px; color:var(--text); text-decoration:none; font-size:12px; font-weight:600; white-space:nowrap;"
                             >🖥️ Abrir en Steam</a>
                             <a
-                                href="https://steamcommunity.com/market/listings/730/${encodeURIComponent(nombre)}"
+                                href="${escapeAttribute((skinActual?.steam_url || ('https://steamcommunity.com/market/listings/730/' + encodeURIComponent(nombre))).replace(/^steam:\/\/openurl\//, ''))}"
                                 target="_blank"
                                 rel="noopener noreferrer"
                                 style="display:inline-flex; align-items:center; gap:5px; padding:6px 9px; border:1px solid var(--border); border-radius:7px; color:var(--text); text-decoration:none; font-size:12px; font-weight:600; white-space:nowrap;"
