@@ -6952,6 +6952,21 @@ def _worker_run(grupo_skins, worker_id):
                 ahorro = precio_max - precio_actual
                 descuento = ahorro / precio_max
 
+                # Precio de Pedido de Compra devuelto por Steam.
+                # Ya viene incluido en resultado y puede provenir de la caché.
+                buy_order_price = resultado.get("buy_price")
+                try:
+                    buy_order_price = float(buy_order_price)
+                except (TypeError, ValueError):
+                    buy_order_price = None
+
+                if buy_order_price is not None and buy_order_price > 0:
+                    buy_order_text = (
+                        f"🛍️ Pedido de Compra: {buy_order_price:.2f} USD"
+                    )
+                else:
+                    buy_order_text = "🛍️ Pedido de Compra: No disponible"
+
                 # =========================
                 # PRIMERA ALERTA
                 # =========================
@@ -6961,6 +6976,7 @@ def _worker_run(grupo_skins, worker_id):
                     f"{skin_name}\n"
                     f"{steam_url}\n"
                     f"💵 {precio_actual:.2f} USD\n"
+                    f"{buy_order_text}\n"
                     f"📉 Máx {precio_max:.2f} USD\n"
                     f"💰 Ahorrás {ahorro:.2f} USD "
                     f"({descuento * 100:.1f}%)"
@@ -7013,6 +7029,7 @@ def _worker_run(grupo_skins, worker_id):
                         f"{skin_name}\n"
                         f"{steam_url}\n"
                         f"💵 {precio_actual:.2f} USD\n"
+                        f"{buy_order_text}\n"
                         f"📉 Máx {precio_max:.2f} USD\n"
                         f"💰 Ahorrás {ahorro:.2f} USD "
                         f"({descuento * 100:.1f}%)"
