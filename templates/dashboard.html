@@ -4449,14 +4449,12 @@ function buildSteamMarketUrl(baseUrl, skinName, useSteamProtocol = false) {
 
     // Evitar parámetros viejos o duplicados: cada enlace queda completo.
     url.search = '';
-    // Steam distingue cuatro casos: normal, StatTrak, ★ y ★ StatTrak.
-    // Los cuchillos/guantes StatTrak usan unusual_strange, no strange.
-    if (isStarQuality && isStatTrak) {
-        url.searchParams.set('category_Quality', 'unusual_strange');
+    // StatTrak siempre usa "strange", incluso en cuchillos/guantes ★.
+    // Las skins ★ sin StatTrak usan "unusual".
+    if (isStatTrak) {
+        url.searchParams.set('category_Quality', 'strange');
     } else if (isStarQuality) {
         url.searchParams.set('category_Quality', 'unusual');
-    } else if (isStatTrak) {
-        url.searchParams.set('category_Quality', 'strange');
     }
     if (wearMatch) {
         const wear = wearCategories[wearMatch[1].toLowerCase()];
